@@ -78,7 +78,9 @@ loadServices();
 async function loadBarbers() {
     const container = document.getElementById("team-container");
 
+
     if (!container) return;
+
 
     // Panatilihin ang existing barber photos.
     const barberImages = [
@@ -144,6 +146,7 @@ async function loadBarbers() {
             "<p>Unable to load barbers. Please refresh the page.</p>";
     }
 }
+
 
 loadBarbers();
 

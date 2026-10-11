@@ -1,35 +1,6 @@
 
-let serviceCatalog = {};
-
+const serviceCatalog = new Map();
 const serviceSelect = document.getElementById("service");
-
-fetch("http://localhost:5000/api/services")
-.then(res => res.json())
-.then(services => {
-
-    serviceSelect.innerHTML = 
-    `<option value="">Select a service</option>`;
-
-    services.forEach(service => {
-
-        serviceCatalog[service.name] = {
-            price: service.price
-        };
-
-        serviceSelect.innerHTML += `
-            <option value="${service.name}">
-                ${service.name} - ₱${service.price}
-            </option>
-        `;
-
-    });
-
-    updateReservationSummary();
-
-})
-.catch(error=>{
-    console.log("Service loading error:", error);
-});
 
 const barbers = [
     "Mia Jose Silva",
@@ -83,7 +54,7 @@ function updateReservationSummary(){
 
     const selectedService = serviceSelect.value;
 
-    const details = serviceCatalog[selectedService];
+    const details = serviceCatalog.get(selectedService);
 
 
     if(!selectedService || !details){   
@@ -113,26 +84,80 @@ function updateReservationSummary(){
 
 
 
-// LOAD SERVICE FROM URL
-
-const requestedService = new URLSearchParams(window.location.search)
-.get("service");
-
-
-if(requestedService && serviceCatalog[requestedService]){
-
-    serviceSelect.value = requestedService;
-
-}
-
-
 serviceSelect.addEventListener(
 "change",
 updateReservationSummary
 );
 
+async function loadServices() {
+    try {
+        const response = await fetch("http://localhost:5000/api/services");
+
+        if (!response.ok) {
+            throw new Error(`Service request failed (${response.status})`);
+        }
+
+        const services = await response.json();
+
+        if (!Array.isArray(services)) {
+            throw new Error("The service API returned an invalid response.");
+        }
+
+        serviceSelect.replaceChildren(new Option("Select a service", ""));
+        serviceCatalog.clear();
+
+        services.forEach((service) => {
+            if (!service || typeof service.name !== "string" || !service.name.trim()) {
+                return;
+            }
+
+            const name = service.name.trim();
+            const price = Number(service.price);
+
+            serviceCatalog.set(name, {
+                price: Number.isFinite(price) ? price : 0
+            });
+
+            serviceSelect.add(new Option(
+                `${name} - ₱${Number.isFinite(price) ? price : 0}`,
+                name
+            ));
+        });
+
+        if (serviceCatalog.size === 0) {
+            serviceSelect.replaceChildren(new Option("No services available", ""));
+            summaryMessage.textContent = "There are no services available to book right now.";
+            summaryMessage.hidden = false;
+            summaryDetails.hidden = true;
+            return;
+        }
+
+        const requestedService = new URLSearchParams(window.location.search)
+            .get("service");
+        const matchingService = [...serviceSelect.options].find((option) =>
+            option.value.trim().toLocaleLowerCase() ===
+            (requestedService || "").trim().toLocaleLowerCase()
+        );
+
+        if (matchingService) {
+            serviceSelect.value = matchingService.value;
+        }
+
+        updateReservationSummary();
+    } catch (error) {
+        console.error("Service loading error:", error);
+        serviceSelect.replaceChildren(
+            new Option("Services unavailable — check server and refresh", "")
+        );
+        summaryMessage.textContent =
+            "Unable to load services. Make sure the backend server and database are running, then refresh this page.";
+        summaryMessage.hidden = false;
+        summaryDetails.hidden = true;
+    }
+}
 
 updateReservationSummary();
+loadServices();
 
 
 

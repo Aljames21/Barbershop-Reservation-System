@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Received</title>
+    <link rel="stylesheet" href="appointment-confirmation.css">
+</head>
+<body class="email-body">
+    <table class="email-outer" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+            <td align="center">
+                <table class="email-container" role="presentation" width="600" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td class="email-header">
+                            <p class="email-brand">
+                                SAÑADO'S BARBERSHOP
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="email-content">
+                            <p class="email-kicker">
+                                APPOINTMENT CONFIRMED
+                            </p>
+                            <h1 class="email-greeting">
+                                Thank you, {{customerName}}.
+                            </h1>
+                            <p class="email-intro">
+                                Your appointment has been confirmed. We look forwward to seeing you at Sañado's Barbershop. Below are the details of your appointment:
+                            </p>
+                            <table class="email-appointment-card" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td class="email-appointment-content">
+                                        <p class="email-appointment-label">
+                                            YOUR APPOINTMENT
+                                        </p>
+                                        <p class="email-appointment-date">
+                                            {{date}}
+                                        </p>
+                                        <p class="email-appointment-time">
+                                            {{time}}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table class="email-details" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td class="email-detail-label">SERVICE</td>
+                                    <td class="email-detail-value" align="right">{{service}}</td>
+                                </tr>
+                                <tr>
+                                    <td class="email-detail-label">BARBER</td>
+                                    <td class="email-detail-value" align="right">{{barber}}</td>
+                                </tr>
+                                <tr>
+                                    <td class="email-detail-label">PRICE</td>
+                                    <td class="email-detail-value" align="right">{{price}}</td>
+                                </tr>
+                            </table>
+                            <div class="email-manage-section">
+                                {{manageBookingButton}}
+                            </div>
+                            <p class="email-footer">
+                                Thank you for choosing Sañado's Barbershop.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
