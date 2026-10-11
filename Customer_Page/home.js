@@ -112,11 +112,12 @@ async function loadBarbers() {
                 [barber.firstName, barber.lastName].filter(Boolean).join(" ") ||
                 "Barber";
 
+            
             const position = barber.position || "Barber Specialist";
             const description =
-                barber.description ||
-                barber.specialty ||
-                "Professional haircut services.";
+                barber.specialization || barber.description ||
+                barber.specialty || "Professional haircut services.";
+
 
             const image = barber.image || barberImages[index % barberImages.length];
             const cardClass = `barber-${(index % 3) + 1}`;

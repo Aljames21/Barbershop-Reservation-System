@@ -131,47 +131,47 @@ const manageBookingButton = manageBookingUrl
     </p>`;
 
 console.log("Sending email to:", saved.contactNumber);
-await transporter.sendMail({
+try {
+    await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: saved.contactNumber,
+        subject: "Sañado's Barbershop — Appointment Received",
 
-    from:process.env.EMAIL_USER,
+        text:
+            `Hi ${saved.customerName || "there"},\n\n` +
+            "We have received your appointment request at Sañado's Barbershop.\n\n" +
+            `Service: ${saved.service || "Appointment"}\n` +
+            `Date: ${saved.date || "To be determined"}\n` +
+            `Time: ${saved.time || "To be determined"}\n` +
+            `Barber: ${saved.barber || "To be assigned"}\n` +
+            `Price: ${price}\n\n` +
+            (manageBookingUrl
+                ? `Manage this booking: ${manageBookingUrl}\n\n`
+                : "") +
+            "Thank you for choosing Sañado's Barbershop.",
 
-    to:saved.contactNumber,
+        html: juice(
+            renderAppointmentEmail({
+                customerName,
+                service,
+                barber,
+                date,
+                time,
+                price: escapeHtml(price),
+                manageBookingButton
+            }).replace(
+                '<link rel="stylesheet" href="appointment-confirmation.css">',
+                ""
+            ),
+            { extraCss: appointmentEmailCss }
+        )
+    });
 
-    subject:"Sañado's Barbershop — Appointment Received",
-
-    text:
-        `Hi ${saved.customerName || "there"},\n\n` +
-        "We have received your appointment request at Sañado's Barbershop.\n\n" +
-        `Service: ${saved.service || "Appointment"}\n` +
-        `Date: ${saved.date || "To be determined"}\n` +
-        `Time: ${saved.time || "To be determined"}\n` +
-        `Barber: ${saved.barber || "To be assigned"}\n` +
-        `Price: ${price}\n\n` +
-        (manageBookingUrl
-            ? `Need to make changes?\n` +
-                "Manage or cancel your appointment using the link below:\n" +
-                `Manage this booking: ${manageBookingUrl}\n\n`
-            : "") +
-        "Thank you for choosing Sañado's Barbershop.",
-
-    html: juice(
-        renderAppointmentEmail({
-            customerName,
-            service,
-            barber,
-            date,
-            time,
-            price: escapeHtml(price),
-            manageBookingButton
-        }).replace(
-            '<link rel="stylesheet" href="appointment-confirmation.css">',
-            ""
-        ),
-        { extraCss: appointmentEmailCss }
-    )
-});
-
-console.log("Email sent!");
+    console.log("Email sent!");
+} catch (emailError) {
+    // Hindi dapat ituring na failed ang booking kung email lang ang pumalya.
+    console.error("Appointment saved, but email failed:", emailError);
+}
 
 
 res.json(saved);

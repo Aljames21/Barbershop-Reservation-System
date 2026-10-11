@@ -2,11 +2,11 @@
 const serviceCatalog = new Map();
 const serviceSelect = document.getElementById("service");
 
-const barbers = [
-    "Mia Jose Silva",
-    "Leo Ramos Cruz",
-    "Ian Dizon"
-];
+const API_URL = "https://barbershop-reservation-system.onrender.com/api";
+
+
+let barbers = [];
+let selectedBarber = "";
 
 
 const form = document.getElementById("booking-form");
@@ -21,33 +21,50 @@ const barberDisplay = document.getElementById("barber-selection");
 const barberName = document.getElementById("selected-barber");
 
 
-// GET BARBER FROM URL
+ // GET BARBER FROM URL
 const requestedBarber = new URLSearchParams(window.location.search)
-.get("barber");
+    .get("barber");
 
+async function loadBarbers() {
+    try {
+        const response = await fetch(`${API_URL}/barbers`);
 
-const selectedBarber = barbers.includes(requestedBarber)
-    ? requestedBarber
-    : "";
+        if (!response.ok) {
+            throw new Error(`Barber request failed (${response.status})`);
+        }
 
+        const data = await response.json();
 
-const today = new Date();
+        if (!Array.isArray(data)) {
+            throw new Error("The barber API returned an invalid response.");
+        }
 
-today.setMinutes(
-    today.getMinutes() - today.getTimezoneOffset()
-);
+        // Kunin ang mga pangalan mula sa backend
+        barbers = data
+            .map((barber) => barber?.name?.trim())
+            .filter(Boolean);
 
-dateInput.min = today.toISOString().slice(0,10);
+        // Tanggapin lamang ang barber name na nasa database
+        selectedBarber = barbers.find(
+            (name) =>
+                name.toLocaleLowerCase() ===
+                (requestedBarber || "").trim().toLocaleLowerCase()
+        ) || "";
 
+        // Ipakita ang barber kung may valid na preselection
+        if (selectedBarber) {
+            barberName.textContent = selectedBarber;
+            barberDisplay.hidden = false;
+        } else {
+            barberDisplay.hidden = true;
+        }
 
-
-if(selectedBarber){
-
-    barberName.textContent = selectedBarber;
-    barberDisplay.hidden = false;
-
+    } catch (error) {
+        console.error("Barber loading error:", error);
+        selectedBarber = "";
+        barberDisplay.hidden = true;
+    }
 }
-
 
 
 function updateReservationSummary(){
@@ -91,7 +108,7 @@ updateReservationSummary
 
 async function loadServices() {
     try {
-        const response = await fetch("http://localhost:5000/api/services");
+        const response = await fetch(`${API_URL}/services`);
 
         if (!response.ok) {
             throw new Error(`Service request failed (${response.status})`);
@@ -158,7 +175,7 @@ async function loadServices() {
 
 updateReservationSummary();
 loadServices();
-
+loadBarbers();
 
 
 
@@ -222,15 +239,25 @@ form.addEventListener("submit", function(event){
     console.log("Sending:", reservation);
     // SEND TO MONGODB
 
-    fetch("http://localhost:5000/api/appointments",{
+    fetch(`${API_URL}/appointments`,{
         method:"POST",
         headers:{
             "Content-Type":"application/json"
         },
         body:JSON.stringify(reservation)
     })
-    .then(res=>res.json())
-   .then(data=>{
+    .then(async (res) => {
+    const data = await res.json();
+
+    if (!res.ok || !data._id) {
+        throw new Error(
+            data.message || "Unable to save appointment."
+        );
+    }
+
+    return data;
+})
+    .then(data=>{
 
     console.log("Saved:", data);
 
@@ -255,8 +282,8 @@ form.addEventListener("submit", function(event){
 })
 
     .catch(error=>{
-        console.log("Error:",error);
-        
+        console.error("Booking error:", error);
+        alert("Unable to save your appointment. Please try again.");
     });
 
 });
