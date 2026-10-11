@@ -3,7 +3,8 @@ const router = express.Router();
 const fs = require("fs");
 const path = require("path");
 const juice = require("juice");
-const transporter = require("../email");
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 const Appointment = require("../Models/Appointment");
 const verifyAdmin = require("../Middleware/authMiddleware");
 const appointmentEmailTemplate = fs.readFileSync(
@@ -109,7 +110,7 @@ let manageBookingUrl = "";
 
 if (appBaseUrl) {
     manageBookingUrl = new URL(
-        `manage_booking.html?id=${encodeURIComponent(saved._id)}`,
+        `Customer_Page/manage_booking.html?id=${encodeURIComponent(saved._id)}`,
         appBaseUrl
     ).toString();
 } else {
@@ -131,13 +132,13 @@ const manageBookingButton = manageBookingUrl
     </p>`;
 
 console.log("Sending email to:", saved.contactNumber);
-await transporter.sendMail({
-
-    from:process.env.EMAIL_USER,
-
-    to:saved.contactNumber,
-
-    subject:"Sañado's Barbershop — Appointment Received",
+try {
+    
+    
+const { data, error } = await resend.emails.send({
+    from: "Sañado's Barbershop <onboarding@resend.dev>",
+    to: [saved.contactNumber],
+    subject: "Sañado's Barbershop — Appointment Received",
 
     text:
         `Hi ${saved.customerName || "there"},\n\n` +
@@ -148,9 +149,7 @@ await transporter.sendMail({
         `Barber: ${saved.barber || "To be assigned"}\n` +
         `Price: ${price}\n\n` +
         (manageBookingUrl
-            ? `Need to make changes?\n` +
-                "Manage or cancel your appointment using the link below:\n" +
-                `Manage this booking: ${manageBookingUrl}\n\n`
+            ? `Manage this booking: ${manageBookingUrl}\n\n`
             : "") +
         "Thank you for choosing Sañado's Barbershop.",
 
@@ -171,19 +170,28 @@ await transporter.sendMail({
     )
 });
 
-console.log("Email sent!");
+if (error) {
+    throw new Error(error.message || "Email sending failed.");
+}
+
+console.log("Email sent through Resend:", data?.id);
+
+
+} catch (emailError) {
+    // Hindi dapat ituring na failed ang booking kung email lang ang pumalya.
+    console.error("Appointment saved, but email failed:", emailError);
+}
 
 
 res.json(saved);
 
 
-}catch(error){
-    
-console.log(error);
-res.status(500).json({
-message:error.message
-});
+} catch (error) {
+    console.error("Appointment creation error:", error);
 
+    res.status(500).json({
+        message: error.message
+    });
 }
 
 });

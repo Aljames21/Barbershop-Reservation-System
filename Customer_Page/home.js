@@ -15,64 +15,139 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
     });
 });
 
+
+const API_URL = "https://barbershop-reservation-system.onrender.com/api";
+
 // GET SERVICES FROM MONGODB
-
-fetch("http://localhost:5000/api/services")
-
-.then(response => response.json())
-
-.then(services => {
-
+async function loadServices() {
     const container = document.getElementById("service-container");
 
+    if (!container) return;
 
-    services.forEach(service => {
+    try {
+        const response = await fetch(`${API_URL}/services`);
 
-        container.innerHTML += `
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
 
-        <div class="card">
+        const services = await response.json();
 
-            <article class="haircut-1">
+        if (!Array.isArray(services) || services.length === 0) {
+            container.innerHTML = "<p>No services available right now.</p>";
+            return;
+        }
 
-                <div>
+        container.innerHTML = services.map((service, index) => {
+            const cardClass = `haircut-${(index % 8) + 1}`;
 
-                    <h3>${service.name}</h3>
+            return `
+                <div class="card">
+                    <article class="${cardClass}">
+                        <div>
+                            <h3>${service.name}</h3>
+                            <p>${service.description || ""}</p>
+                        </div>
 
-                    <p>
-                    ${service.description}
-                    </p>
-
+                        <div>
+                            <p class="price">
+                                Starting at <span>₱${service.price}</span>
+                            </p>
+                            <a href="booking.html?service=${encodeURIComponent(service.name)}">
+                                Book <span>Now</span>
+                            </a>
+                        </div>
+                    </article>
                 </div>
+            `;
+        }).join("");
+
+    } catch (error) {
+        console.error("Error loading services:", error);
+        container.innerHTML =
+            "<p>Unable to load services. Please refresh the page.</p>";
+    }
+}
+
+loadServices();
 
 
-                <div>
 
-                    <p class="price">
-                    Starting at 
-                    <span>₱${service.price}</span>
-                    </p>
+/* ===== LOAD BARBERS FROM MONGODB ===== */
+
+async function loadBarbers() {
+    const container = document.getElementById("team-container");
 
 
-                    <a href="booking.html?service=${encodeURIComponent(service.name)}">
-                    Book <span>Now</span>
-                    </a>
+    if (!container) return;
 
+
+    // Panatilihin ang existing barber photos.
+    const barberImages = [
+        "images/staff1.jpg",
+        "images/staff2.jpg",
+        "images/staff3.jpg"
+    ];
+
+    try {
+        const response = await fetch(
+            "https://barbershop-reservation-system.onrender.com/api/barbers"
+        );
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const barbers = await response.json();
+
+        if (!Array.isArray(barbers) || barbers.length === 0) {
+            container.innerHTML = "<p>No barbers available right now.</p>";
+            return;
+        }
+
+        container.innerHTML = barbers.map((barber, index) => {
+            const barberName =
+                barber.name ||
+                barber.fullName ||
+                [barber.firstName, barber.lastName].filter(Boolean).join(" ") ||
+                "Barber";
+
+            
+            const position = barber.position || "Barber Specialist";
+            const description =
+                barber.specialization || barber.description ||
+                barber.specialty || "Professional haircut services.";
+
+
+            const image = barber.image || barberImages[index % barberImages.length];
+            const cardClass = `barber-${(index % 3) + 1}`;
+
+            return `
+                <div class="${cardClass}">
+                    <div class="barber-pic">
+                        <img src="${image}" alt="${barberName}"
+                             onerror="this.onerror=null;this.src='images/staff1.jpg';">
+                    </div>
+
+                    <div class="barber-info">
+                        <h3>${barberName}</h3>
+                        <p class="position">${position}</p>
+                        <p class="details">${description}</p>
+                    </div>
+
+                    <a href="booking.html?barber=${encodeURIComponent(barberName)}"
+                       class="btn-1">Book Now</a>
                 </div>
+            `;
+        }).join("");
 
-            </article>
+    } catch (error) {
+        console.error("Error loading barbers:", error);
+        container.innerHTML =
+            "<p>Unable to load barbers. Please refresh the page.</p>";
+    }
+}
 
-        </div>
 
-        `;
-
-    });
-
-
-})
-
-.catch(error => {
-
-    console.log("Error loading services:", error);
-
-});
+loadBarbers();
 
