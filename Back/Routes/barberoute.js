@@ -7,24 +7,22 @@ const verifyAdmin = require("../Middleware/authMiddleware");
 
 // GET ALL BARBERS
 
-router.get("/", verifyAdmin, async(req,res)=>{
 
-    try{
-
-        const barbers = await Barber.find();
+/* PUBLIC: GET BARBERS FOR CUSTOMER HOMEPAGE */
+router.get("/", async (req, res) => {
+    try {
+        const barbers = await Barber.find()
+            .select("name specialization status");
 
         res.json(barbers);
-
-
-    }catch(error){
-
+    } catch (error) {
+        console.error("Error loading barbers:", error.message);
         res.status(500).json({
-            message:error.message
+            message: "Unable to load barbers."
         });
-
     }
-
 });
+
 
 
 // ADD BARBER
