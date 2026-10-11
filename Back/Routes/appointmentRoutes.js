@@ -110,7 +110,7 @@ let manageBookingUrl = "";
 
 if (appBaseUrl) {
     manageBookingUrl = new URL(
-        `manage_booking.html?id=${encodeURIComponent(saved._id)}`,
+        `Customer_Page/manage_booking.html?id=${encodeURIComponent(saved._id)}`,
         appBaseUrl
     ).toString();
 } else {
