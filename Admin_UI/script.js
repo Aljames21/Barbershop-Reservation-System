@@ -39,51 +39,8 @@ async function apiFetch(url, options = {}) {
 
 }
 
-/* ===== Data (saved in this browser with localStorage) ===== */
-function localStr(d) {
-  const p = n => String(n).padStart(2, "0");
-  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes());
-}
-function at(days, h, m = 0) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  d.setHours(h, m, 0, 0);
-  return localStr(d);
-}
-function seed() {
-  const N = "No preference";
-  return {
-    staffs: [
-      { id: 1, name: "Jun Santos", role: "Senior barber", phone: "0917 000 0001", schedule: "Mon-Sat" },
-      { id: 2, name: "Ben Lopez", role: "Barber", phone: "0917 000 0002", schedule: "Tue-Sun" },
-      { id: 3, name: "Ella Ramos", role: "Receptionist", phone: "0917 000 0003", schedule: "Mon-Fri" }
-    ],
-    clients: [
-      { id: 1, name: "Mark Reyes", phone: "0918 000 1111", staff: "Jun Santos" },
-      { id: 2, name: "Paolo Cruz", phone: "0918 000 2222", staff: "Ben Lopez" },
-      { id: 3, name: "Ian Dizon", phone: "0918 000 3333", staff: N },
-      { id: 4, name: "Carlo Mendoza", phone: "0918 000 4444", staff: "Jun Santos" }
-    ],
-    appointments: [
-      { id: 1, client: "Mark Reyes", service: "Haircut", staff: "Jun Santos", price: 250, date: at(0, 14), status: "Pending" },
-      { id: 2, client: "Paolo Cruz", service: "Haircut + beard", staff: "Ben Lopez", price: 400, date: at(0, 15, 30), status: "Pending" },
-      { id: 3, client: "Ian Dizon", service: "Shave", staff: N, price: 200, date: at(1, 10), status: "Confirmed" },
-      { id: 4, client: "Carlo Mendoza", service: "Hair color", staff: "Jun Santos", price: 900, date: at(1, 13), status: "Confirmed" },
-      { id: 5, client: "Mark Reyes", service: "Haircut", staff: "Jun Santos", price: 250, date: at(0, 8), status: "Completed" },
-      { id: 6, client: "Ian Dizon", service: "Haircut + beard", staff: "Ben Lopez", price: 400, date: at(0, 9), status: "Completed" },
-      { id: 7, client: "Paolo Cruz", service: "Haircut", staff: "Ben Lopez", price: 250, date: at(0, 10), status: "Completed" },
-      { id: 8, client: "Carlo Mendoza", service: "Haircut", staff: "Jun Santos", price: 250, date: at(-2, 16), status: "Completed" },
-      { id: 9, client: "Mark Reyes", service: "Haircut + beard", staff: "Jun Santos", price: 400, date: at(-9, 11), status: "Completed" },
-      { id: 10, client: "Paolo Cruz", service: "Hair color", staff: "Ben Lopez", price: 900, date: at(-20, 15), status: "Completed" }
-    ]
-  };
-}
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
-function load() {
-  let d = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-  if (!d) { d = seed(); localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
-  return d;
-}
+
+
 let data = load();
 
 async function loadAppointments(){
@@ -281,16 +238,69 @@ function start() {
   const add = document.getElementById("add-btn");
   if (add) add.onclick = () => ({ staffs: staffForm, clients: clientForm })[page]?.();
 
-  document.addEventListener("click", e => {
+  document.addEventListener("click", async e => {
     const b = e.target.closest("[data-action]");
     if (!b) return;
-    const id = Number(b.dataset.id), act = b.dataset.action;
-    const a = data.appointments.find(x => x.id === id);
-    if (["accept", "decline", "cancel", "complete"].includes(act) && !a) return;
-    if (act === "accept") a.status = "Confirmed";
-    else if (act === "decline" || act === "cancel") a.status = "Cancelled";
-    else if (act === "complete") a.status = "Completed";
-    else if (act === "edit-staff") return staffForm(data.staffs.find(s => s.id === id));
+
+const id = b.dataset.id, act = b.dataset.action;
+
+const a = data.appointments.find(
+    x => String(x._id || x.id) === String(id)
+);
+
+if (["accept", "decline", "cancel", "complete"].includes(act)) {
+    if (!a) {
+        alert("Appointment not found.");
+        return;
+    }
+
+    const newStatus = {
+        accept: "Confirmed",
+        decline: "Cancelled",
+        cancel: "Cancelled",
+        complete: "Completed"
+    }[act];
+
+    b.disabled = true;
+
+    try {
+        const updated = await apiFetch(
+            `/appointments/${encodeURIComponent(id)}`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({
+                    status: newStatus
+                })
+            }
+        );
+
+        if (!updated || !updated._id) {
+            throw new Error(
+                updated?.message || "Failed to update appointment."
+            );
+        }
+
+        const index = data.appointments.findIndex(
+            x => String(x._id || x.id) === String(id)
+        );
+
+        if (index !== -1) {
+            data.appointments[index] = updated;
+        }
+
+        render();
+
+    } catch (error) {
+        console.error("Appointment status update error:", error);
+        alert(error.message || "Unable to update appointment.");
+        b.disabled = false;
+    }
+
+    return;
+}
+
+else if (act === "edit-staff") return staffForm(data.staffs.find(s => s.id === id));
+
     else if (act === "edit-client") return clientForm(data.clients.find(c => c.id === id));
     else if (act === "remove-staff") {
       if (!confirm("Remove this staff member?")) return;

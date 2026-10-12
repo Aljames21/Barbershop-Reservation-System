@@ -33,6 +33,35 @@ const editTime = document.getElementById("edit-time");
 let currentAppointment = null;
 
 
+function normalizeTime(value) {
+    if (!value) return "";
+
+    const time = value.trim().toUpperCase();
+    const match = time.match(
+        /^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/
+    );
+
+    if (!match) return "";
+
+    let hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const period = match[3];
+
+    if (minutes > 59 || hours > 23) return "";
+
+    if (period) {
+        if (hours < 1 || hours > 12) return "";
+        if (period === "AM" && hours === 12) hours = 0;
+        else if (period === "PM" && hours !== 12) hours += 12;
+    }
+
+    if (hours < 8 || hours > 20) return "";
+    if (hours === 20 && minutes > 0) return "";
+
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+
 // ===============================
 // MESSAGE
 // ===============================
@@ -210,8 +239,7 @@ function renderAppointment(appointment){
         appointment.date || "";
 
 
-    editTime.value =
-        appointment.time || "";
+    editTime.value = normalizeTime(appointment.time);
 
 
 
@@ -504,6 +532,31 @@ changeTimeForm.addEventListener(
 async(e)=>{
 
     e.preventDefault();
+
+    
+const today = new Date();
+today.setMinutes(
+    today.getMinutes() - today.getTimezoneOffset()
+);
+const todayString = today.toISOString().slice(0, 10);
+
+if (!editDate.value || editDate.value < todayString) {
+    showMessage("Past dates are not allowed.", "error");
+    return;
+}
+
+const selectedTime = normalizeTime(editTime.value);
+
+if (!selectedTime) {
+    showMessage(
+        "Please select a time between 8:00 AM and 8:00 PM.",
+        "error"
+    );
+    return;
+}
+
+editTime.value = selectedTime;
+
 
 
 

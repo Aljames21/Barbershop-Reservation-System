@@ -3,10 +3,84 @@ const router = express.Router();
 const fs = require("fs");
 const path = require("path");
 const juice = require("juice");
-const { Resend } = require("resend");
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = require("../email");
 const Appointment = require("../Models/Appointment");
 const verifyAdmin = require("../Middleware/authMiddleware");
+
+function validateAppointmentDateTime(dateValue, timeValue) {
+    // Require a valid YYYY-MM-DD date
+    if (
+        typeof dateValue !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)
+    ) {
+        return "Please provide a valid appointment date.";
+    }
+
+    const parsedDate = new Date(`${dateValue}T00:00:00.000Z`);
+
+    if (
+        Number.isNaN(parsedDate.getTime()) ||
+        parsedDate.toISOString().slice(0, 10) !== dateValue
+    ) {
+        return "Please provide a valid appointment date.";
+    }
+
+    // Use Philippine local date, not the Render server's timezone
+    const todayInPH = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Manila",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    }).format(new Date());
+
+    if (dateValue < todayInPH) {
+        return "Past dates are not allowed.";
+    }
+
+    // Accept either 24-hour time (13:00) or 12-hour time (01:00 PM)
+    if (typeof timeValue !== "string") {
+        return "Please select a time between 8:00 AM and 8:00 PM.";
+    }
+
+    const match = timeValue.trim().match(
+        /^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i
+    );
+
+    if (!match) {
+        return "Please select a valid appointment time.";
+    }
+
+    let hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const period = match[3]?.toUpperCase();
+
+    if (minutes > 59) {
+        return "Please select a valid appointment time.";
+    }
+
+    if (period) {
+        if (hours < 1 || hours > 12) {
+            return "Please select a valid appointment time.";
+        }
+
+        if (period === "AM" && hours === 12) {
+            hours = 0;
+        } else if (period === "PM" && hours !== 12) {
+            hours += 12;
+        }
+    } else if (hours > 23) {
+        return "Please select a valid appointment time.";
+    }
+
+    const totalMinutes = hours * 60 + minutes;
+
+    if (totalMinutes < 480 || totalMinutes > 1200) {
+        return "Appointments are only allowed between 8:00 AM and 8:00 PM.";
+    }
+
+    return null;
+}
+
 const appointmentEmailTemplate = fs.readFileSync(
     path.join(__dirname, "../Templates/appointment-confirmation.html"),
     "utf8"
@@ -96,10 +170,22 @@ if (customerAppUrl) {
     }
 }
 
+const dateTimeError = validateAppointmentDateTime(
+    req.body.date,
+    req.body.time
+);
+
+if (dateTimeError) {
+    return res.status(400).json({
+        message: dateTimeError
+    });
+}
+
 const appointment = new Appointment(req.body);
 
 
 const saved = await appointment.save();
+
 const customerName = escapeHtml(saved.customerName || "there");
 const service = escapeHtml(saved.service || "Appointment");
 const barber = escapeHtml(saved.barber || "To be assigned");
@@ -135,9 +221,10 @@ console.log("Sending email to:", saved.contactNumber);
 try {
     
     
-const { data, error } = await resend.emails.send({
-    from: "Sañado's Barbershop <onboarding@resend.dev>",
-    to: [saved.contactNumber],
+
+const info = await transporter.sendMail({
+    from: `"Sañado's Barbershop" <${process.env.EMAIL_USER}>`,
+    to: saved.contactNumber,
     subject: "Sañado's Barbershop — Appointment Received",
 
     text:
@@ -160,7 +247,7 @@ const { data, error } = await resend.emails.send({
             barber,
             date,
             time,
-            price: escapeHtml(price),
+            price: escapeHtml(price),   
             manageBookingButton
         }).replace(
             '<link rel="stylesheet" href="appointment-confirmation.css">',
@@ -170,11 +257,7 @@ const { data, error } = await resend.emails.send({
     )
 });
 
-if (error) {
-    throw new Error(error.message || "Email sending failed.");
-}
-
-console.log("Email sent through Resend:", data?.id);
+console.log("Booking confirmation sent:", info.messageId);
 
 
 } catch (emailError) {
@@ -218,6 +301,29 @@ router.put("/:id", async (req, res) => {
 
 router.patch("/:id", verifyAdmin, async(req,res)=>{
     try {
+        
+        const existingAppointment = await Appointment.findById(req.params.id);
+
+if (!existingAppointment) {
+    return res.status(404).json({
+        message: "Appointment not found"
+    });
+}
+
+const nextDate = req.body.date ?? existingAppointment.date;
+const nextTime = req.body.time ?? existingAppointment.time;
+
+const dateTimeError = validateAppointmentDateTime(
+    nextDate,
+    nextTime
+);
+
+if (dateTimeError) {
+    return res.status(400).json({
+        message: dateTimeError
+    });
+}
+
         const appointment = await Appointment.findByIdAndUpdate(
             req.params.id,
             req.body,

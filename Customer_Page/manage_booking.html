@@ -75,15 +75,36 @@
                     </select>
                 </div>
 
+                
+                
                 <div class="input-row">
                     <label for="edit-date">Date</label>
-                    <input id="edit-date" name="date" type="date" required>
+                    <div class="date-input-wrapper">
+                        <input id="edit-date" name="date" type="date" required>
+                    </div>
                 </div>
+
 
                 <div class="input-row">
                     <label for="edit-time">Time</label>
-                    <input id="edit-time" name="time" type="time" min="08:00" max="20:00" required>
+                    <select id="edit-time" name="time" required>
+                        <option value="">Select a time</option>
+                        <option value="08:00">08:00 AM</option>
+                        <option value="09:00">09:00 AM</option>
+                        <option value="10:00">10:00 AM</option>
+                        <option value="11:00">11:00 AM</option>
+                        <option value="12:00">12:00 PM</option>
+                        <option value="13:00">01:00 PM</option>
+                        <option value="14:00">02:00 PM</option>
+                        <option value="15:00">03:00 PM</option>
+                        <option value="16:00">04:00 PM</option>
+                        <option value="17:00">05:00 PM</option>
+                        <option value="18:00">06:00 PM</option>
+                        <option value="19:00">07:00 PM</option>
+                        <option value="20:00">08:00 PM</option>
+                    </select>
                 </div>
+
 
                 <div class="form-actions">
                     <button type="button" id="cancel-edit-btn" class="action-btn action-btn-light">Keep it</button>

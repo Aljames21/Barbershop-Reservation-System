@@ -48,3 +48,13 @@ app.get("/", (req,res)=>{
 app.listen(process.env.PORT,()=>{
     console.log(`Server running on port ${process.env.PORT}`);
 });
+
+const transporter = require("./email");
+
+transporter.verify((error) => {
+    if (error) {
+        console.error("Gmail connection failed:", error.message);
+    } else {
+        console.log("Gmail connected successfully!");
+    }
+});

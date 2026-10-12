@@ -332,3 +332,22 @@ body {
     text-align: left;
   }
 }
+
+
+.date-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.date-input-wrapper input[type="date"] {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    color-scheme: dark;
+    padding-right: 14px;
+}
+
+.date-input-wrapper .date-icon {
+    display: none;
+}
