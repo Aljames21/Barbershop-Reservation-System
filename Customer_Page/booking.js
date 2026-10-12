@@ -326,7 +326,7 @@ form.addEventListener("submit", function(event){
 
 
    const reservation = {
-    customerName: document.getElementById("name").value,
+    customerName: document.getElementById("name").value.trim(),
     email: document.getElementById("contact").value.trim(),
     service: serviceSelect.value,
     price: serviceDetails.price,
