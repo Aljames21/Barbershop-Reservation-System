@@ -10,35 +10,36 @@ const page = document.body.dataset.page;
 const API = "https://barbershop-reservation-system.onrender.com/api";
 
 
-async function apiFetch(url, options = {}) {
 
+
+
+async function apiFetch(url, options = {}) {
     const token = sessionStorage.getItem("adminToken");
 
-    const response = await fetch(
-        API + url,
-        {
-            ...options,
-            headers:{
-                "Content-Type":"application/json",
-                "Authorization":"Bearer " + token
-            }
+    const response = await fetch(API + url, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
         }
-    );
+    });
 
-
-    if(response.status === 401){
-
+    if (response.status === 401) {
         sessionStorage.clear();
-        window.location.href="index.html";
-        return;
-
+        window.location.href = "login.html";
+        return null;
     }
 
+    const result = await response.json();
 
-    return await response.json();
+    if (!response.ok) {
+        throw new Error(
+            result.message || result.error || `HTTP ${response.status}`
+        );
+    }
 
+    return result;
 }
-
 
 
 let data = {
@@ -61,6 +62,19 @@ async function loadAppointments(){
 
 }
 
+async function loadStaffs() {
+    try {
+        const staffs = await apiFetch("/barbers/admin");
+
+        if (Array.isArray(staffs)) {
+            data.staffs = staffs;
+            render();
+        }
+    } catch (error) {
+        console.error("Failed to load staff:", error);
+    }
+}
+
 const nextId = list => Math.max(0, ...list.map(x => x.id)) + 1;
 const staffOptions = () => ["No preference", ...data.staffs.map(s => s.name)];
 
@@ -74,8 +88,9 @@ const emptyRow = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${msg}<
 
 /* ===== Pop-up form used for add / edit ===== */
 function openForm(title, fields, values, onSave) {
-  // Plain <div> modal (works in every browser, no <dialog> needed)
+ 
   const dlg = document.createElement("div");
+ 
   dlg.className = "modal";
   dlg.innerHTML = `<div class="card modal-box"><h3 style="margin-top:0">${title}</h3><form>` +
     fields.map(f => {
@@ -86,17 +101,47 @@ function openForm(title, fields, values, onSave) {
       return `<label>${f.label}${input}</label>`;
     }).join("") +
     `<div class="dialog-buttons"><button type="button" class="light">Cancel</button><button type="submit">Save</button></div></form></div>`;
+  
   const close = () => { document.removeEventListener("keydown", onKey); dlg.remove(); };
   const onKey = e => { if (e.key === "Escape") close(); };
   const form = dlg.querySelector("form");
   dlg.querySelector("button.light").onclick = close;
   dlg.addEventListener("mousedown", e => { if (e.target === dlg) close(); });
-  form.onsubmit = e => {
+ 
+ 
+form.onsubmit = async e => {
     e.preventDefault();
-    const v = Object.fromEntries([...new FormData(form)].map(([k, x]) => [k, String(x).trim()]));
-    if (onSave(v) === false) return; // validation failed: keep the pop-up open
-    close();
-  };
+
+    const v = Object.fromEntries(
+        [...new FormData(form)].map(([k, x]) => [
+            k,
+            String(x).trim()
+        ])
+    );
+
+    const saveButton = form.querySelector('button[type="submit"]');
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving...";
+
+    try {
+        const saved = await onSave(v);
+
+        if (saved === false) {
+            saveButton.disabled = false;
+            saveButton.textContent = "Save";
+            return;
+        }
+
+        close();
+    } catch (error) {
+        console.error("Form save error:", error);
+        alert("Unable to save. Please try again.");
+        saveButton.disabled = false;
+        saveButton.textContent = "Save";
+    }
+};
+
+
   document.addEventListener("keydown", onKey);
   document.body.append(dlg);
   const first = dlg.querySelector("input, select");
@@ -147,10 +192,10 @@ async function staffForm(s) {
                 await loadStaffs();
                 return true;
             } catch (error) {
-                console.error(error);
-                alert("Unable to save staff. Please try again.");
-                return false;
-            }
+            console.error("SAVE STAFF ERROR:", error);
+            alert("Save failed: " + error.message);
+            return false;
+          }
         }
     );
 }
@@ -347,10 +392,24 @@ if (["accept", "decline", "cancel", "complete"].includes(act)) {
     return;
 }
 
-else if (act === "edit-staff") return staffForm(data.staffs.find(s => s.id === id));
+
+else if (act === "edit-staff") {
+    const staff = data.staffs.find(
+        s => String(s._id || s.id) === String(id)
+    );
+
+    if (!staff) {
+        alert("Staff not found.");
+        return;
+    }
+
+    return staffForm(staff);
+}
+
 
     else if (act === "edit-client") return clientForm(data.clients.find(c => c.id === id));
     
+
 else if (act === "remove-staff") {
     if (!confirm("Remove this staff member?")) return;
 
@@ -360,8 +419,8 @@ else if (act === "remove-staff") {
             { method: "DELETE" }
         );
 
-        if (!result || result.error || result.message === "Staff not found.") {
-            alert(result?.message || result?.error || "Failed to remove staff.");
+        if (!result || result.message === "Staff not found.") {
+            alert(result?.message || "Failed to remove staff.");
             return;
         }
 
@@ -369,11 +428,12 @@ else if (act === "remove-staff") {
         alert("Staff removed successfully!");
     } catch (error) {
         console.error("Remove staff error:", error);
-        alert("Unable to remove staff. Please try again.");
+        alert("Remove failed: " + error.message);
     }
 
     return;
 }
+
  else if (act === "remove-client") {
       if (!confirm("Remove this client?")) return;
       data.clients = data.clients.filter(c => c.id !== id);
@@ -435,20 +495,6 @@ if (page === "login") {
       if (page === "staffs") {
         loadStaffs();
     }
-
-    
-async function loadStaffs() {
-    try {
-        const staffs = await apiFetch("/barbers/admin");
-
-        if (Array.isArray(staffs)) {
-            data.staffs = staffs;
-            render();
-        }
-    } catch (error) {
-        console.error("Failed to load staff:", error);
-    }
-}
 
 }
 
