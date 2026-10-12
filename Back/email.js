@@ -27,6 +27,13 @@ function encodeMessage(message) {
         .replace(/=+$/, "");
 }
 
+function encodeMimeBody(value) {
+    return Buffer.from(value, "utf8")
+        .toString("base64")
+        .match(/.{1,76}/g)
+        ?.join("\r\n") || "";
+}
+
 const transporter = {
     async sendMail(options) {
        
@@ -53,23 +60,48 @@ const transporter = {
         const html = options.html || "";
         const text = options.text || "";
 
-        console.log("Password reset email text length:", text.length);
-        console.log("Password reset email has text:", text.length > 0);
+        const headers = [
+            `From: ${from}`,
+            `To: ${to}`,
+            `Subject: ${subject}`,
+            "MIME-Version: 1.0"
+        ];
 
-const message = [
-    `From: ${from}`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    "MIME-Version: 1.0",
-    
-    "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
-    "",
+        let body;
+        if (html) {
+            const boundary = `barbershop-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
 
-    Buffer.from(text, "utf8").toString("base64"),
-    ""
+            const parts = [];
+            if (text) {
+                parts.push(
+                    `--${boundary}`,
+                    "Content-Type: text/plain; charset=UTF-8",
+                    "Content-Transfer-Encoding: base64",
+                    "",
+                    encodeMimeBody(text)
+                );
+            }
 
-].join("\r\n");
+            parts.push(
+                `--${boundary}`,
+                "Content-Type: text/html; charset=UTF-8",
+                "Content-Transfer-Encoding: base64",
+                "",
+                encodeMimeBody(html),
+                `--${boundary}--`,
+                ""
+            );
+            body = parts.join("\r\n");
+        } else {
+            headers.push(
+                "Content-Type: text/plain; charset=UTF-8",
+                "Content-Transfer-Encoding: base64"
+            );
+            body = `${encodeMimeBody(text)}\r\n`;
+        }
+
+        const message = `${headers.join("\r\n")}\r\n\r\n${body}`;
 
 
         const response = await gmail.users.messages.send({
@@ -89,4 +121,3 @@ const message = [
 };
 
 module.exports = transporter;
-
