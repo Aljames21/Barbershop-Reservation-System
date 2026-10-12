@@ -110,6 +110,54 @@ const renderAppointmentEmail = (values) =>
     });
 
 
+/* GET BOOKING AVAILABILITY FOR A DATE */
+router.get("/availability/:date", async (req, res) => {
+    try {
+        const { date } = req.params;
+
+        // Validate the date format
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return res.status(400).json({
+                message: "Please provide a valid date."
+            });
+        }
+
+        // Get active barbers
+        const barbers = await Barber.find({
+            status: { $in: ["Active", "Available"] }
+        }).select("name status").sort({ name: 1 });
+
+        // Get appointments for the selected date
+        const appointments = await Appointment.find({
+            date,
+            status: { $nin: ["Cancelled", "Declined"] }
+        }).select("barber time status");
+
+        // Return each barber's booked times
+        const availability = barbers.map((barber) => ({
+            name: barber.name,
+            bookedTimes: appointments
+                .filter((appointment) =>
+                    appointment.barber?.trim().toLowerCase() ===
+                    barber.name.trim().toLowerCase()
+                )
+                .map((appointment) => appointment.time)
+        }));
+
+        return res.json({
+            date,
+            barbers: availability
+        });
+
+    } catch (error) {
+        console.error("Availability error:", error);
+
+        return res.status(500).json({
+            message: "Unable to load booking availability."
+        });
+    }
+});
+
 // GET APPOINTMENTS
 
 router.get("/", verifyAdmin, async(req,res)=>{
