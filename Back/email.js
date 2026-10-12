@@ -29,7 +29,15 @@ function encodeMessage(message) {
 
 const transporter = {
     async sendMail(options) {
-        const from = options.from || process.env.EMAIL_USER;
+       
+    const rawFrom = options.from || process.env.EMAIL_USER;
+
+        const match = rawFrom.match(/^(.*?)\s*<([^<>]+)>$/);
+
+        const from = match
+        ? `${encodeDisplayName(match[1].replace(/^["']|["']$/g, ""))} <${match[2]}>`
+        : rawFrom;
+
         const to = options.to;
 
         if (!from || !to) {
@@ -37,6 +45,11 @@ const transporter = {
         }
 
         const subject = encodeSubject(options.subject || "");
+        
+        function encodeDisplayName(name = "") {
+         return `=?UTF-8?B?${Buffer.from(name, "utf8").toString("base64")}?=`;
+        }
+
         const html = options.html || "";
         const text = options.text || "";
 
