@@ -7,7 +7,7 @@ const STORAGE_KEY = "barber-data";
 
 const page = document.body.dataset.page;
 
-const API = "http://localhost:5000/api";
+const API = "https://barbershop-reservation-system.onrender.com/api";
 
 
 async function apiFetch(url, options = {}) {
@@ -41,7 +41,11 @@ async function apiFetch(url, options = {}) {
 
 
 
-let data = load();
+let data = {
+    staffs: [],
+    clients: [],
+    appointments: []
+};
 
 async function loadAppointments(){
 
@@ -100,27 +104,57 @@ function openForm(title, fields, values, onSave) {
   return dlg;
 }
 
-function staffForm(s) {
-  const fields = [
-    { name: "name", label: "Name" }, { name: "role", label: "Role" },
-    { name: "phone", label: "Phone" }, { name: "schedule", label: "Schedule" }
-  ];
-  openForm(s ? "Edit staff" : "Add staff", fields, s || {}, v => {
-    if (data.staffs.some(x => x !== s && x.name.toLowerCase() === v.name.toLowerCase())) {
-      alert("A staff member with that name already exists.");
-      return false;
-    }
-    if (s) {
-      // keep clients and appointments in sync when a staff member is renamed
-      if (s.name !== v.name) {
-        data.clients.forEach(c => { if (c.staff === s.name) c.staff = v.name; });
-        data.appointments.forEach(a => { if (a.staff === s.name) a.staff = v.name; });
-      }
-      Object.assign(s, v);
-    } else data.staffs.push({ id: nextId(data.staffs), ...v });
-    commit();
-  });
+
+async function staffForm(s) {
+    const fields = [
+        { name: "name", label: "Name", required: true },
+        { name: "role", label: "Role", required: true },
+        { name: "date", label: "Date", type: "date" },
+        { name: "time", label: "Time", type: "time" }
+    ];
+
+    openForm(
+        s ? "Edit staff" : "Add staff",
+        fields,
+        {
+            name: s?.name || "",
+            role: s?.role || s?.specialization || "Barber",
+            date: s?.date || "",
+            time: s?.time || ""
+        },
+        async (v) => {
+            try {
+                const result = await apiFetch(
+                    s
+                        ? `/barbers/${encodeURIComponent(s._id || s.id)}`
+                        : "/barbers",
+                    {
+                        method: s ? "PUT" : "POST",
+                        body: JSON.stringify({
+                            name: v.name,
+                            role: v.role,
+                            date: v.date,
+                            time: v.time
+                        })
+                    }
+                );
+
+                if (!result || result.error) {
+                    alert(result?.error || "Failed to save staff.");
+                    return false;
+                }
+
+                await loadStaffs();
+                return true;
+            } catch (error) {
+                console.error(error);
+                alert("Unable to save staff. Please try again.");
+                return false;
+            }
+        }
+    );
 }
+
 
 function clientForm(c) {
   const fields = [
@@ -195,23 +229,36 @@ function earnings() {
   document.getElementById("earn-month").textContent = money(sum(month));
 }
 
-function render() {
+  function render() {
   const rows = document.getElementById("rows");
+  
   if (page === "dashboard") {
-    earnings();
-    const list = data.appointments.filter(a => a.status === "Pending" || a.status === "Confirmed").sort(byDate);
-    rows.innerHTML = list.map(apptRow).join("") || emptyRow(7, "No appointment requests yet.");
+      earnings();
+
+      const list = [...data.appointments].sort(byDate).reverse();
+
+      rows.innerHTML = list.map(apptRow).join("") ||
+          emptyRow(7, "No appointments yet.");
   }
+
   if (page === "appointments") {
     const list = [...data.appointments].sort(byDate).reverse();
     rows.innerHTML = list.map(apptRow).join("") || emptyRow(7, "No appointments yet. Bookings from the client site will show up here.");
   }
-  if (page === "staffs") {
+ if (page === "staffs") {
     rows.innerHTML = data.staffs.map(s =>
-      `<tr><td>${esc(s.name)}</td><td>${esc(s.role)}</td><td>${esc(s.phone)}</td><td>${esc(s.schedule)}</td>` +
-      `<td>${btn("edit-staff", s.id, "Edit", "light")} ${btn("remove-staff", s.id, "Remove", "light")}</td></tr>`
+        `<tr>
+            <td>${esc(s.name)}</td>
+            <td>${esc(s.role || s.specialization || "Barber")}</td>
+            <td>${esc(s.date || "-")}</td>
+            <td>${esc(s.time || "-")}</td>
+            <td>
+                ${btn("edit-staff", s.id || s._id, "Edit", "light")}
+                ${btn("remove-staff", s.id || s._id, "Remove", "light")}
+            </td>
+        </tr>`
     ).join("") || emptyRow(5, "No staff yet. Click Add staff.");
-  }
+}
   if (page === "clients") {
     rows.innerHTML = data.clients.map(c => {
       const visits = data.appointments.filter(a => a.client === c.name && a.status === "Completed").sort(byDate);
@@ -302,13 +349,31 @@ if (["accept", "decline", "cancel", "complete"].includes(act)) {
 else if (act === "edit-staff") return staffForm(data.staffs.find(s => s.id === id));
 
     else if (act === "edit-client") return clientForm(data.clients.find(c => c.id === id));
-    else if (act === "remove-staff") {
-      if (!confirm("Remove this staff member?")) return;
-      const gone = data.staffs.find(s => s.id === id);
-      data.staffs = data.staffs.filter(s => s.id !== id);
-      // anyone who preferred this staff member goes back to "No preference"
-      data.clients.forEach(c => { if (gone && c.staff === gone.name) c.staff = "No preference"; });
-    } else if (act === "remove-client") {
+    
+else if (act === "remove-staff") {
+    if (!confirm("Remove this staff member?")) return;
+
+    try {
+        const result = await apiFetch(
+            `/barbers/${encodeURIComponent(id)}`,
+            { method: "DELETE" }
+        );
+
+        if (!result || result.error || result.message === "Staff not found.") {
+            alert(result?.message || result?.error || "Failed to remove staff.");
+            return;
+        }
+
+        await loadStaffs();
+        alert("Staff removed successfully!");
+    } catch (error) {
+        console.error("Remove staff error:", error);
+        alert("Unable to remove staff. Please try again.");
+    }
+
+    return;
+}
+ else if (act === "remove-client") {
       if (!confirm("Remove this client?")) return;
       data.clients = data.clients.filter(c => c.id !== id);
     }
@@ -365,5 +430,24 @@ if (page === "login") {
     start();
 
     loadAppointments();
+
+      if (page === "staffs") {
+        loadStaffs();
+    }
+
+    
+async function loadStaffs() {
+    try {
+        const staffs = await apiFetch("/barbers/admin");
+
+        if (Array.isArray(staffs)) {
+            data.staffs = staffs;
+            render();
+        }
+    } catch (error) {
+        console.error("Failed to load staff:", error);
+    }
+}
+
 }
 
