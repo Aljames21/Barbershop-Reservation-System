@@ -1866,3 +1866,29 @@ summary {
     transition: width 0.3s ease;
   }
 }
+
+@media (max-width: 378px) {
+  .btn-1::after {
+    content: "";
+    position: absolute;
+
+    left: 213px;
+    width: 0;
+    bottom: 20px;
+    height: 2px;
+    background-color: #a67c3b;
+    transition: width 0.3s ease;
+  }
+
+  .btn::after {
+    content: "";
+    position: absolute;
+
+    left: 213px;
+    width: 0;
+    bottom: 20px;
+    height: 2px;
+    background-color: #a67c3b;
+    transition: width 0.3s ease;
+  }
+}

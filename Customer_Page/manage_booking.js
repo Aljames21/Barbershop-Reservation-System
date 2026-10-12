@@ -356,9 +356,6 @@ async function fetchAppointment(){
 
 
 
-// ===============================
-// UPDATE APPOINTMENT
-// ===============================
 
 async function saveAppointment(updatePayload){
 
