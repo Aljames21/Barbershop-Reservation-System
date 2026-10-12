@@ -225,8 +225,20 @@ router.post("/", async (req, res) => {
         const {
             date,
             time,
+            customerName: submittedCustomerName,
             barber: requestedBarber
         } = req.body;
+
+        const customerName =
+            typeof submittedCustomerName === "string"
+                ? submittedCustomerName.trim()
+                : "";
+
+        if (!customerName) {
+            return res.status(400).json({
+                message: "Please provide your name."
+            });
+        }
 
         // Validate appointment date and time
         const dateTimeError = validateAppointmentDateTime(date, time);
@@ -307,13 +319,14 @@ router.post("/", async (req, res) => {
         // Save the appointment with the assigned barber
         const appointment = new Appointment({
             ...req.body,
+            customerName,
             barber: assignedBarber.name
         });
 
         const saved = await appointment.save();
 
         // Prepare confirmation email
-        const customerName = escapeHtml(saved.customerName || "there");
+        const emailCustomerName = escapeHtml(saved.customerName);
         const service = escapeHtml(saved.service || "Appointment");
         const barber = escapeHtml(saved.barber);
         const emailDate = escapeHtml(saved.date);
@@ -346,7 +359,7 @@ router.post("/", async (req, res) => {
                 to: saved.email,
                 subject: "Sañado's Barbershop — Appointment Received",
                 text:
-                    `Hi ${saved.customerName || "there"},\n\n` +
+                    `Hi ${saved.customerName},\n\n` +
                     "We have received your appointment request at Sañado's Barbershop.\n\n" +
                     `Service: ${saved.service}\n` +
                     `Date: ${saved.date}\n` +
@@ -359,7 +372,7 @@ router.post("/", async (req, res) => {
                     "Thank you for choosing Sañado's Barbershop.",
                 html: juice(
                     renderAppointmentEmail({
-                        customerName,
+                        customerName: emailCustomerName,
                         service,
                         barber,
                         date: emailDate,
