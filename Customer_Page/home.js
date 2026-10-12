@@ -112,7 +112,9 @@ async function loadBarbers() {
                 [barber.firstName, barber.lastName].filter(Boolean).join(" ") ||
                 "";
 
-            return !["test", "janry"].includes(name.trim().toLocaleLowerCase());
+            return !["test", "janry", "neil feliciano", "janr"].includes(
+                name.trim().toLocaleLowerCase()
+            );
         });
 
         if (visibleBarbers.length === 0) {
