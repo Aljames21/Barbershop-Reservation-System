@@ -86,6 +86,7 @@ router.put("/:id", verifyAdmin, async (req, res) => {
 // ADMIN: delete staff
 router.delete("/:id", verifyAdmin, async (req, res) => {
     try {
+        console.log("Deleting barber ID:", req.params.id);
         const deleted = await Barber.findByIdAndDelete(req.params.id);
 
         if (!deleted) {

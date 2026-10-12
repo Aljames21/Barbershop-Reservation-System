@@ -289,7 +289,8 @@ function start() {
     const b = e.target.closest("[data-action]");
     if (!b) return;
 
-const id = b.dataset.id, act = b.dataset.action;
+const id = b.dataset.id;
+const act = b.dataset.action;
 
 const a = data.appointments.find(
     x => String(x._id || x.id) === String(id)
