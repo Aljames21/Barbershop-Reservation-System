@@ -172,9 +172,10 @@ function renderAppointment(appointment){
     barberName.textContent =
         appointment.barber || "Not assigned";
 
-
+    if (contactDetails) {
     contactDetails.textContent =
         appointment.contactNumber || "-";
+    }
 
 
     bookingMessage.textContent =
