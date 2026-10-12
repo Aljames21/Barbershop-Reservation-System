@@ -261,9 +261,12 @@ console.log("Booking confirmation sent:", info.messageId);
 
 
 } catch (emailError) {
-    // Hindi dapat ituring na failed ang booking kung email lang ang pumalya.
-    console.error("Appointment saved, but email failed:", emailError);
+    console.error("BOOKING EMAIL FAILED");
+    console.error("Error code:", emailError.code);
+    console.error("Error response:", emailError.response);
+    console.error("Error message:", emailError.message);
 }
+
 
 
 res.json(saved);
