@@ -14,8 +14,8 @@ if (reservation) {
     document.getElementById("display-name").textContent = 
         reservation.customerName;
 
-    document.getElementById("display-contact").textContent =
-        reservation.contactNumber;
+   document.getElementById("display-contact").textContent =
+    reservation.email || reservation.contactNumber || "";
 
     document.getElementById("display-service").textContent =
         reservation.service;

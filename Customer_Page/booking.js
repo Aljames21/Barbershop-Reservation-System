@@ -213,40 +213,17 @@ form.addEventListener("submit", function(event){
 
 
 
-    const reservation = {
-
-
-        customerName:
-        document.getElementById("name").value,
-
-
-        contactNumber:
-        document.getElementById("contact").value,
-
-
-        service:
-        serviceSelect.value,
-
-        price:
-        serviceDetails.price,
-
-        barber:
-        selectedBarber,
-
-
-        date:
-        document.getElementById("date").value,
-
-
-        time:
-        document.getElementById("time").value,
-
-
-        message:
-        document.getElementById("message").value,
-        status:"Pending"
-    };
-
+   const reservation = {
+    customerName: document.getElementById("name").value,
+    email: document.getElementById("contact").value.trim(),
+    service: serviceSelect.value,
+    price: serviceDetails.price,
+    barber: selectedBarber,
+    date: document.getElementById("date").value,
+    time: document.getElementById("time").value,
+    message: document.getElementById("message").value,
+    status: "Pending"
+};
 
 
     console.log("Sending:", reservation);

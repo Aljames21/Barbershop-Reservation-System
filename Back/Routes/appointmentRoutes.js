@@ -217,14 +217,14 @@ const manageBookingButton = manageBookingUrl
         Online booking management will be available when our website is live.
     </p>`;
 
-console.log("Sending email to:", saved.contactNumber);
+console.log("Sending booking email to:", saved.email);
 try {
     
     
 
 const info = await transporter.sendMail({
     from: `"Sañado's Barbershop" <${process.env.EMAIL_USER}>`,
-    to: saved.contactNumber,
+    to: saved.email,
     subject: "Sañado's Barbershop — Appointment Received",
 
     text:

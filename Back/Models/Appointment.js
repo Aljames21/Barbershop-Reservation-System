@@ -5,7 +5,12 @@ const appointmentSchema = new mongoose.Schema({
 
     customerName:String,
 
-    contactNumber:String,
+   email: {
+    type: String,
+    required: true,
+    trim: true,
+    lowercase: true
+},
 
     service:String,
 
