@@ -53,25 +53,28 @@ const transporter = {
         const html = options.html || "";
         const text = options.text || "";
 
-        const message = [
-            `From: ${from}`,
-            `To: ${to}`,
-            `Subject: ${subject}`,
-            "MIME-Version: 1.0",
-            "Content-Type: multipart/alternative; boundary=\"barbershop_boundary\"",
-            "",
-            "--barbershop_boundary",
-            "Content-Type: text/plain; charset=\"UTF-8\"",
-            "Content-Transfer-Encoding: base64",
-            "",
-            Buffer.from(text, "utf8").toString("base64"),
-            "--barbershop_boundary",
-            "Content-Type: text/html; charset=\"UTF-8\"",
-            "Content-Transfer-Encoding: base64",
-            "",
-            Buffer.from(html, "utf8").toString("base64"),
-            "--barbershop_boundary--"
-        ].join("\r\n");
+const message = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "MIME-Version: 1.0",
+    "Content-Type: multipart/alternative; boundary=\"barbershop_boundary\"",
+    "",
+    "--barbershop_boundary",
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    Buffer.from(text, "utf8").toString("base64"),
+    "",
+    "--barbershop_boundary",
+    "Content-Type: text/html; charset=UTF-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    Buffer.from(html, "utf8").toString("base64"),
+    "",
+    "--barbershop_boundary--",
+    ""
+].join("\r\n");
 
         const response = await gmail.users.messages.send({
             userId: "me",
