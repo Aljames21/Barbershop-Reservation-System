@@ -1,4 +1,4 @@
-
+const API_URL = "https://barbershop-reservation-system.onrender.com/api";
 const card = document.getElementById("card");
 
 const signinPanel = card.querySelector(".panel-signin");
@@ -51,7 +51,7 @@ if (loginForm) {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/admin/login",
+        "`${API_URL}/admin/login`",
         {
           method: "POST",
           headers: {
@@ -108,7 +108,7 @@ if (signupForm) {
 
         try {
             const response = await fetch(
-                "http://localhost:5000/api/admin/register",
+                "`${API_URL}/admin/register`",
                 {
                     method: "POST",
                     headers: {
@@ -197,7 +197,7 @@ if (forgotForm) {
 
         try {
             const response = await fetch(
-                "http://localhost:5000/api/admin/forgot-password",
+                "`${API_URL}/admin/forgot-password`",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -255,7 +255,7 @@ return;
 try{
 
 const response = await fetch(
-"http://localhost:5000/api/admin/reset-password",
+"`${API_URL}/admin/reset-password`",
 {
 method:"POST",
 headers:{
