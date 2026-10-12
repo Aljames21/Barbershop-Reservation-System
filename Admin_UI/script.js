@@ -349,13 +349,31 @@ if (["accept", "decline", "cancel", "complete"].includes(act)) {
 else if (act === "edit-staff") return staffForm(data.staffs.find(s => s.id === id));
 
     else if (act === "edit-client") return clientForm(data.clients.find(c => c.id === id));
-    else if (act === "remove-staff") {
-      if (!confirm("Remove this staff member?")) return;
-      const gone = data.staffs.find(s => s.id === id);
-      data.staffs = data.staffs.filter(s => s.id !== id);
-      // anyone who preferred this staff member goes back to "No preference"
-      data.clients.forEach(c => { if (gone && c.staff === gone.name) c.staff = "No preference"; });
-    } else if (act === "remove-client") {
+    
+else if (act === "remove-staff") {
+    if (!confirm("Remove this staff member?")) return;
+
+    try {
+        const result = await apiFetch(
+            `/barbers/${encodeURIComponent(id)}`,
+            { method: "DELETE" }
+        );
+
+        if (!result || result.error || result.message === "Staff not found.") {
+            alert(result?.message || result?.error || "Failed to remove staff.");
+            return;
+        }
+
+        await loadStaffs();
+        alert("Staff removed successfully!");
+    } catch (error) {
+        console.error("Remove staff error:", error);
+        alert("Unable to remove staff. Please try again.");
+    }
+
+    return;
+}
+ else if (act === "remove-client") {
       if (!confirm("Remove this client?")) return;
       data.clients = data.clients.filter(c => c.id !== id);
     }
