@@ -1,12 +1,17 @@
 const express = require("express");
 const router = express.Router();
+const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
 const juice = require("juice");
 const transporter = require("../email");
+const BookingSlot = require("../Models/BookingSlot");
 const Barber = require("../Models/Barber");
 const Appointment = require("../Models/Appointment");
 const verifyAdmin = require("../Middleware/authMiddleware");
+const mongoose = require("mongoose");
+const Service = require("../Models/Service");   
 
 function validateAppointmentDateTime(dateValue, timeValue) {
     // Require a valid YYYY-MM-DD date
@@ -109,6 +114,45 @@ const renderAppointmentEmail = (values) =>
         return values[key];
     });
 
+    
+async function verifyManageToken(appointmentId, token) {
+    if (
+        typeof appointmentId !== "string" ||
+        !/^[a-f\d]{24}$/i.test(appointmentId) ||
+        typeof token !== "string" ||
+        !/^[a-f\d]{64}$/i.test(token)
+    ) {
+        return null;
+    }
+
+    const appointment = await Appointment.findById(appointmentId)
+        .select("+manageTokenHash");
+
+    if (!appointment || !appointment.manageTokenHash) {
+        return null;
+    }
+
+    const tokenHash = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
+
+    const storedHash = appointment.manageTokenHash;
+
+    const suppliedBuffer = Buffer.from(tokenHash, "hex");
+    const storedBuffer = Buffer.from(storedHash, "hex");
+
+    if (
+        suppliedBuffer.length !== storedBuffer.length ||
+        !crypto.timingSafeEqual(suppliedBuffer, storedBuffer)
+    ) {
+        return null;
+    }
+
+    return appointment;
+}
+
+
 
 /* GET BOOKING AVAILABILITY FOR A DATE */
 router.get("/availability/:date", async (req, res) => {
@@ -130,7 +174,7 @@ router.get("/availability/:date", async (req, res) => {
         // Get appointments for the selected date
         const appointments = await Appointment.find({
             date,
-            status: { $nin: ["Cancelled", "Declined"] }
+           status: { $nin: ["Cancelled", "Declined", "Completed"] }
         }).select("barber time status");
 
         // Return each barber's booked times
@@ -181,19 +225,34 @@ message:error.message
 
 
 // GET APPOINTMENT BY ID
-router.get("/:id", async(req,res)=>{    
+
+router.get("/:id", async (req, res) => {
     try {
-        const appointment = await Appointment.findById(req.params.id);
+        const appointment = await verifyManageToken(
+            req.params.id,
+            req.get("X-Manage-Token")
+        );
 
         if (!appointment) {
-            return res.status(404).json({ message: "Appointment not found" });
+            return res.status(403).json({
+                message: "Invalid or missing booking management token."
+            });
         }
 
-        res.json(appointment);
+        const safeAppointment = appointment.toObject();
+        delete safeAppointment.manageTokenHash;
+
+        return res.json(safeAppointment);
+
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("Fetch appointment error:", error);
+
+        return res.status(500).json({
+            message: "Unable to load appointment."
+        });
     }
 });
+
 
 
 // CREATE APPOINTMENT
@@ -317,13 +376,141 @@ router.post("/", async (req, res) => {
         }
 
         // Save the appointment with the assigned barber
-        const appointment = new Appointment({
-            ...req.body,
-            customerName,
-            barber: assignedBarber.name
-        });
+      
+       
+        // Assign a barber and reserve the slot atomically
+        let saved;
 
-        const saved = await appointment.save();
+        const manageToken = crypto.randomBytes(32).toString("hex");
+        const manageTokenHash = crypto
+        .createHash("sha256")
+        .update(manageToken)
+        .digest("hex");
+
+        const session = await mongoose.startSession();
+
+        try {
+            await session.withTransaction(async () => {
+                // Get active barbers
+                const barbers = await Barber.find({
+                    status: { $in: ["Active", "Available"] }
+                })
+                    .sort({ name: 1 })
+                    .session(session);
+
+                if (!barbers.length) {
+                    const error = new Error(
+                        "No barbers are currently available."
+                    );
+                    error.statusCode = 409;
+                    throw error;
+                }
+
+                // Find appointments occupying this date and time
+                const occupiedAppointments = await Appointment.find({
+                    date,
+                    time,
+                    status: {
+                        $nin: ["Cancelled", "Declined", "Completed"]
+                    }
+                })
+                    .select("barber")
+                    .session(session);
+
+                const occupiedNames = new Set(
+                    occupiedAppointments.map((appointment) =>
+                        String(appointment.barber || "")
+                            .trim()
+                            .toLowerCase()
+                    )
+                );
+
+                let assignedBarber;
+
+                const requestedName =
+                    typeof requestedBarber === "string"
+                        ? requestedBarber.trim()
+                        : "";
+
+                if (
+                    requestedName &&
+                    requestedName.toLowerCase() !== "no preference"
+                ) {
+                    // Customer selected a specific barber
+                    assignedBarber = barbers.find(
+                        (barber) =>
+                            barber.name.trim().toLowerCase() ===
+                            requestedName.toLowerCase()
+                    );
+
+                    if (!assignedBarber) {
+                        const error = new Error(
+                            "The selected barber does not exist or is inactive."
+                        );
+                        error.statusCode = 400;
+                        throw error;
+                    }
+
+                    if (
+                        occupiedNames.has(
+                            assignedBarber.name.trim().toLowerCase()
+                        )
+                    ) {
+                        const error = new Error(
+                            "This barber is already booked for that date and time. Please choose another barber or time."
+                        );
+                        error.statusCode = 409;
+                        throw error;
+                    }
+                } else {
+                    // No preference: choose an available barber
+                    assignedBarber = barbers.find(
+                        (barber) =>
+                            !occupiedNames.has(
+                                barber.name.trim().toLowerCase()
+                            )
+                    );
+
+                    if (!assignedBarber) {
+                        const error = new Error(
+                            "All barbers are booked for that date and time. Please choose another time."
+                        );
+                        error.statusCode = 409;
+                        throw error;
+                    }
+                }
+
+                // Create the appointment
+                const appointment = new Appointment({
+                    ...req.body,
+                    customerName,
+                    barber: assignedBarber.name,
+                    manageTokenHash
+                });
+
+                await appointment.save({ session });
+
+                // Reserve the unique barber/date/time slot
+                await BookingSlot.create(
+                    [
+                        {
+                            date: appointment.date,
+                            time: appointment.time,
+                            barber: assignedBarber.name
+                                .trim()
+                                .toLowerCase(),
+                            appointmentId: appointment._id
+                        }
+                    ],
+                    { session }
+                );
+
+                saved = appointment;
+            });
+        } finally {
+            await session.endSession();
+        }
+
 
         // Prepare confirmation email
         const emailCustomerName = escapeHtml(saved.customerName);
@@ -333,18 +520,19 @@ router.post("/", async (req, res) => {
         const emailTime = escapeHtml(saved.time);
         const price = `₱${Number(saved.price || 0).toLocaleString("en-PH")}`;
 
-        let manageBookingUrl = "";
+        
+    let manageBookingUrl = "";
 
         if (appBaseUrl) {
             manageBookingUrl = new URL(
-                `Customer_Page/manage_booking.html?id=${encodeURIComponent(saved._id)}`,
-                appBaseUrl
-            ).toString();
-        } else {
-            console.warn(
-                "CUSTOMER_APP_URL is not configured; manage-booking link omitted."
-            );
-        }
+            `Customer_Page/manage_booking.html?id=${encodeURIComponent(saved._id)}&token=${encodeURIComponent(manageToken)}`,
+        appBaseUrl
+    ).toString();
+    } else {
+    console.warn(
+        "CUSTOMER_APP_URL is not configured; manage-booking link omitted."
+    );
+}
 
         const manageBookingButton = manageBookingUrl
             ? `<h2 class="email-manage-heading">Need to make changes?</h2>
@@ -394,92 +582,344 @@ router.post("/", async (req, res) => {
 
         return res.status(201).json(saved);
 
+    
     } catch (error) {
         console.error("Appointment creation error:", error);
 
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "This barber is already booked for that date and time. Please choose another barber or time."
+            });
+        }
+
+        if (error.statusCode) {
+    return res.status(error.statusCode).json({
+        message: error.message
+    });
+    }
+
         return res.status(500).json({
-            message: error.message
+            message: "Unable to save appointment. Please try again."
         });
     }
+
 });
 
 
 
 // UPDATE APPOINTMENT
-router.put("/:id", async (req, res) => {
-    try {
-        const appointment = await Appointment.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true, runValidators: true }
-        );
 
-        if (!appointment) {
-            return res.status(404).json({ message: "Appointment not found" });
+router.put("/:id", async (req, res) => {
+    const session = await mongoose.startSession();
+    let updatedAppointment = null;
+
+    try {
+        const appointment = await verifyManageToken(
+    req.params.id,
+    req.get("X-Manage-Token")
+);
+
+if (!appointment) {
+    return res.status(403).json({
+        message: "Invalid or missing booking management token."
+    });
+}
+
+        await session.withTransaction(async () => {
+            const existing = await Appointment.findById(req.params.id)
+                .session(session);
+
+            if (!existing) {
+                const error = new Error("Appointment not found");
+                error.statusCode = 404;
+                throw error;
+            }
+
+            
+const allowedFields = ["date", "time", "service", "barber"];
+
+const invalidFields = Object.keys(req.body).filter(
+    (field) => !allowedFields.includes(field)
+);
+
+if (invalidFields.length > 0) {
+    const error = new Error(
+        "Only date, time, service, and barber can be changed."
+    );
+    error.statusCode = 400;
+    throw error;
+}
+
+
+           
+const nextDate = req.body.date ?? existing.date;
+const nextTime = req.body.time ?? existing.time;
+const nextBarber = req.body.barber ?? existing.barber;
+const nextService = req.body.service ?? existing.service;
+
+const service = await Service.findOne({
+    name: nextService
+}).session(session);
+
+if (!service) {
+    const error = new Error(
+        "The selected service does not exist."
+    );
+    error.statusCode = 400;
+    throw error;
+}
+
+            const dateTimeError = validateAppointmentDateTime(
+                nextDate,
+                nextTime
+            );
+
+            if (dateTimeError) {
+                const error = new Error(dateTimeError);
+                error.statusCode = 400;
+                throw error;
+            }
+
+            const barber = await Barber.findOne({
+                name: {
+                    $regex: `^${String(nextBarber).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+                    $options: "i"
+                },
+                status: { $in: ["Active", "Available"] }
+            }).session(session);
+
+            if (!barber) {
+                const error = new Error(
+                    "The selected barber does not exist or is inactive."
+                );
+                error.statusCode = 400;
+                throw error;
+            }
+
+            const normalizedBarber = barber.name.trim().toLowerCase();
+
+            // Reserve the new slot first. The unique index prevents
+            // another appointment from taking the same barber/date/time.
+            const sameSlot =
+                existing.date === nextDate &&
+                existing.time === nextTime &&
+                existing.barber.trim().toLowerCase() === normalizedBarber;
+
+            if (!sameSlot) {
+                await BookingSlot.create(
+                    [{
+                        date: nextDate,
+                        time: nextTime,
+                        barber: normalizedBarber,
+                        appointmentId: existing._id
+                    }],
+                    { session }
+                );
+
+                await BookingSlot.deleteOne({
+                    appointmentId: existing._id,
+                    date: existing.date,
+                    time: existing.time,
+                    barber: existing.barber.trim().toLowerCase()
+                }).session(session);
+            }
+
+        existing.date = nextDate;
+        existing.time = nextTime;
+        existing.barber = barber.name;
+
+            await existing.save({ session });
+            updatedAppointment = existing;
+        });
+
+        return res.json(updatedAppointment);
+    } catch (error) {
+        console.error("Appointment update error:", error);
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "This barber is already booked for that date and time."
+            });
         }
 
-        res.json(appointment);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+        return res.status(error.statusCode || 500).json({
+            message: error.statusCode
+                ? error.message
+                : "Unable to update appointment."
+        });
+    } finally {
+        await session.endSession();
     }
 });
 
-router.patch("/:id", verifyAdmin, async(req,res)=>{
+
+
+router.patch("/:id", verifyAdmin, async (req, res) => {
+    const session = await mongoose.startSession();
+
     try {
-        
-        const existingAppointment = await Appointment.findById(req.params.id);
+        let updatedAppointment = null;
 
-if (!existingAppointment) {
-    return res.status(404).json({
-        message: "Appointment not found"
-    });
-}
+        await session.withTransaction(async () => {
+            const existing = await Appointment.findById(req.params.id)
+                .session(session);
 
-const nextDate = req.body.date ?? existingAppointment.date;
-const nextTime = req.body.time ?? existingAppointment.time;
+            if (!existing) {
+                const error = new Error("Appointment not found");
+                error.statusCode = 404;
+                throw error;
+            }
 
-const dateTimeError = validateAppointmentDateTime(
-    nextDate,
-    nextTime
-);
+            const nextDate = req.body.date ?? existing.date;
+            const nextTime = req.body.time ?? existing.time;
+            const nextBarber = req.body.barber ?? existing.barber;
 
-if (dateTimeError) {
-    return res.status(400).json({
-        message: dateTimeError
-    });
-}
+            const dateTimeError = validateAppointmentDateTime(
+                nextDate,
+                nextTime
+            );
 
-        const appointment = await Appointment.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true, runValidators: true }
-        );
+            if (dateTimeError) {
+                const error = new Error(dateTimeError);
+                error.statusCode = 400;
+                throw error;
+            }
 
-        if (!appointment) {
-            return res.status(404).json({ message: "Appointment not found" });
+            const barber = await Barber.findOne({
+                name: nextBarber,
+                status: { $in: ["Active", "Available"] }
+            }).session(session);
+
+            if (!barber) {
+                const error = new Error(
+                    "The selected barber does not exist or is inactive."
+                );
+                error.statusCode = 400;
+                throw error;
+            }
+
+            const normalizedBarber = barber.name.trim().toLowerCase();
+
+            const sameSlot =
+                existing.date === nextDate &&
+                existing.time === nextTime &&
+                existing.barber.trim().toLowerCase() === normalizedBarber;
+
+            if (!sameSlot) {
+                await BookingSlot.create(
+                    [{
+                        date: nextDate,
+                        time: nextTime,
+                        barber: normalizedBarber,
+                        appointmentId: existing._id
+                    }],
+                    { session }
+                );
+
+                
+        await BookingSlot.deleteOne({
+            appointmentId: existing._id,
+            date: existing.date,
+            time: existing.time,
+            barber: existing.barber.trim().toLowerCase()
+            }).session(session);
+
+            }
+
+            // Update only the fields permitted for admin rescheduling.
+            existing.date = nextDate;
+            existing.time = nextTime;
+            existing.barber = barber.name;
+
+            await existing.save({ session });
+            updatedAppointment = existing;
+        });
+
+        return res.json(updatedAppointment);
+    } catch (error) {
+        console.error("Admin appointment update error:", error);
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "This barber is already booked for that date and time."
+            });
         }
 
-        res.json(appointment);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+        return res.status(error.statusCode || 500).json({
+            message: error.statusCode
+                ? error.message
+                : "Unable to update appointment."
+        });
+    } finally {
+        await session.endSession();
     }
 });
 
 
 // DELETE APPOINTMENT
-router.delete("/:id", verifyAdmin, async (req, res) => {
+
+
+router.delete("/:id", async (req, res) => {
+    const session = await mongoose.startSession();
+
     try {
-        const appointment = await Appointment.findByIdAndDelete(req.params.id);
+        const appointment = await verifyManageToken(
+            req.params.id,
+            req.get("X-Manage-Token")
+        );
 
         if (!appointment) {
-            return res.status(404).json({ message: "Appointment not found" });
+            return res.status(403).json({
+                message: "Invalid or missing booking management token."
+            });
         }
 
-        res.json({ message: "Appointment deleted", id: req.params.id });
+        let deletedAppointment = null;
+
+        await session.withTransaction(async () => {
+            deletedAppointment = await Appointment.findByIdAndDelete(
+                req.params.id,
+                { session }
+            );
+
+            if (!deletedAppointment) {
+                const error = new Error("Appointment not found");
+                error.statusCode = 404;
+                throw error;
+            }
+
+            await BookingSlot.deleteOne(
+                { appointmentId: deletedAppointment._id },
+                { session }
+            );
+        });
+
+        return res.json({
+            message: "Appointment deleted successfully",
+            id: req.params.id
+        });
+
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("Appointment deletion error:", error);
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "Unable to complete the requested operation."
+            });
+        }
+
+        return res.status(error.statusCode || 500).json({
+            message: error.statusCode
+                ? error.message
+                : "Unable to delete appointment."
+        });
+
+    } finally {
+        await session.endSession();
     }
 });
+
+
 
 
 module.exports = router;

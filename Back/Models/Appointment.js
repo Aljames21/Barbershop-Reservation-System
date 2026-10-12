@@ -41,6 +41,12 @@ const appointmentSchema = new mongoose.Schema({
         default:null
     },
 
+    manageTokenHash: {
+    type: String,
+    default: undefined,
+    select: false
+},
+
     createdAt:{
         type:String,
         default:()=>{

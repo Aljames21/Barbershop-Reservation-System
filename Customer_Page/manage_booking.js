@@ -252,17 +252,10 @@ function renderAppointment(appointment){
 
 
 
-// ===============================
-// GET APPOINTMENT ID
-// ===============================
 
-function getAppointmentId(){
 
-    const params =
-    new URLSearchParams(
-        window.location.search
-    );
-
+function getAppointmentId() {
+    const params = new URLSearchParams(window.location.search);
 
     return (
         params.get("id") ||
@@ -271,88 +264,59 @@ function getAppointmentId(){
 
 }
 
-
+function getManageToken() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("token") || "";
+}
 
 // ===============================
 // FETCH APPOINTMENT
 // ===============================
 
-async function fetchAppointment(){
+async function fetchAppointment() {
+    const appointmentId = getAppointmentId();
+    const token = getManageToken();
 
-    const appointmentId =
-        getAppointmentId();
-
-
-
-    if(!appointmentId){
-
-        const saved =
-        JSON.parse(
-            localStorage.getItem("reservation") || "null"
-        );
-
-
-        if(saved){
-
-            renderAppointment(saved);
-
-            return;
-
-        }
-
-
+    if (!appointmentId || !token) {
         showMessage(
-            "No booking was found to manage.",
+            "Invalid or missing booking management link. Please use the link from your booking confirmation email.",
             "error"
         );
-
 
         return;
 
     }
 
-
-
-    try{
-
-
-        const response =
-        await fetch(
-            `${API_BASE}/${appointmentId}`
+    try {
+        const response = await fetch(
+            `${API_BASE}/${encodeURIComponent(appointmentId)}`,
+            {
+                method: "GET",
+                headers: {
+                    "X-Manage-Token": token
+                }
+            }
         );
 
-
-
-        if(!response.ok){
-
-            throw new Error(
-                "Appointment not found"
-            );
-
+        if (!response.ok) {
+            throw new Error("Unable to verify booking access.");
         }
 
-
-
-        const data =
-        await response.json();
-
-
+        const data = await response.json();
         renderAppointment(data);
 
-
-
-    }catch(error){
-
+    } catch (error) {
+        console.error("Fetch appointment error:", error);
 
         showMessage(
-            "Unable to load this booking right now.",
+            "Unable to load this booking. Please check your management link and try again.",
             "error"
         );
-
 
     }
 
 }
+
 
 
 
@@ -403,12 +367,17 @@ async function saveAppointment(updatePayload){
                 method:"PUT",
 
                 headers:{
-                    "Content-Type":"application/json"
+                    "Content-Type":"application/json",
+                     "X-Manage-Token": getManageToken()
                 },
 
 
-                body:
-                JSON.stringify(updated)
+                body: JSON.stringify({
+                date: updatePayload.date,
+                time: updatePayload.time,
+                service: updatePayload.service,
+                barber: updatePayload.barber
+})
 
             }
         );
@@ -438,6 +407,8 @@ async function saveAppointment(updatePayload){
 
         renderAppointment(result);
 
+         return true;
+
 
 
     }catch(error){
@@ -447,6 +418,8 @@ async function saveAppointment(updatePayload){
             error.message,
             "error"
         );
+
+          return false;
 
     }
 
@@ -557,35 +530,23 @@ editTime.value = selectedTime;
 
 
 
-    const payload={
-
-        service:
-        editService.value,
-
-
-        date:
-        editDate.value,
+   const payload = {
+    service: editService.value,
+    date: editDate.value,
+    time: editTime.value
+};
 
 
-        time:
-        editTime.value,
+    const success = await saveAppointment(payload);
 
+if (!success) {
+    return;
+}
 
-        status:
-        currentAppointment.status || "Pending"
-
-    };
-
-
-
-    await saveAppointment(payload);
-
-
-
-    showMessage(
-        "Appointment updated successfully.",
-        "success"
-    );
+showMessage(
+    "Appointment updated successfully.",
+    "success"
+);
 
 
 
@@ -602,39 +563,50 @@ editTime.value = selectedTime;
 // ===============================
 
 
-document
-.getElementById("confirm-cancel-btn")
-.addEventListener(
-"click",
-async()=>{
 
+document.getElementById("confirm-cancel-btn")
+  .addEventListener("click", async () => {
+    const appointmentId = getAppointmentId();
 
-    const payload={
+    if (!appointmentId) {
+      showMessage("Unable to find this booking.", "error");
+      return;
+    }
 
-        status:"Cancelled",
-
-        cancelledAt:
-        new Date().toISOString()
-
-    };
-
-
-    cancelConfirmation.classList.add(
-        "hidden"
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this appointment? This action cannot be undone."
     );
 
+    if (!confirmed) return;
 
-    await saveAppointment(payload);
+    try {
+      const response = await fetch(
+        `${API_BASE}/${encodeURIComponent(appointmentId)}`,
+        { method: "DELETE", headers: { "X-Manage-Token": getManageToken() } }
+      );
 
+      const data = await response.json();
 
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to cancel appointment.");
+      }
 
-    showMessage(
-        "Appointment cancelled successfully.",
-        "success"
-    );
+      localStorage.removeItem("reservation");
+      localStorage.removeItem("lastBookingId");
 
+      cancelConfirmation.classList.add("hidden");
+      actionPanel.style.display = "none";
+      changeTimeSection.classList.add("hidden");
+      cancelledMessage.textContent =
+        "Your appointment has been cancelled and removed. You may book again.";
+      cancelledMessage.classList.add("show");
 
-});
+      showMessage("Appointment cancelled successfully.", "success");
+    } catch (error) {
+      console.error("Cancellation error:", error);
+      showMessage(error.message, "error");
+    }
+  });
 
 
 
