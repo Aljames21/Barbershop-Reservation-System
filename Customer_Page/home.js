@@ -105,7 +105,24 @@ async function loadBarbers() {
             return;
         }
 
-        container.innerHTML = barbers.map((barber, index) => {
+        const visibleBarbers = barbers.filter((barber) => {
+            const name =
+                barber.name ||
+                barber.fullName ||
+                [barber.firstName, barber.lastName].filter(Boolean).join(" ") ||
+                "";
+
+            return !["test", "janry", "neil feliciano", "janr"].includes(
+                name.trim().toLocaleLowerCase()
+            );
+        });
+
+        if (visibleBarbers.length === 0) {
+            container.innerHTML = "<p>No barbers available right now.</p>";
+            return;
+        }
+
+        container.innerHTML = visibleBarbers.map((barber, index) => {
             const barberName =
                 barber.name ||
                 barber.fullName ||
@@ -150,4 +167,3 @@ async function loadBarbers() {
 
 
 loadBarbers();
-
