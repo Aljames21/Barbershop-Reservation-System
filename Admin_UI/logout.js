@@ -4,6 +4,6 @@ document.getElementById("logout-btn")
     sessionStorage.removeItem("adminToken");
     sessionStorage.removeItem("admin");
 
-    window.location.href = "login.html";
+    window.location.href = "index.html";
 
 });

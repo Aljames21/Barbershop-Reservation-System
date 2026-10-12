@@ -29,7 +29,7 @@ async function apiFetch(url, options = {}) {
     if(response.status === 401){
 
         sessionStorage.clear();
-        window.location.href="login.html";
+        window.location.href="index.html";
         return;
 
     }
@@ -231,7 +231,7 @@ function start() {
     sessionStorage.removeItem("admin");
     sessionStorage.removeItem("adminToken");
 
-    window.location.href = "login.html";
+    window.location.href = "index.html";
 
 };
 
@@ -360,7 +360,7 @@ if (page === "login") {
         }
     };
 } else if (sessionStorage.getItem("admin") !== "yes") {
-    window.location.href = "login.html";
+    window.location.href = "index.html";
 } else {
     start();
 
