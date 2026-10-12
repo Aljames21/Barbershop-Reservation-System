@@ -53,6 +53,9 @@ const transporter = {
         const html = options.html || "";
         const text = options.text || "";
 
+        console.log("Password reset email text length:", text.length);
+        console.log("Password reset email has text:", text.length > 0);
+
 const message = [
     `From: ${from}`,
     `To: ${to}`,
