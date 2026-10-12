@@ -51,7 +51,7 @@ if (loginForm) {
 
     try {
       const response = await fetch(
-        "`${API_URL}/admin/login`",
+        `${API_URL}/admin/login`,
         {
           method: "POST",
           headers: {
@@ -108,7 +108,7 @@ if (signupForm) {
 
         try {
             const response = await fetch(
-                "`${API_URL}/admin/register`",
+                `${API_URL}/admin/register`,
                 {
                     method: "POST",
                     headers: {
@@ -197,7 +197,7 @@ if (forgotForm) {
 
         try {
             const response = await fetch(
-                "`${API_URL}/admin/forgot-password`",
+                `${API_URL}/admin/forgot-password`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -255,7 +255,7 @@ return;
 try{
 
 const response = await fetch(
-"`${API_URL}/admin/reset-password`",
+`${API_URL}/admin/reset-password`,
 {
 method:"POST",
 headers:{
