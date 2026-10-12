@@ -13,6 +13,28 @@ const form = document.getElementById("booking-form");
 
 const dateInput = document.getElementById("date");
 const timeInput = document.getElementById("time");
+const availableTimeSlots = new Set();
+
+function populateTimeOptions() {
+    timeInput.replaceChildren(new Option("Select a time", ""));
+
+    for (let minutes = 8 * 60; minutes < 20 * 60; minutes += 30) {
+        const hours24 = Math.floor(minutes / 60);
+        const minutesInHour = minutes % 60;
+        const hours12 = hours24 % 12 || 12;
+        const period = hours24 < 12 ? "AM" : "PM";
+        const value =
+            `${String(hours24).padStart(2, "0")}:${String(minutesInHour).padStart(2, "0")}`;
+        const label =
+            `${String(hours12).padStart(2, "0")}:${String(minutesInHour).padStart(2, "0")} ${period}`;
+
+        availableTimeSlots.add(value);
+        timeInput.add(new Option(label, value));
+    }
+}
+
+populateTimeOptions();
+timeInput.addEventListener("change", () => timeInput.setCustomValidity(""));
 
 function setDateMin() {
     const today = new Date();
@@ -199,6 +221,14 @@ form.addEventListener("submit", function(event){
     if (!form.reportValidity()) {
         return;
     }
+
+    if (!availableTimeSlots.has(timeInput.value)) {
+        timeInput.setCustomValidity("Please select a time between 8:00 AM and 8:00 PM.");
+        timeInput.reportValidity();
+        return;
+    }
+
+    timeInput.setCustomValidity("");
 
     const serviceDetails = updateReservationSummary();
 
