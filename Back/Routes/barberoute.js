@@ -85,19 +85,32 @@ router.put("/:id", verifyAdmin, async (req, res) => {
 
 // ADMIN: delete staff
 router.delete("/:id", verifyAdmin, async (req, res) => {
-    try {
-        console.log("Deleting barber ID:", req.params.id);
-        const deleted = await Barber.findByIdAndDelete(req.params.id);
 
-        if (!deleted) {
-            return res.status(404).json({ message: "Staff not found." });
-        }
+try {
+    console.log("Deleting barber ID:", req.params.id);
 
-        res.json({ message: "Staff removed successfully." });
-    } catch (error) {
-        console.error("Delete staff error:", error.message);
-        res.status(500).json({ message: "Unable to remove staff." });
+    const deleted = await Barber.findByIdAndDelete(req.params.id);
+
+    if (!deleted) {
+        console.log("Barber not found in database.");
+        return res.status(404).json({
+            message: "Staff not found."
+        });
     }
+
+    console.log("Deleted barber:", deleted.name);
+
+    res.json({
+        message: "Staff removed successfully."
+    });
+} catch (error) {
+    console.error("Delete staff error:", error.message);
+
+    res.status(500).json({
+        message: "Unable to remove staff."
+    });
+}
+
 });
 
 module.exports = router;
