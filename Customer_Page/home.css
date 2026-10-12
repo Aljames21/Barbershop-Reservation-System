@@ -325,7 +325,6 @@ header {
     transparent 100%
   );
 
-  transform: scale(1.04);
   box-shadow: 0 0 50px rgba(160, 107, 58, 0.737);
 }
 
@@ -349,7 +348,6 @@ header {
     transparent 100%
   );
 
-  transform: scale(1.04);
   box-shadow: 0 0 50px rgba(40, 115, 161, 0.742);
 }
 
@@ -373,7 +371,6 @@ header {
     transparent 100%
   );
 
-  transform: scale(1.04);
   box-shadow: 0 0 50px rgba(115, 135, 43, 0.792);
 }
 
@@ -393,7 +390,6 @@ header {
 .haircut-4:hover {
   background: radial-gradient(circle at 0% 0, #3e4a4ab9, transparent 100%);
 
-  transform: scale(1.04);
   box-shadow: 0 0 40px #5f7171;
 }
 
@@ -413,7 +409,6 @@ header {
 .haircut-5:hover {
   background: radial-gradient(circle at 0% 0, #4d3730c0, transparent 100%);
 
-  transform: scale(1.04);
   box-shadow: 0 0 50px #78544a;
 }
 
@@ -433,7 +428,6 @@ header {
 .haircut-6:hover {
   background: radial-gradient(circle at 0% 0, #56371dbd, transparent 100%);
 
-  transform: scale(1.04);
   box-shadow: 0 0 50px #6c4524;
 }
 
@@ -453,7 +447,6 @@ header {
 .haircut-7:hover {
   background: radial-gradient(circle at 0% 0, #413b31, transparent 100%);
 
-  transform: scale(1.04);
   box-shadow: 0 0 50px #645b4c;
 }
 
@@ -472,8 +465,19 @@ header {
 .haircut-8:hover {
   background: radial-gradient(circle at 0% 0, #293b3a, transparent 100%);
 
-  transform: scale(1.04);
   box-shadow: 0 0 50px #3d5857;
+}
+
+.haircut-1:hover,
+.haircut-2:hover,
+.haircut-3:hover,
+.haircut-4:hover,
+.haircut-5:hover,
+.haircut-6:hover,
+.haircut-7:hover,
+.haircut-8:hover {
+  border: 1px solid #a67c3b;
+  transform: scale(1.02);
 }
 
 section {
@@ -542,17 +546,6 @@ span {
 
 a {
   text-decoration: none;
-}
-
-.haircut-1:hover,
-.haircut-2:hover,
-.haircut-3:hover,
-.haircut-4:hover,
-.haircut-5:hover,
-.haircut-6:hover,
-.haircut-7:hover,
-.haircut-8:hover {
-  border: 1px solid #a67c3b;
 }
 
 .about {

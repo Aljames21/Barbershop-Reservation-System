@@ -262,18 +262,32 @@ main {
   font-weight: bold;
   letter-spacing: 0.04em;
 
-  color: var(--ink);
-
-  font-size: 17px;
+  font-size: 16px;
   text-transform: uppercase;
+  font-family: Arial, sans-serif;
 
-  background-color: var(--gold);
   transition: 0.3s;
   padding: 18px;
 }
 
-.button-link a:hover {
+.button-1 {
+  background-color: var(--gold);
+  color: black;
+}
+
+.button-1:hover {
   background-color: orange;
+  transform: scale(1.02);
+}
+
+.button-2 {
+  background-color: #8f352c;
+  color: var(--paper);
+}
+
+.button-2:hover {
+  background-color: #702820;
+  transform: scale(1.02);
 }
 
 @media (max-width: 560px) {
