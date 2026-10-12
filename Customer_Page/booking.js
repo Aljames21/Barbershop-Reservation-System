@@ -14,6 +14,15 @@ const form = document.getElementById("booking-form");
 const dateInput = document.getElementById("date");
 const timeInput = document.getElementById("time");
 
+function setDateMin() {
+    const today = new Date();
+    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+    dateInput.min = today.toISOString().slice(0, 10);
+}
+
+setDateMin();
+dateInput.addEventListener("focus", setDateMin);
+
 const summaryMessage = document.getElementById("summary-message");
 const summaryDetails = document.getElementById("summary-details");
 
@@ -186,6 +195,10 @@ form.addEventListener("submit", function(event){
 
     event.preventDefault();
 
+    setDateMin();
+    if (!form.reportValidity()) {
+        return;
+    }
 
     const serviceDetails = updateReservationSummary();
 
