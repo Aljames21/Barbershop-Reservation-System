@@ -15,6 +15,87 @@ const dateInput = document.getElementById("date");
 const timeInput = document.getElementById("time");
 const availableTimeSlots = new Set();
 
+
+let barberAvailability = [];
+
+async function refreshTimeAvailability() {
+    const selectedDate = dateInput.value;
+
+    // Walang date na pinili
+    if (!selectedDate) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${API_URL}/appointments/availability/${encodeURIComponent(selectedDate)}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !Array.isArray(data.barbers)) {
+            throw new Error(data.message || "Unable to load availability.");
+        }
+
+        barberAvailability = data.barbers;
+
+        // I-check ang bawat time slot
+        Array.from(timeInput.options).forEach((option) => {
+            if (!option.value) return;
+
+            const bookedNames = new Set(
+                barberAvailability
+                    .filter((barber) =>
+                        (barber.bookedTimes || []).some(
+                            (bookedTime) =>
+                                String(bookedTime).trim().toUpperCase() ===
+                                option.value.toUpperCase()
+                        )
+                    )
+                    .map((barber) => barber.name.trim().toLowerCase())
+            );
+
+            let unavailable;
+
+            if (selectedBarber) {
+                // Specific barber ang pinili ng customer
+                unavailable = bookedNames.has(
+                    selectedBarber.trim().toLowerCase()
+                );
+            } else {
+                // Walang preference: disabled lamang kung lahat ay booked
+                const activeBarberCount = barberAvailability.length;
+                unavailable =
+                    activeBarberCount === 0 ||
+                    bookedNames.size >= activeBarberCount;
+            }
+
+            option.disabled = unavailable;
+
+            const label = option.textContent.replace(
+                /\s*\(Unavailable\)$/,
+                ""
+            );
+
+            option.textContent = unavailable
+                ? `${label} (Unavailable)`
+                : label;
+        });
+
+        // I-clear kung ang dating napiling oras ay unavailable na
+        if (timeInput.selectedOptions[0]?.disabled) {
+            timeInput.value = "";
+        }
+
+    } catch (error) {
+        console.error("Availability loading error:", error);
+        alert(
+            "Unable to check available time slots. Please refresh the page and try again."
+        );
+    }
+}
+
+
 function populateTimeOptions() {
     timeInput.replaceChildren(new Option("Select a time", ""));
 
@@ -44,6 +125,7 @@ function setDateMin() {
 
 setDateMin();
 dateInput.addEventListener("focus", setDateMin);
+dateInput.addEventListener("change", refreshTimeAvailability);
 
 const summaryMessage = document.getElementById("summary-message");
 const summaryDetails = document.getElementById("summary-details");
