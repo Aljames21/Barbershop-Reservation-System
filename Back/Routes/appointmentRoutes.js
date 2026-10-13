@@ -728,6 +728,9 @@ if (!service) {
         existing.time = nextTime;
         existing.barber = barber.name;
 
+        existing.service = service.name;
+        existing.price = service.price;
+
             await existing.save({ session });
             updatedAppointment = existing;
         });
