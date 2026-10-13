@@ -764,6 +764,7 @@ if (!service) {
 
 
 
+
 router.patch("/:id", verifyAdmin, async (req, res) => {
     const session = await mongoose.startSession();
 
@@ -780,9 +781,71 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
                 throw error;
             }
 
+            // ADMIN STATUS ACTIONS
+            if (Object.prototype.hasOwnProperty.call(req.body, "status")) {
+                // Status-only requests are allowed here.
+                const extraFields = Object.keys(req.body).filter(
+                    field => field !== "status"
+                );
+
+                if (extraFields.length > 0) {
+                    const error = new Error(
+                        "Send only the status when changing appointment status."
+                    );
+                    error.statusCode = 400;
+                    throw error;
+                }
+
+                const nextStatus = req.body.status;
+
+                const allowedTransitions = {
+                    Pending: ["Confirmed", "Cancelled"],
+                    Confirmed: ["Completed", "Cancelled"]
+                };
+
+                if (
+                    !allowedTransitions[existing.status] ||
+                    !allowedTransitions[existing.status].includes(nextStatus)
+                ) {
+                    const error = new Error(
+                        `Cannot change appointment status from ${existing.status} to ${nextStatus}.`
+                    );
+                    error.statusCode = 400;
+                    throw error;
+                }
+
+                existing.status = nextStatus;
+
+                // Release the reserved slot when the appointment
+                // is cancelled or completed.
+                if (["Cancelled", "Completed"].includes(nextStatus)) {
+                    await BookingSlot.deleteOne({
+                        appointmentId: existing._id
+                    }).session(session);
+                }
+
+                await existing.save({ session });
+                updatedAppointment = existing;
+                return;
+            }
+
+            // ADMIN RESCHEDULING
             const nextDate = req.body.date ?? existing.date;
             const nextTime = req.body.time ?? existing.time;
             const nextBarber = req.body.barber ?? existing.barber;
+
+            const allowedFields = ["date", "time", "barber"];
+            const invalidFields = Object.keys(req.body).filter(
+                field => !allowedFields.includes(field)
+            );
+
+            if (invalidFields.length > 0) {
+                const error = new Error(
+                    "Only date, time, and barber can be changed when rescheduling."
+                );
+                error.statusCode = 400;
+                throw error;
+            }
 
             const dateTimeError = validateAppointmentDateTime(
                 nextDate,
@@ -826,17 +889,14 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
                     { session }
                 );
 
-                
-        await BookingSlot.deleteOne({
-            appointmentId: existing._id,
-            date: existing.date,
-            time: existing.time,
-            barber: existing.barber.trim().toLowerCase()
-            }).session(session);
-
+                await BookingSlot.deleteOne({
+                    appointmentId: existing._id,
+                    date: existing.date,
+                    time: existing.time,
+                    barber: existing.barber.trim().toLowerCase()
+                }).session(session);
             }
 
-            // Update only the fields permitted for admin rescheduling.
             existing.date = nextDate;
             existing.time = nextTime;
             existing.barber = barber.name;
@@ -846,6 +906,7 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
         });
 
         return res.json(updatedAppointment);
+
     } catch (error) {
         console.error("Admin appointment update error:", error);
 
@@ -860,10 +921,12 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
                 ? error.message
                 : "Unable to update appointment."
         });
+
     } finally {
         await session.endSession();
     }
 });
+
 
 
 // DELETE APPOINTMENT
