@@ -525,7 +525,7 @@ router.post("/", async (req, res) => {
 
         if (appBaseUrl) {
             manageBookingUrl = new URL(
-            `Customer_Page/manage_booking.html?id=${encodeURIComponent(saved._id)}&token=${encodeURIComponent(manageToken)}`,
+            `manage_booking.html?id=${encodeURIComponent(saved._id)}&token=${encodeURIComponent(manageToken)}`,
         appBaseUrl
     ).toString();
     } else {
