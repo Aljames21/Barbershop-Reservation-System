@@ -45,7 +45,8 @@ async function apiFetch(url, options = {}) {
 let data = {
     staffs: [],
     clients: [],
-    appointments: []
+    appointments: [],
+    services: []
 };
 
 
@@ -73,6 +74,22 @@ async function loadStaffs() {
         console.error("Failed to load staff:", error);
     }
 }
+
+
+async function loadServices() {
+    try {
+        const services = await apiFetch("/services?admin=true");
+
+        if (Array.isArray(services)) {
+            data.services = services;
+            render();
+        }
+    } catch (error) {
+        console.error("Failed to load services:", error);
+        alert("Failed to load services: " + error.message);
+    }
+}
+
 
 const nextId = list => Math.max(0, ...list.map(x => x.id)) + 1;
 const staffOptions = () => ["No preference", ...data.staffs.map(s => s.name)];
@@ -195,6 +212,63 @@ async function staffForm(s) {
             alert("Save failed: " + error.message);
             return false;
           }
+        }
+    );
+}
+
+
+async function serviceForm(service) {
+    const fields = [
+        { name: "name", label: "Service name" },
+        { name: "description", label: "Description" },
+        { name: "price", label: "Price (₱)", type: "number" },
+        { name: "duration", label: "Duration (minutes)", type: "number" },
+        {
+            name: "status",
+            label: "Status",
+            options: ["Active", "Inactive"]
+        }
+    ];
+
+    openForm(
+        service ? "Edit service" : "Add service",
+        fields,
+        {
+            name: service?.name || "",
+            description: service?.description || "",
+            price: service?.price ?? "",
+            duration: service?.duration ?? "",
+            status: service?.status || "Active"
+        },
+        async (v) => {
+            try {
+                const result = await apiFetch(
+                    service
+                        ? `/services/${encodeURIComponent(service._id)}`
+                        : "/services",
+                    {
+                        method: service ? "PUT" : "POST",
+                        body: JSON.stringify({
+                            name: v.name,
+                            description: v.description,
+                            price: Number(v.price),
+                            duration: Number(v.duration),
+                            status: v.status
+                        })
+                    }
+                );
+
+                if (!result || !result._id) {
+                    alert(result?.message || "Failed to save service.");
+                    return false;
+                }
+
+                await loadServices();
+                return true;
+            } catch (error) {
+                alert("Service save failed: " + error.message);
+                return false;
+            }
         }
     );
 }
@@ -382,6 +456,24 @@ function render() {
             </tr>`
         ).join("") || emptyRow(5, "No staff yet. Click Add staff.");
     }
+   
+    // ===== SERVICES PAGE =====
+    if (page === "services" && rows) {
+        rows.innerHTML = data.services.map(s => `
+            <tr>
+                <td>${esc(s.name)}</td>
+                <td>${esc(s.description || "-")}</td>
+                <td>${money(s.price || 0)}</td>
+                <td>${Number(s.duration) || 0}</td>
+                <td>${esc(s.status || "Active")}</td>
+                <td>
+                    ${btn("edit-service", s._id, "Edit", "light")}
+                    ${btn("delete-service", s._id, "Delete", "light")}
+                </td>
+            </tr>
+        `).join("") || emptyRow(6, "No services found. Click Add service.");
+    }
+
 
     // ===== CLIENTS PAGE =====
     if (page === "clients" && rows) {
@@ -432,7 +524,15 @@ function start() {
 };
 
   const add = document.getElementById("add-btn");
-  if (add) add.onclick = () => ({ staffs: staffForm, clients: clientForm })[page]?.();
+  
+    if (add) {
+        add.onclick = () => ({
+            staffs: () => staffForm(),
+            clients: () => clientForm(),
+            services: () => serviceForm()
+        })[page]?.();
+    }
+
 
   document.addEventListener("click", async e => {
     const b = e.target.closest("[data-action]");
@@ -491,6 +591,41 @@ if (["accept", "decline", "cancel", "complete"].includes(act)) {
         console.error("Appointment status update error:", error);
         alert(error.message || "Unable to update appointment.");
         b.disabled = false;
+    }
+
+    return;
+}
+
+
+else if (act === "edit-service") {
+    const service = data.services.find(s => String(s._id) === String(id));
+
+    if (!service) {
+        alert("Service not found.");
+        return;
+    }
+
+    serviceForm(service);
+}
+
+else if (act === "delete-service") {
+    if (!confirm("Delete this service?")) return;
+
+    try {
+        const result = await apiFetch(
+            `/services/${encodeURIComponent(id)}`,
+            { method: "DELETE" }
+        );
+
+        if (!result || result.message === "Service not found.") {
+            alert(result?.message || "Failed to delete service.");
+            return;
+        }
+
+        await loadServices();
+        alert("Service deleted successfully!");
+    } catch (error) {
+        alert("Delete failed: " + error.message);
     }
 
     return;
@@ -562,7 +697,7 @@ if (page === "login") {
 
         try {
             const response = await fetch(
-                "http://localhost:5000/api/admin/login",
+                `${API}/admin/login`,
                 {
                     method: "POST",
                     headers: {
@@ -598,9 +733,15 @@ if (page === "login") {
 
     loadAppointments();
 
+    
     if (page === "staffs" || page === "dashboard") {
         loadStaffs();
     }
+
+    if (page === "services") {
+        loadServices();
+    }
+
 
 
 }
