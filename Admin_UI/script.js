@@ -274,45 +274,104 @@ function earnings() {
   document.getElementById("earn-month").textContent = money(sum(month));
 }
 
-  function render() {
-  const rows = document.getElementById("rows");
-  
-  if (page === "dashboard") {
-      earnings();
 
-      const list = [...data.appointments].sort(byDate).reverse();
+function render() {
+    const rows = document.getElementById("rows");
 
-      rows.innerHTML = list.map(apptRow).join("") ||
-          emptyRow(7, "No appointments yet.");
-  }
+    // ===== DASHBOARD =====
+    if (page === "dashboard") {
+        earnings();
 
-  if (page === "appointments") {
-    const list = [...data.appointments].sort(byDate).reverse();
-    rows.innerHTML = list.map(apptRow).join("") || emptyRow(7, "No appointments yet. Bookings from the client site will show up here.");
-  }
- if (page === "staffs") {
-    rows.innerHTML = data.staffs.map(s =>
-        `<tr>
-            <td>${esc(s.name)}</td>
-            <td>${esc(s.role || s.specialization || "Barber")}</td>
-            <td>${esc(s.date || "-")}</td>
-            <td>${esc(s.time || "-")}</td>
-            <td>
-                ${btn("edit-staff", s.id || s._id, "Edit", "light")}
-                ${btn("remove-staff", s.id || s._id, "Remove", "light")}
-            </td>
-        </tr>`
-    ).join("") || emptyRow(5, "No staff yet. Click Add staff.");
+        const totalAppointments = data.appointments.length;
+
+        const pendingAppointments = data.appointments.filter(
+            a => a.status === "Pending"
+        ).length;
+
+        const totalBarbers = data.staffs.length;
+
+        // Count unique customers from appointment records
+        const uniqueClients = new Set(
+            data.appointments
+                .map(a => (a.email || a.customerEmail || a.customerName || a.client || "").trim().toLowerCase())
+                .filter(Boolean)
+        ).size;
+
+        const totalEl = document.getElementById("total-appointments");
+        const pendingEl = document.getElementById("pending-appointments");
+        const barbersEl = document.getElementById("active-barbers");
+        const clientsEl = document.getElementById("total-clients");
+
+        if (totalEl) totalEl.textContent = totalAppointments;
+        if (pendingEl) pendingEl.textContent = pendingAppointments;
+        if (barbersEl) barbersEl.textContent = totalBarbers;
+        if (clientsEl) clientsEl.textContent = uniqueClients;
+
+        return;
+    }
+
+    // ===== APPOINTMENTS PAGE =====
+    if (page === "appointments" && rows) {
+        const list = [...data.appointments].sort(byDate).reverse();
+
+        rows.innerHTML =
+            list.map(apptRow).join("") ||
+            emptyRow(
+                7,
+                "No appointments yet. Bookings from the client site will show up here."
+            );
+    }
+
+    // ===== STAFFS PAGE =====
+    if (page === "staffs" && rows) {
+        rows.innerHTML = data.staffs.map(s =>
+            `<tr>
+                <td>${esc(s.name)}</td>
+                <td>${esc(s.role || s.specialization || "Barber")}</td>
+                <td>${esc(s.date || "-")}</td>
+                <td>${esc(s.time || "-")}</td>
+                <td>
+                    ${btn("edit-staff", s.id || s._id, "Edit", "light")}
+                    ${btn("remove-staff", s.id || s._id, "Remove", "light")}
+                </td>
+            </tr>`
+        ).join("") || emptyRow(5, "No staff yet. Click Add staff.");
+    }
+
+    // ===== CLIENTS PAGE =====
+    if (page === "clients" && rows) {
+        rows.innerHTML = data.clients.map(c => {
+            const visits = data.appointments
+                .filter(a =>
+                    (a.customerName || a.client) === c.name &&
+                    a.status === "Completed"
+                )
+                .sort(byDate);
+
+            const last = visits.length
+                ? new Date(
+                    visits[visits.length - 1].date
+                ).toLocaleDateString("en-PH", {
+                    month: "short",
+                    day: "numeric"
+                })
+                : "-";
+
+            return `<tr>
+                <td>${esc(c.name)}</td>
+                <td>${esc(c.phone || "-")}</td>
+                <td>${esc(c.staff || "-")}</td>
+                <td>${last}</td>
+                <td>${visits.length}</td>
+                <td>
+                    ${btn("edit-client", c.id, "Edit", "light")}
+                    ${btn("remove-client", c.id, "Remove", "light")}
+                </td>
+            </tr>`;
+        }).join("") || emptyRow(6, "No clients yet. Click Add client.");
+    }
 }
-  if (page === "clients") {
-    rows.innerHTML = data.clients.map(c => {
-      const visits = data.appointments.filter(a => a.client === c.name && a.status === "Completed").sort(byDate);
-      const last = visits.length ? new Date(visits[visits.length - 1].date).toLocaleDateString("en-PH", { month: "short", day: "numeric" }) : "-";
-      return `<tr><td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td>${esc(c.staff)}</td><td>${last}</td><td>${visits.length}</td>` +
-        `<td>${btn("edit-client", c.id, "Edit", "light")} ${btn("remove-client", c.id, "Remove", "light")}</td></tr>`;
-    }).join("") || emptyRow(6, "No clients yet. Click Add client.");
-  }
-}
+
 
 function commit() { save(); render(); }
 
@@ -488,13 +547,16 @@ if (page === "login") {
 } else if (sessionStorage.getItem("admin") !== "yes") {
     window.location.href = "index.html";
 } else {
+    
+
     start();
 
     loadAppointments();
 
-      if (page === "staffs") {
+    if (page === "staffs" || page === "dashboard") {
         loadStaffs();
     }
+
 
 }
 
