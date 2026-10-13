@@ -1979,4 +1979,21 @@ summary {
     background-color: #a67c3b;
     transition: width 0.3s ease;
   }
+
+  .service h3 {
+    color: white;
+    font-size: 25px;
+
+    font-family: Georgia, serif;
+    font-weight: bold;
+  }
+
+  .service p {
+    color: lightgrey;
+
+    font-family: Georgia, serif;
+
+    margin-top: 5px;
+    font-size: 14px;
+  }
 }
