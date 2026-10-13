@@ -1892,9 +1892,6 @@ summary {
 }
 
 @media (max-width: 378px) {
-  .logo {
-  }
-
   .btn-1::after {
     content: "";
     position: absolute;
@@ -1939,6 +1936,11 @@ summary {
 
   details p {
     font-size: 13px;
+  }
+
+  header {
+    padding: 10px 20px;
+    border-radius: 0 0 30px 30px;
   }
 
   .logo {
