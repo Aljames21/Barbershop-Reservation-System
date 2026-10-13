@@ -408,34 +408,28 @@ function render() {
 
     // ===== DASHBOARD =====
     if (page === "dashboard") {
-        earnings();
+            earnings();
 
-        const totalAppointments = data.appointments.length;
+            const totalAppointments = data.appointments.length;
 
-        const pendingAppointments = data.appointments.filter(
-            a => a.status === "Pending"
-        ).length;
+            const pendingAppointments = data.appointments.filter(
+                a => a.status === "Pending"
+            ).length;
 
-        const totalBarbers = data.staffs.length;
+            const totalBarbers = data.staffs.length;
+            const totalServices = data.services.length;
 
-        // Count unique customers from appointment records
-        const uniqueClients = new Set(
-            data.appointments
-                .map(a => (a.email || a.customerEmail || a.customerName || a.client || "").trim().toLowerCase())
-                .filter(Boolean)
-        ).size;
+            const totalEl = document.getElementById("total-appointments");
+            const pendingEl = document.getElementById("pending-appointments");
+            const barbersEl = document.getElementById("active-barbers");
+            const servicesEl = document.getElementById("total-services");
 
-        const totalEl = document.getElementById("total-appointments");
-        const pendingEl = document.getElementById("pending-appointments");
-        const barbersEl = document.getElementById("active-barbers");
-        const clientsEl = document.getElementById("total-clients");
+            if (totalEl) totalEl.textContent = totalAppointments;
+            if (pendingEl) pendingEl.textContent = pendingAppointments;
+            if (barbersEl) barbersEl.textContent = totalBarbers;
+            if (servicesEl) servicesEl.textContent = totalServices;
 
-        if (totalEl) totalEl.textContent = totalAppointments;
-        if (pendingEl) pendingEl.textContent = pendingAppointments;
-        if (barbersEl) barbersEl.textContent = totalBarbers;
-        if (clientsEl) clientsEl.textContent = uniqueClients;
-
-        return;
+            return;
     }
 
     // ===== APPOINTMENTS PAGE =====
@@ -747,7 +741,7 @@ if (page === "login") {
         loadStaffs();
     }
 
-    if (page === "services") {
+    if (page === "services" || page === "dashboard") {
         loadServices();
     }
 
