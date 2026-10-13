@@ -765,13 +765,17 @@ if (!service) {
 
 
 
+
 router.patch("/:id", verifyAdmin, async (req, res) => {
     const session = await mongoose.startSession();
+    let statusChangedFrom = null;
+
 
     try {
         let updatedAppointment = null;
 
         await session.withTransaction(async () => {
+
             const existing = await Appointment.findById(req.params.id)
                 .session(session);
 
@@ -814,7 +818,9 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
                     throw error;
                 }
 
-                existing.status = nextStatus;
+                
+        statusChangedFrom = existing.status;
+        existing.status = nextStatus;
 
                 // Release the reserved slot when the appointment
                 // is cancelled or completed.
@@ -905,7 +911,75 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
             updatedAppointment = existing;
         });
 
+       
+        // SEND EMAIL WHEN ADMIN CONFIRMS OR CANCELS
+        if (
+            statusChangedFrom &&
+            updatedAppointment?.email &&
+            statusChangedFrom !== updatedAppointment.status
+        ) {
+            const appointment = updatedAppointment;
+            const isConfirmed = appointment.status === "Confirmed";
+            const isCancelled = appointment.status === "Cancelled";
+
+            if (isConfirmed || isCancelled) {
+                const subject = isConfirmed
+                    ? "Sañado's Barbershop — Appointment Confirmed"
+                    : "Sañado's Barbershop — Appointment Cancelled";
+
+                const message = isConfirmed
+                    ? "Your appointment has been confirmed. We look forward to seeing you at Sañado's Barbershop."
+                    : "Your appointment has been cancelled. If you have questions, please contact Sañado's Barbershop.";
+
+                const details =
+                    `Service: ${appointment.service || "Appointment"}\n` +
+                    `Date: ${appointment.date}\n` +
+                    `Time: ${appointment.time}\n` +
+                    `Barber: ${appointment.barber}\n` +
+                    `Price: ₱${Number(appointment.price || 0).toLocaleString("en-PH")}`;
+
+                try {
+                    await transporter.sendMail({
+                        from: `"Sañado's Barbershop" <${process.env.EMAIL_USER}>`,
+                        to: appointment.email,
+                        subject,
+                        text:
+                            `Hi ${appointment.customerName},\n\n` +
+                            `${message}\n\n${details}\n\n` +
+                            "Thank you for choosing Sañado's Barbershop.",
+                        html: `
+                            <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;background:#171717;color:#fff;border-radius:12px">
+                                <h2 style="color:#c99443">Sañado's Barbershop</h2>
+                                <h3>${isConfirmed ? "APPOINTMENT CONFIRMED" : "APPOINTMENT CANCELLED"}</h3>
+                                <p>Hi ${escapeHtml(appointment.customerName)},</p>
+                                <p>${message}</p>
+                                <hr>
+                                <p><strong>Service:</strong> ${escapeHtml(appointment.service || "Appointment")}</p>
+                                <p><strong>Date:</strong> ${escapeHtml(appointment.date)}</p>
+                                <p><strong>Time:</strong> ${escapeHtml(appointment.time)}</p>
+                                <p><strong>Barber:</strong> ${escapeHtml(appointment.barber)}</p>
+                                <p><strong>Price:</strong> ₱${Number(appointment.price || 0).toLocaleString("en-PH")}</p>
+                                <hr>
+                                <p>Thank you for choosing Sañado's Barbershop.</p>
+                            </div>
+                        `
+                    });
+
+                    console.log(
+                        `${appointment.status} email sent:`,
+                        appointment.email
+                    );
+                } catch (emailError) {
+                    console.error(
+                        `${appointment.status} email failed:`,
+                        emailError.message
+                    );
+                }
+            }
+        }
+
         return res.json(updatedAppointment);
+
 
     } catch (error) {
         console.error("Admin appointment update error:", error);
