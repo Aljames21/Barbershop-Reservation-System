@@ -48,19 +48,18 @@ let data = {
     appointments: []
 };
 
-async function loadAppointments(){
 
+async function loadAppointments() {
     const appointments = await apiFetch("/appointments");
 
-    if(appointments){
-
+    if (appointments) {
         data.appointments = appointments;
 
+        earnings(); // Update earnings cards
         render();
-
     }
-
 }
+
 
 async function loadStaffs() {
     try {
