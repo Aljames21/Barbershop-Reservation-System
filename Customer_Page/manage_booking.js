@@ -592,17 +592,23 @@ document.getElementById("confirm-cancel-btn")
         throw new Error(data.message || "Unable to cancel appointment.");
       }
 
-      localStorage.removeItem("reservation");
-      localStorage.removeItem("lastBookingId");
 
-      cancelConfirmation.classList.add("hidden");
-      actionPanel.style.display = "none";
-      changeTimeSection.classList.add("hidden");
-      cancelledMessage.textContent =
-        "Your appointment has been cancelled and removed. You may book again.";
-      cancelledMessage.classList.add("show");
+    localStorage.removeItem("reservation");
+    localStorage.removeItem("lastBookingId");
 
-      showMessage("Appointment cancelled successfully.", "success");
+    cancelConfirmation.classList.add("hidden");
+    actionPanel.style.display = "none";
+    changeTimeSection.classList.add("hidden");
+
+    // Update the displayed status
+    setStatusBadge("Cancelled");
+
+    cancelledMessage.textContent =
+    "Your appointment has been cancelled and removed. You may book again.";
+    cancelledMessage.classList.add("show");
+
+    showMessage("Appointment cancelled successfully.", "success");
+
     } catch (error) {
       console.error("Cancellation error:", error);
       showMessage(error.message, "error");
