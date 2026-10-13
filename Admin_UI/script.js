@@ -262,17 +262,63 @@ function apptRow(a) {
   </tr>`;
 }
 
+
 function earnings() {
-  const done = data.appointments.filter(a => a.status === "Completed");
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const week = new Date(today); week.setDate(today.getDate() - ((today.getDay() + 6) % 7)); // week starts Monday
-  const month = new Date(now.getFullYear(), now.getMonth(), 1);
-  const sum = from => done.filter(a => new Date(a.date) >= from).reduce((t, a) => t + Number(a.price), 0);
-  document.getElementById("earn-today").textContent = money(sum(today));
-  document.getElementById("earn-week").textContent = money(sum(week));
-  document.getElementById("earn-month").textContent = money(sum(month));
+  // Count Completed appointments only
+  const done = data.appointments.filter(
+    a => a.status === "Completed"
+  );
+
+  // Use Philippine local date
+  const dateParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+
+  const parts = Object.fromEntries(
+    dateParts.map(part => [part.type, part.value])
+  );
+
+  const todayString = `${parts.year}-${parts.month}-${parts.day}`;
+  const [year, monthNumber, day] = todayString.split("-").map(Number);
+
+  // Local date boundaries
+  const today = new Date(year, monthNumber - 1, day);
+  const tomorrow = new Date(year, monthNumber - 1, day + 1);
+
+  // Week starts Monday
+  const week = new Date(today);
+  week.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+
+  // Month starts on day 1
+  const monthStart = new Date(year, monthNumber - 1, 1);
+
+  // Parse YYYY-MM-DD as a local calendar date
+  const appointmentDate = a => {
+    const [y, m, d] = String(a.date).split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  const sum = (from, until = null) =>
+    done
+      .filter(a => {
+        const date = appointmentDate(a);
+        return date >= from && (!until || date < until);
+      })
+      .reduce((total, a) => total + (Number(a.price) || 0), 0);
+
+  document.getElementById("earn-today").textContent =
+    money(sum(today, tomorrow));
+
+  document.getElementById("earn-week").textContent =
+    money(sum(week, tomorrow));
+
+  document.getElementById("earn-month").textContent =
+    money(sum(monthStart, tomorrow));
 }
+
 
 
 function render() {
