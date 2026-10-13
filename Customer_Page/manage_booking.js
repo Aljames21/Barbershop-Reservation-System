@@ -385,13 +385,13 @@ async function saveAppointment(updatePayload){
 
 
 
-        if(!response.ok){
+        if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
 
-            throw new Error(
-                "Unable to update appointment"
-            );
-
-        }
+    throw new Error(
+        errorData.message || `Unable to update appointment (${response.status})`
+    );
+}
 
 
 
