@@ -1809,11 +1809,15 @@ summary {
   }
 
   details {
-    width: 100%;
+    width: 200%;
   }
 
   details summary {
-    font-size: 20px;
+    font-size: 19px;
+  }
+
+  details p {
+    font-size: 13px;
   }
 
   .contact {
@@ -1890,5 +1894,27 @@ summary {
     height: 2px;
     background-color: #a67c3b;
     transition: width 0.3s ease;
+  }
+
+  .faq-container {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 40px 20px;
+  }
+
+  .faq h1 {
+    font-size: 34px;
+  }
+
+  details {
+    width: 200%;
+  }
+
+  details summary {
+    font-size: 17px;
+  }
+
+  details p {
+    font-size: 13px;
   }
 }
