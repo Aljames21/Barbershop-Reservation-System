@@ -580,7 +580,12 @@ router.post("/", async (req, res) => {
             console.error("BOOKING EMAIL FAILED:", emailError.message);
         }
 
-        return res.status(201).json(saved);
+        
+        return res.status(201).json({
+            ...saved.toObject(),
+            manageToken
+        });
+
 
     
     } catch (error) {

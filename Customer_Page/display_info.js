@@ -35,15 +35,26 @@ if (reservation) {
     document.getElementById("display-message").textContent =
         reservation.message || "None";
 
+    
     const manageLink = document.getElementById("manage-booking-link");
-    const appointmentId = reservation._id || localStorage.getItem("lastBookingId");
+
+    const appointmentId =
+        reservation._id || localStorage.getItem("lastBookingId");
+
+    const manageToken = reservation.manageToken || "";
 
     if (manageLink) {
-        if (appointmentId) {
-            manageLink.href = `manage_booking.html?id=${encodeURIComponent(appointmentId)}`;
+        if (appointmentId && manageToken) {
+            manageLink.href =
+                `manage_booking.html?id=${encodeURIComponent(appointmentId)}&token=${encodeURIComponent(manageToken)}`;
         } else {
-            manageLink.href = "manage_booking.html";
+            manageLink.href = "#";
+            manageLink.addEventListener("click", (event) => {
+                event.preventDefault();
+                alert("Please use the Manage Booking link from your confirmation email.");
+            });
         }
     }
+
 
 }

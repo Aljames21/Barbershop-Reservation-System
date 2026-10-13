@@ -363,9 +363,11 @@ form.addEventListener("submit", function(event){
 
     console.log("Saved:", data);
 
+    
     const savedReservation = {
         ...reservation,
-        _id: data._id || data.id
+        _id: data._id || data.id,
+        manageToken: data.manageToken
     };
 
     // Save for receipt display
@@ -373,6 +375,7 @@ form.addEventListener("submit", function(event){
         "reservation",
         JSON.stringify(savedReservation)
     );
+    
     localStorage.setItem("lastBookingId", savedReservation._id || "");
 
     alert("Appointment Saved!");
