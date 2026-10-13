@@ -320,10 +320,12 @@ router.post("/", async (req, res) => {
         }
 
         // Find barbers already booked at this date and time
-        const occupiedAppointments = await Appointment.find({
+       const occupiedAppointments = await Appointment.find({
             date,
             time,
-            status: { $nin: ["Cancelled", "Declined"] }
+            status: {
+                $nin: ["Cancelled", "Declined", "Completed"]
+            }
         }).select("barber");
 
         const occupiedNames = new Set(
