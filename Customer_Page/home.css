@@ -1338,7 +1338,7 @@ details {
   border-bottom: 1px solid #9a7045;
 
   width: 100%;
-  max-width: 650px;
+  max-width: 500px;
 }
 
 details summary {
@@ -1346,6 +1346,7 @@ details summary {
   color: lightgray;
   cursor: pointer;
   list-style: none;
+  width: 200%;
 
   margin-bottom: 10px;
   font-family: Georgia, serif;
@@ -1355,6 +1356,7 @@ details summary {
 details p {
   color: darkgrey;
   margin-bottom: 20px;
+  width: 90%;
 
   font-family: Georgia, serif;
   letter-spacing: 0.08ch;
