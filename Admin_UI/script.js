@@ -382,14 +382,23 @@ function earnings() {
       })
       .reduce((total, a) => total + (Number(a.price) || 0), 0);
 
-  document.getElementById("earn-today").textContent =
-    money(sum(today, tomorrow));
 
-  document.getElementById("earn-week").textContent =
-    money(sum(week, tomorrow));
+const earnToday = document.getElementById("earn-today");
+const earnWeek = document.getElementById("earn-week");
+const earnMonth = document.getElementById("earn-month");
 
-  document.getElementById("earn-month").textContent =
-    money(sum(monthStart, tomorrow));
+if (earnToday) {
+    earnToday.textContent = money(sum(today, tomorrow));
+}
+
+if (earnWeek) {
+    earnWeek.textContent = money(sum(week, tomorrow));
+}
+
+if (earnMonth) {
+    earnMonth.textContent = money(sum(monthStart, tomorrow));
+}
+
 }
 
 
