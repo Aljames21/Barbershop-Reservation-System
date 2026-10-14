@@ -2,16 +2,18 @@
 :root {
   --sidebar: #101010;
   --sidebar-text: #d9e0e3;
-  --page: linear-gradient(to top left, #a67c3b 9%, #101010 50%);;
-  --card: #ffffff;
-  --text: #1c2226;
-  --muted: #6b777d;
+  --page: linear-gradient(to top left, #a67c3b 9%, #101010 50%);
+  --card: rgba(0, 0, 0, 0.2);
+  --text: #fbfbfc;
+  --muted: #bbbec0;
   --accent: #a67c3b;
-  --border: #dde3e5;
+  --border: #dde3e575;
   --font: Arial, Helvetica, sans-serif;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -21,10 +23,12 @@ body {
 }
 
 /* ===== Layout: sidebar + main ===== */
-.layout { display: flex; min-height: 100vh; }
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
 
 .sidebar {
-  
   width: 220px;
   background: var(--sidebar);
   padding: 24px 16px;
@@ -34,8 +38,12 @@ body {
   border-top-right-radius: 20px;
   border-bottom-right-radius: 20px;
 }
-.sidebar h1 { color: #fff; font-size: 20px; margin: 0 0 28px 8px; }
-.sidebar a img{
+.sidebar h1 {
+  color: #fff;
+  font-size: 20px;
+  margin: 0 0 28px 8px;
+}
+.sidebar a img {
   width: 20px;
   height: 20px;
   margin-right: 8px;
@@ -54,99 +62,136 @@ body {
 .sidebar a:hover {
   background: rgba(255, 255, 255, 0.08);
   transform: scale(1.1);
-  }
-.sidebar a.active { 
+}
+.sidebar a.active {
   background: #a67c3b;
   transform: scale(1.1);
-  
-  color: #fff; 
+
+  color: #fff;
 }
-.sidebar .logout img{
+.sidebar .logout img {
   width: 20px;
   height: 20px;
   margin-right: 8px;
-
 }
-.sidebar .logout { 
-
+.sidebar .logout {
   display: flex;
   align-items: center;
   background: #101010;
-  margin-top: auto; 
-  border: 1px solid rgba(255, 255, 255, 0.25); 
-  text-align: center; 
+  margin-top: auto;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  text-align: center;
 
   transition: 0.3s ease;
 }
 
-.sidebar .logout:hover { 
-  background: #101010; 
-  color: red; 
+.sidebar .logout:hover {
+  background: #101010;
+  color: red;
   border: 1px solid red;
-  
 }
 
-
-
-.main { flex: 1; padding: 32px; }
-.main h2 { 
-  color:white;
+.main {
+  flex: 1;
+  padding: 32px;
+}
+.main h2 {
+  color: white;
   margin: 0 0 20px;
 }
 
 /* ===== Cards & stats ===== */
-.stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+.stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
 .card {
   background: var(--card);
   border: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(150%);
+
   border-radius: 8px;
-  
-  
 
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
 
-  max-height: 500px;      
-  overflow-y: auto;       
-  overflow-x: hidden;     
-  
   border: 1px solid #ddd;
   border-radius: 8px;
 }
 
-.card-title{
+.card-title {
   width: 100%;
   height: 50px;
   align-items: center;
   display: flex;
   padding: 10px;
-  
+
   background-color: rgb(255, 255, 255);
   position: sticky;
   top: 0;
 }
-.stat { padding: 16px; flex: 1; min-width: 180px; }
-.stat p { margin: 0; color: var(--muted); font-size: 14px; }
-.stat strong { display: block; font-size: 28px; margin-top: 6px; }
+.stat {
+  padding: 16px;
+  flex: 1;
+  min-width: 180px;
+}
+.stat p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.stat strong {
+  display: block;
+  font-size: 28px;
+  margin-top: 6px;
+}
 
 /* ===== Tables ===== */
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
-th { color: var(--muted); font-size: 13px; font-weight: normal; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: normal;
+}
 
-.table-wrap { 
-  
+.table-wrap {
   width: 100%;
   padding: none;
   overflow-x: auto;
-
 }
 
 /* ===== Status labels & buttons ===== */
-.tag { padding: 3px 10px; border-radius: 12px; font-size: 13px; background: var(--border); }
-.tag.pending { background: #fbe9c8; }
-.tag.confirmed { background: #d3ecd8; }
-.tag.cancelled { background: #f4d3d0; }
+.tag {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  background: var(--border);
+}
+.tag.pending {
+  background: #d3b06e; 
+}
+.tag.confirmed {
+  background: #6bc17c;
+}
+.tag.cancelled {
+  background: #ff7063;
+}
 
-button, .button {
+button,
+.button {
   font-family: var(--font);
   padding: 8px 14px;
   border: 0;
@@ -156,12 +201,26 @@ button, .button {
   cursor: pointer;
   font-size: 14px;
 }
-button.light { background: var(--border); color: var(--text); }
-.toolbar { display: flex; justify-content: space-between; margin-bottom: 16px; }
+button.light {
+  background: var(--border);
+  color: var(--text);
+}
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
 
 /* ===== Login page ===== */
-.login-box { max-width: 340px; margin: 12vh auto; }
-.login-box label { display: block; margin: 14px 0 6px; font-size: 14px; }
+.login-box {
+  max-width: 340px;
+  margin: 12vh auto;
+}
+.login-box label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 14px;
+}
 .login-box input {
   width: 100%;
   padding: 10px;
@@ -169,22 +228,52 @@ button.light { background: var(--border); color: var(--text); }
   border-radius: 6px;
   font-size: 15px;
 }
-.login-box button { width: 100%; margin-top: 20px; }
+.login-box button {
+  width: 100%;
+  margin-top: 20px;
+}
 
 /* ===== Small screens ===== */
 @media (max-width: 700px) {
-  .layout { flex-direction: column; }
-  .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; gap: 4px; padding: 12px; }
-  .sidebar h1 { width: 100%; margin: 0 0 8px; }
-  .sidebar .logout { margin-top: 0; margin-left: auto; }
-  .main { padding: 20px 16px; }
+  .layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 12px;
+  }
+  .sidebar h1 {
+    width: 100%;
+    margin: 0 0 8px;
+  }
+  .sidebar .logout {
+    margin-top: 0;
+    margin-left: auto;
+  }
+  .main {
+    padding: 20px 16px;
+  }
 }
 
 /* ===== Pop-up form (add / edit) ===== */
-dialog { width: 90%; max-width: 380px; color: var(--text); }
-dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
-dialog label { display: block; margin-top: 14px; font-size: 14px; }
-dialog input, dialog select {
+dialog {
+  width: 90%;
+  max-width: 380px;
+  color: var(--text);
+}
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+dialog label {
+  display: block;
+  margin-top: 14px;
+  font-size: 14px;
+}
+dialog input,
+dialog select {
   display: block;
   width: 100%;
   margin-top: 6px;
@@ -194,22 +283,62 @@ dialog input, dialog select {
   font-size: 15px;
   font-family: var(--font);
 }
-.dialog-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 22px;
+}
 
 /* ===== Extras ===== */
-.tag.completed { background: #d6e4f5; }
-.empty { color: var(--muted); text-align: center; }
-.error { color: var(--accent); font-size: 14px; min-height: 18px; margin: 12px 0 0; }
+.tag.completed {
+  background: #d6e4f5;
+}
+.empty {
+  color: var(--muted);
+  text-align: center;
+}
+.error {
+  color: var(--accent);
+  font-size: 14px;
+  min-height: 18px;
+  margin: 12px 0 0;
+}
 
 /* ===== Modal (add / edit pop-up) ===== */
-.modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
-.modal-box { width: 100%; max-width: 380px; max-height: 90vh; overflow-y: auto; }
-.modal-box label { display: block; margin-top: 14px; font-size: 14px; }
-.modal-box input, .modal-box select {
-  display: block; width: 100%; margin-top: 6px; padding: 10px;
-  border: 1px solid var(--border); border-radius: 6px; font-size: 15px; font-family: var(--font);
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
 }
-.toolbar h1{
+.modal-box {
+  width: 100%;
+  max-width: 380px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-box label {
+  display: block;
+  margin-top: 14px;
+  font-size: 14px;
+}
+.modal-box input,
+.modal-box select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: var(--font);
+}
+.toolbar h1 {
   color: white;
   margin: 0;
 }
