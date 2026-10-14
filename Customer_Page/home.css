@@ -1426,10 +1426,6 @@ details p {
   justify-content: space-around;
 
   gap: 40px;
-
-  animation: bottomToTop linear;
-  animation-timeline: view();
-  animation-range: entry 0% cover 40%;
 }
 
 .barber-1 {
@@ -2049,7 +2045,7 @@ summary {
   }
 
   .barber-card {
-    margin-top: -20px;
+    margin-top: 20px;
   }
 
   .barber-1 {
