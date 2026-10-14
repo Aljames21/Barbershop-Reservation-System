@@ -181,7 +181,7 @@ th {
   background: var(--border);
 }
 .tag.pending {
-  background: #d3b06e; 
+  background: #d3b06e;
 }
 .tag.confirmed {
   background: #6bc17c;
