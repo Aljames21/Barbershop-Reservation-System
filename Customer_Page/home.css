@@ -2051,4 +2051,54 @@ summary {
   .barber-card {
     margin-top: -20px;
   }
+
+  .barber-1 {
+    width: 100%;
+    max-width: 300px;
+    min-height: 450px;
+  }
+
+  .btn-1::after {
+    content: "";
+    position: absolute;
+
+    left: 180px;
+    width: 0;
+    bottom: 20px;
+    height: 2px;
+    background-color: #a67c3b;
+    transition: width 0.3s ease;
+  }
+
+  .btn-1:hover::after {
+    width: 28%;
+  }
+
+  .barber-2 {
+    width: 100%;
+    max-width: 300px;
+    min-height: 450px;
+  }
+
+  .barber-3 {
+    width: 100%;
+    max-width: 300px;
+    min-height: 450px;
+  }
+
+  .btn::after {
+    content: "";
+    position: absolute;
+
+    left: 180px;
+    width: 0;
+    bottom: 20px;
+    height: 2px;
+    background-color: #a67c3b;
+    transition: width 0.3s ease;
+  }
+
+  .btn:hover::after {
+    width: 28%;
+  }
 }
