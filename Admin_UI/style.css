@@ -181,13 +181,17 @@ th {
   background: var(--border);
 }
 .tag.pending {
-  background: #d3b06e;
+  background: #a67c3b;
 }
 .tag.confirmed {
-  background: #6bc17c;
+  background: #35b04d;
 }
 .tag.cancelled {
-  background: #ff7063;
+  background: #df5245;
+}
+
+.tag.tag.completed {
+  background-color: rgb(0, 145, 0);
 }
 
 button,
