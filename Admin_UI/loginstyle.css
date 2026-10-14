@@ -1,9 +1,11 @@
 :root {
-  --ease: cubic-bezier(.7, 0, .2, 1);
+  --ease: cubic-bezier(0.7, 0, 0.2, 1);
   --overlay: #123c36;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -22,7 +24,7 @@ body {
 
 /* ---------- Card ---------- */
 .card {
-    background-color: rba(255, 255, 255. 0.25);
+  background-color: rba(255, 255, 255 0.25);
   position: relative;
   width: min(900px, 100%);
   height: 600px;
@@ -30,13 +32,11 @@ body {
   box-shadow: 0px 10px 20px #a67c3b;
   overflow: hidden;
   border-radius: 30px;
-  
 }
 
 /* ---------- Form panels (both sit on the left half) ---------- */
 .panel {
-    
-    color: white;
+  color: white;
   position: absolute;
   top: 0;
   left: 0;
@@ -46,11 +46,46 @@ body {
   flex-direction: column;
   justify-content: center;
   padding: 32px 48px;
-  transition: transform .8s var(--ease), opacity .3s ease;
+  transition:
+    transform 0.8s var(--ease),
+    opacity 0.3s ease;
 }
 
-.panel-signin { z-index: 2; }
-.panel-signup { z-index: 1; opacity: 0; }
+#forgot-password-link {
+  position: relative;
+  text-decoration: none;
+  color: white;
+  font-family: "Calibri";
+  transition: 0.3s ease;
+}
+
+#forgot-password-link::after {
+  position: absolute;
+  content: "";
+
+  left: 0;
+  bottom: -5px;
+  width: 0;
+  height: 2px;
+  background-color: currentColor;
+  transition: width 0.3s ease;
+}
+
+#forgot-password-link:hover::after {
+  width: 100%;
+}
+
+#forgot-password-link:hover {
+  color: #a67c3b;
+}
+
+.panel-signin {
+  z-index: 2;
+}
+.panel-signup {
+  z-index: 1;
+  opacity: 0;
+}
 
 /* Sign in swipes right and fades out */
 .card.is-signup .panel-signin {
@@ -63,16 +98,21 @@ body {
   transform: translateX(100%);
   opacity: 1;
   z-index: 5;
-  transition: transform .8s var(--ease), opacity .4s ease .3s;
+  transition:
+    transform 0.8s var(--ease),
+    opacity 0.4s ease 0.3s;
 }
 
 /* ---------- Form ---------- */
-h1 { 
-    margin: 0 0 20px; 
-    color: white;
+h1 {
+  margin: 0 0 20px;
+  color: white;
 }
 
-label { display: block; margin-bottom: 14px; }
+label {
+  display: block;
+  margin-bottom: 14px;
+}
 
 input {
   display: block;
@@ -85,30 +125,25 @@ input {
   border: none;
 }
 
-
 .btn {
   width: 100%;
   height: 44px;
   font: inherit;
   cursor: pointer;
-  border-radius: 10px;border: none;
+  border-radius: 10px;
+  border: none;
 
   background-color: #a67c3b;
   transition: 0.3s ease;
-
 }
-.btn:hover{
+.btn:hover {
   background-color: orange;
 }
 
-
-
-
-
-
-
 /* Text switch links (phones only) */
-.switch { display: none; }
+.switch {
+  display: none;
+}
 
 .switch button {
   padding: 0;
@@ -130,11 +165,13 @@ input {
   height: 100%;
   overflow: hidden;
   z-index: 10;
-  transition: transform .8s var(--ease);
+  transition: transform 0.8s var(--ease);
 }
 
 /* Window slides to the left half */
-.card.is-signup .overlay-wrap { transform: translateX(-100%); }
+.card.is-signup .overlay-wrap {
+  transform: translateX(-100%);
+}
 
 .overlay {
   position: relative;
@@ -143,11 +180,13 @@ input {
   height: 100%;
   background: var(--overlay);
   color: #fff;
-  transition: transform .8s var(--ease);
+  transition: transform 0.8s var(--ease);
 }
 
 /* Inner block slides the opposite way to reveal the other message */
-.card.is-signup .overlay { transform: translateX(50%); }
+.card.is-signup .overlay {
+  transform: translateX(50%);
+}
 
 /* Image layers: one per half of the strip, so they slide with it.
    The dark gradient keeps the white text readable (remove if not needed). */
@@ -160,14 +199,18 @@ input {
   background-position: center;
 }
 
-.img-right {  /* image 1: shown by default (sign-in mode) */
+.img-right {
+  /* image 1: shown by default (sign-in mode) */
   right: 0;
-  background-image: linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.35)), url("12189.jpg");
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url("12189.jpg");
 }
 
-.img-left {   /* image 2: shown after clicking Sign up */
+.img-left {
+  /* image 2: shown after clicking Sign up */
   left: 0;
-  background-image: linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.35)), url("12189.jpg");
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url("12189.jpg");
 }
 
 .overlay-panel {
@@ -180,45 +223,65 @@ input {
   justify-content: center;
   align-items: flex-start;
   padding: 48px;
-  transition: transform .8s var(--ease);
+  transition: transform 0.8s var(--ease);
 }
 
-.overlay-left  { left: 0;  transform: translateX(-20%); }
-.overlay-right { right: 0; }
+.overlay-left {
+  left: 0;
+  transform: translateX(-20%);
+}
+.overlay-right {
+  right: 0;
+}
 
 /* Extra 20% slide = parallax effect */
-.card.is-signup .overlay-left  { transform: none; }
-.card.is-signup .overlay-right { transform: translateX(20%); }
+.card.is-signup .overlay-left {
+  transform: none;
+}
+.card.is-signup .overlay-right {
+  transform: translateX(20%);
+}
 
-.overlay h2 { margin: 0 0 20px; }
+.overlay h2 {
+  margin: 0 0 20px;
+}
 
 .btn-ghost {
   height: 44px;
   padding: 0 28px;
-  border: 1px solid #fff; border-radius: 10px;
+  border: 1px solid #fff;
+  border-radius: 10px;
   background: transparent;
   color: inherit;
-  font: inherit; 
+  font: inherit;
   cursor: pointer;
-  transition: background-color .2s ease, color .2s ease;
-  font-size: 18px; font-weight: 600;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+  font-size: 18px;
+  font-weight: 600;
 }
 
-.btn-ghost:hover { 
-    background-color: #a67c3b;
-    color: black; 
-    border-color: #a67c3b;
-    
-  
-  }
+.btn-ghost:hover {
+  background-color: #a67c3b;
+  color: black;
+  border-color: #a67c3b;
+}
 
 /* ---------- Phones: overlay hidden, forms stack and swipe a short distance ---------- */
 @media (max-width: 760px) {
-  body { padding: 16px; }
+  body {
+    padding: 16px;
+  }
 
-  .card { height: auto; display: grid; }
+  .card {
+    height: auto;
+    display: grid;
+  }
 
-  .overlay-wrap { display: none; }
+  .overlay-wrap {
+    display: none;
+  }
 
   .panel {
     position: relative;
@@ -228,17 +291,30 @@ input {
     padding: 32px 24px;
   }
 
-  .panel-signup { transform: translateX(-40px); }
+  .panel-signup {
+    transform: translateX(-40px);
+  }
 
-  .card.is-signup .panel-signin { transform: translateX(40px); opacity: 0; }
-  .card.is-signup .panel-signup { transform: none; }
+  .card.is-signup .panel-signin {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+  .card.is-signup .panel-signup {
+    transform: none;
+  }
 
-  .switch { display: block; }
+  .switch {
+    display: block;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel, .overlay-wrap, .overlay, .overlay-panel, .card.is-signup .panel-signup {
-    transition-duration: .01s;
+  .panel,
+  .overlay-wrap,
+  .overlay,
+  .overlay-panel,
+  .card.is-signup .panel-signup {
+    transition-duration: 0.01s;
     transition-delay: 0s;
   }
 }
@@ -248,7 +324,6 @@ input {
   font-size: 14px;
   margin-top: 10px;
 }
-
 
 .panel-forgot {
   display: none;
