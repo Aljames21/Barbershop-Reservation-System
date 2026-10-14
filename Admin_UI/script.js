@@ -45,22 +45,22 @@ async function apiFetch(url, options = {}) {
 let data = {
     staffs: [],
     clients: [],
-    appointments: []
+    appointments: [],
+    services: []
 };
 
-async function loadAppointments(){
 
+async function loadAppointments() {
     const appointments = await apiFetch("/appointments");
 
-    if(appointments){
-
+    if (appointments) {
         data.appointments = appointments;
 
+        earnings(); // Update earnings cards
         render();
-
     }
-
 }
+
 
 async function loadStaffs() {
     try {
@@ -74,6 +74,22 @@ async function loadStaffs() {
         console.error("Failed to load staff:", error);
     }
 }
+
+
+async function loadServices() {
+    try {
+        const services = await apiFetch("/services?admin=true");
+
+        if (Array.isArray(services)) {
+            data.services = services;
+            render();
+        }
+    } catch (error) {
+        console.error("Failed to load services:", error);
+        alert("Failed to load services: " + error.message);
+    }
+}
+
 
 const nextId = list => Math.max(0, ...list.map(x => x.id)) + 1;
 const staffOptions = () => ["No preference", ...data.staffs.map(s => s.name)];
@@ -152,10 +168,13 @@ form.onsubmit = async e => {
 
 async function staffForm(s) {
     const fields = [
-        { name: "name", label: "Name", required: true },
-        { name: "role", label: "Role", required: true },
-        { name: "date", label: "Date", type: "date" },
-        { name: "time", label: "Time", type: "time" }
+        { name: "name", label: "Barber name" },
+        { name: "role", label: "Specialization" },
+        {
+            name: "status",
+            label: "Status",
+            options: ["Available", "Unavailable", "On Leave"]
+        }
     ];
 
     openForm(
@@ -163,9 +182,8 @@ async function staffForm(s) {
         fields,
         {
             name: s?.name || "",
-            role: s?.role || s?.specialization || "Barber",
-            date: s?.date || "",
-            time: s?.time || ""
+            role: s?.specialization || s?.role || "Barber",
+            status: s?.status || "Available"
         },
         async (v) => {
             try {
@@ -178,24 +196,82 @@ async function staffForm(s) {
                         body: JSON.stringify({
                             name: v.name,
                             role: v.role,
-                            date: v.date,
-                            time: v.time
+                            specialization: v.role,
+                            status: v.status
                         })
                     }
                 );
 
-                if (!result || result.error) {
-                    alert(result?.error || "Failed to save staff.");
+                if (!result || result.error || result.message === "Staff not found.") {
+                    alert(result?.message || result?.error || "Failed to save staff.");
                     return false;
                 }
 
                 await loadStaffs();
                 return true;
+
             } catch (error) {
-            console.error("SAVE STAFF ERROR:", error);
-            alert("Save failed: " + error.message);
-            return false;
-          }
+                console.error("SAVE STAFF ERROR:", error);
+                alert("Save failed: " + error.message);
+                return false;
+            }
+        }
+    );
+}
+
+
+async function serviceForm(service) {
+    const fields = [
+        { name: "name", label: "Service name" },
+        { name: "description", label: "Description" },
+        { name: "price", label: "Price (₱)", type: "number" },
+        { name: "duration", label: "Duration (minutes)", type: "number" },
+        {
+            name: "status",
+            label: "Status",
+            options: ["Active", "Inactive"]
+        }
+    ];
+
+    openForm(
+        service ? "Edit service" : "Add service",
+        fields,
+        {
+            name: service?.name || "",
+            description: service?.description || "",
+            price: service?.price ?? "",
+            duration: service?.duration ?? "",
+            status: service?.status || "Active"
+        },
+        async (v) => {
+            try {
+                const result = await apiFetch(
+                    service
+                        ? `/services/${encodeURIComponent(service._id)}`
+                        : "/services",
+                    {
+                        method: service ? "PUT" : "POST",
+                        body: JSON.stringify({
+                            name: v.name,
+                            description: v.description,
+                            price: Number(v.price),
+                            duration: Number(v.duration),
+                            status: v.status
+                        })
+                    }
+                );
+
+                if (!result || !result._id) {
+                    alert(result?.message || "Failed to save service.");
+                    return false;
+                }
+
+                await loadServices();
+                return true;
+            } catch (error) {
+                alert("Service save failed: " + error.message);
+                return false;
+            }
         }
     );
 }
@@ -262,57 +338,190 @@ function apptRow(a) {
   </tr>`;
 }
 
+
 function earnings() {
-  const done = data.appointments.filter(a => a.status === "Completed");
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const week = new Date(today); week.setDate(today.getDate() - ((today.getDay() + 6) % 7)); // week starts Monday
-  const month = new Date(now.getFullYear(), now.getMonth(), 1);
-  const sum = from => done.filter(a => new Date(a.date) >= from).reduce((t, a) => t + Number(a.price), 0);
-  document.getElementById("earn-today").textContent = money(sum(today));
-  document.getElementById("earn-week").textContent = money(sum(week));
-  document.getElementById("earn-month").textContent = money(sum(month));
+  // Count Completed appointments only
+  const done = data.appointments.filter(
+    a => a.status === "Completed"
+  );
+
+  // Use Philippine local date
+  const dateParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+
+  const parts = Object.fromEntries(
+    dateParts.map(part => [part.type, part.value])
+  );
+
+  const todayString = `${parts.year}-${parts.month}-${parts.day}`;
+  const [year, monthNumber, day] = todayString.split("-").map(Number);
+
+  // Local date boundaries
+  const today = new Date(year, monthNumber - 1, day);
+  const tomorrow = new Date(year, monthNumber - 1, day + 1);
+
+  // Week starts Monday
+  const week = new Date(today);
+  week.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+
+  // Month starts on day 1
+  const monthStart = new Date(year, monthNumber - 1, 1);
+
+  // Parse YYYY-MM-DD as a local calendar date
+  const appointmentDate = a => {
+    const [y, m, d] = String(a.date).split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  const sum = (from, until = null) =>
+    done
+      .filter(a => {
+        const date = appointmentDate(a);
+        return date >= from && (!until || date < until);
+      })
+      .reduce((total, a) => total + (Number(a.price) || 0), 0);
+
+
+const earnToday = document.getElementById("earn-today");
+const earnWeek = document.getElementById("earn-week");
+const earnMonth = document.getElementById("earn-month");
+
+if (earnToday) {
+    earnToday.textContent = money(sum(today, tomorrow));
 }
 
-  function render() {
-  const rows = document.getElementById("rows");
-  
-  if (page === "dashboard") {
-      earnings();
+if (earnWeek) {
+    earnWeek.textContent = money(sum(week, tomorrow));
+}
 
-      const list = [...data.appointments].sort(byDate).reverse();
+if (earnMonth) {
+    earnMonth.textContent = money(sum(monthStart, tomorrow));
+}
 
-      rows.innerHTML = list.map(apptRow).join("") ||
-          emptyRow(7, "No appointments yet.");
-  }
+}
 
-  if (page === "appointments") {
+
+
+function render() {
+    const rows = document.getElementById("rows");
+
+    // ===== DASHBOARD =====
+    if (page === "dashboard") {
+            earnings();
+
+            const totalAppointments = data.appointments.length;
+
+            const pendingAppointments = data.appointments.filter(
+                a => a.status === "Pending"
+            ).length;
+
+            const totalBarbers = data.staffs.length;
+            const totalServices = data.services.length;
+
+            const totalEl = document.getElementById("total-appointments");
+            const pendingEl = document.getElementById("pending-appointments");
+            const barbersEl = document.getElementById("active-barbers");
+            const servicesEl = document.getElementById("total-services");
+
+            if (totalEl) totalEl.textContent = totalAppointments;
+            if (pendingEl) pendingEl.textContent = pendingAppointments;
+            if (barbersEl) barbersEl.textContent = totalBarbers;
+            if (servicesEl) servicesEl.textContent = totalServices;
+
+            return;
+    }
+
+// ===== APPOINTMENTS PAGE =====
+if (page === "appointments" && rows) {
     const list = [...data.appointments].sort(byDate).reverse();
-    rows.innerHTML = list.map(apptRow).join("") || emptyRow(7, "No appointments yet. Bookings from the client site will show up here.");
-  }
- if (page === "staffs") {
-    rows.innerHTML = data.staffs.map(s =>
-        `<tr>
-            <td>${esc(s.name)}</td>
-            <td>${esc(s.role || s.specialization || "Barber")}</td>
-            <td>${esc(s.date || "-")}</td>
-            <td>${esc(s.time || "-")}</td>
-            <td>
-                ${btn("edit-staff", s.id || s._id, "Edit", "light")}
-                ${btn("remove-staff", s.id || s._id, "Remove", "light")}
-            </td>
-        </tr>`
-    ).join("") || emptyRow(5, "No staff yet. Click Add staff.");
+
+    rows.innerHTML =
+        list.map(apptRow).join("") ||
+        emptyRow(
+            7,
+            "No appointments yet. Bookings from the client site will show up here."
+        );
 }
-  if (page === "clients") {
-    rows.innerHTML = data.clients.map(c => {
-      const visits = data.appointments.filter(a => a.client === c.name && a.status === "Completed").sort(byDate);
-      const last = visits.length ? new Date(visits[visits.length - 1].date).toLocaleDateString("en-PH", { month: "short", day: "numeric" }) : "-";
-      return `<tr><td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td>${esc(c.staff)}</td><td>${last}</td><td>${visits.length}</td>` +
-        `<td>${btn("edit-client", c.id, "Edit", "light")} ${btn("remove-client", c.id, "Remove", "light")}</td></tr>`;
-    }).join("") || emptyRow(6, "No clients yet. Click Add client.");
-  }
+
+// ===== STAFFS PAGE =====
+if (page === "staffs" && rows) {
+    rows.innerHTML = data.staffs.map(s => {
+        const status = s.status || "Available";
+
+        return `
+            <tr>
+                <td>${esc(s.name)}</td>
+                <td>${esc(s.specialization || s.role || "Barber")}</td>
+                <td>
+                    <span class="tag ${status.toLowerCase()}">
+                        ${esc(status)}
+                    </span>
+                </td>
+                <td>
+                    ${btn("edit-staff", s.id || s._id, "Edit", "light")}
+                    ${btn("remove-staff", s.id || s._id, "Remove", "light")}
+                </td>
+            </tr>
+        `;
+    }).join("") || emptyRow(4, "No staff found. Click Add staff.");
 }
+
+// ===== SERVICES PAGE =====
+if (page === "services" && rows) {
+    rows.innerHTML = data.services.map(s => `
+            <tr>
+                <td>${esc(s.name)}</td>
+                <td>${esc(s.description || "-")}</td>
+                <td>${money(s.price || 0)}</td>
+                <td>${Number(s.duration) || 0}</td>
+                <td>${esc(s.status || "Active")}</td>
+                <td>
+                    ${btn("edit-service", s._id, "Edit", "light")}
+                    ${btn("delete-service", s._id, "Delete", "light")}
+                </td>
+            </tr>
+        `).join("") || emptyRow(6, "No services found. Click Add service.");
+    }
+
+
+    // ===== CLIENTS PAGE =====
+    if (page === "clients" && rows) {
+        rows.innerHTML = data.clients.map(c => {
+            const visits = data.appointments
+                .filter(a =>
+                    (a.customerName || a.client) === c.name &&
+                    a.status === "Completed"
+                )
+                .sort(byDate);
+
+            const last = visits.length
+                ? new Date(
+                    visits[visits.length - 1].date
+                ).toLocaleDateString("en-PH", {
+                    month: "short",
+                    day: "numeric"
+                })
+                : "-";
+
+            return `<tr>
+                <td>${esc(c.name)}</td>
+                <td>${esc(c.phone || "-")}</td>
+                <td>${esc(c.staff || "-")}</td>
+                <td>${last}</td>
+                <td>${visits.length}</td>
+                <td>
+                    ${btn("edit-client", c.id, "Edit", "light")}
+                    ${btn("remove-client", c.id, "Remove", "light")}
+                </td>
+            </tr>`;
+        }).join("") || emptyRow(6, "No clients yet. Click Add client.");
+    }
+}
+
 
 function commit() { save(); render(); }
 
@@ -328,7 +537,15 @@ function start() {
 };
 
   const add = document.getElementById("add-btn");
-  if (add) add.onclick = () => ({ staffs: staffForm, clients: clientForm })[page]?.();
+  
+    if (add) {
+        add.onclick = () => ({
+            staffs: () => staffForm(),
+            clients: () => clientForm(),
+            services: () => serviceForm()
+        })[page]?.();
+    }
+
 
   document.addEventListener("click", async e => {
     const b = e.target.closest("[data-action]");
@@ -387,6 +604,41 @@ if (["accept", "decline", "cancel", "complete"].includes(act)) {
         console.error("Appointment status update error:", error);
         alert(error.message || "Unable to update appointment.");
         b.disabled = false;
+    }
+
+    return;
+}
+
+
+else if (act === "edit-service") {
+    const service = data.services.find(s => String(s._id) === String(id));
+
+    if (!service) {
+        alert("Service not found.");
+        return;
+    }
+
+    serviceForm(service);
+}
+
+else if (act === "delete-service") {
+    if (!confirm("Delete this service?")) return;
+
+    try {
+        const result = await apiFetch(
+            `/services/${encodeURIComponent(id)}`,
+            { method: "DELETE" }
+        );
+
+        if (!result || result.message === "Service not found.") {
+            alert(result?.message || "Failed to delete service.");
+            return;
+        }
+
+        await loadServices();
+        alert("Service deleted successfully!");
+    } catch (error) {
+        alert("Delete failed: " + error.message);
     }
 
     return;
@@ -458,7 +710,7 @@ if (page === "login") {
 
         try {
             const response = await fetch(
-                "http://localhost:5000/api/admin/login",
+                `${API}/admin/login`,
                 {
                     method: "POST",
                     headers: {
@@ -488,13 +740,22 @@ if (page === "login") {
 } else if (sessionStorage.getItem("admin") !== "yes") {
     window.location.href = "index.html";
 } else {
+    
+
     start();
 
     loadAppointments();
 
-      if (page === "staffs") {
+    
+    if (page === "staffs" || page === "dashboard") {
         loadStaffs();
     }
+
+    if (page === "services" || page === "dashboard") {
+        loadServices();
+    }
+
+
 
 }
 

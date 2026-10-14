@@ -6,49 +6,91 @@
   <title>Dashboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body data-page="dashboard">
-<aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa                     div class="layout">
+  <div class="layout">
 
-  <nav class="sidebar">
-    <img class="logo" src="logo.jpg" alt="logo">
-    <br>
-    <a href="dashboard.html" class="active"><img src="icons/dashboardwhite.png" alt="Dashboard"> Dashboard</a>
-    <a href="staffs.html"><img src="icons/barberwhite.png" alt="barber">Staffs</a>
-    <a href="clients.html"><img src="icons/customerwhite.png" alt="client">Clients</a>
-    <a href="appointments.html"><img src="icons/appointmentwhite.png" alt="appointment">Appointments</a>
+    <nav class="sidebar">
+      <img class="logo" src="logo.jpg" alt="logo">
+      <br>
 
-    <button id="logout-btn" class="logout"><img src="icons/logout (2).png" alt="logout">
-      Log out
-    </button>
-  </nav>
+      <a href="dashboard.html" class="active">
+        <img src="icons/dashboardwhite.png" alt="Dashboard">
+        Dashboard
+      </a>
 
-  <main class="main">
-    <h2>Dashboard</h2>
+      <a href="staffs.html">
+        <img src="icons/barberwhite.png" alt="barber">
+        Staffs
+      </a>
 
-    <!-- Earnings -->
-    <div class="stats">
-      <div class="card stat"><p>Earned today</p><strong id="earn-today">₱0</strong></div>
-      <div class="card stat"><p>Earned this week</p><strong id="earn-week">₱0</strong></div>
-      <div class="card stat"><p>Earned this month</p><strong id="earn-month">₱0</strong></div>
-    </div>
+      <a href="services.html">
+        <img src="icons/appointmentwhite.png" alt="service">
+        Services
+      </a>
 
-    <!-- Appointment requests (rows are filled in by script.js) -->
-    <div class="card">
-      <h3 class="card-title" style="margin-top:0">Appointment requests</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>  
-            <tr><th>Date &amp; time</th><th>Client</th><th>Service</th><th>Preferred staff</th><th>Price</th><th>Status</th><th></th></tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
+      <a href="appointments.html">
+        <img src="icons/appointmentwhite.png" alt="appointment">
+        Appointments
+      </a>
+
+      <button id="logout-btn" class="logout">
+        <img src="icons/logout (2).png" alt="logout">
+        Log out
+      </button>
+    </nav>
+
+    <main class="main">
+      <h2>Dashboard</h2>
+
+      <!-- Earnings Summary -->
+      <div class="stats">
+        <div class="card stat">
+          <p>Earned today</p>
+          <strong id="earn-today">₱0</strong>
+        </div>
+
+        <div class="card stat">
+          <p>Earned this week</p>
+          <strong id="earn-week">₱0</strong>
+        </div>
+
+        <div class="card stat">
+          <p>Earned this month</p>
+          <strong id="earn-month">₱0</strong>
+        </div>
       </div>
-    </div>
-  </main>
 
-</aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaadiv>
-<script src="script.js"></script>
-<script src="auth.js"></script>
-<script src="logout.js"></script>
+      <!-- Business Overview -->
+      <div class="stats">
+        <div class="card stat">
+          <p>Total Appointments</p>
+          <strong id="total-appointments">0</strong>
+        </div>
+
+        <div class="card stat">
+          <p>Pending Requests</p>
+          <strong id="pending-appointments">0</strong>
+        </div>
+
+        <div class="card stat">
+          <p>Active Barbers</p>
+          <strong id="active-barbers">0</strong>
+        </div>
+
+     
+      <div class="card stat">
+        <p>Total Services</p>
+        <strong id="total-services">0</strong>
+      </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="auth.js"></script>
+  <script src="logout.js"></script>
 </body>
 </html>

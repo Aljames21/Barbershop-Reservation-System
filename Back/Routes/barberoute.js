@@ -8,10 +8,12 @@ const verifyAdmin = require("../Middleware/authMiddleware");
 // PUBLIC: customer homepage
 router.get("/", async (req, res) => {
     try {
-        const barbers = await Barber.find()
-            .select("name specialization status");
+        const barbers = await Barber.find({
+            status: { $in: ["Available", "Active"] }
+        }).select("name specialization status");
 
         res.json(barbers);
+
     } catch (error) {
         console.error("Error loading barbers:", error.message);
         res.status(500).json({ message: "Unable to load barbers." });
@@ -30,58 +32,116 @@ router.get("/admin", verifyAdmin, async (req, res) => {
 });
 
 
+
 // ADMIN: add staff
 router.post("/", verifyAdmin, async (req, res) => {
     try {
-        const { name, role, date, time } = req.body;
+        const { name, role, specialization, status } = req.body;
 
-        if (!name || !role) {
+        const barberName = String(name || "").trim();
+        const barberSpecialization = String(
+            specialization || role || ""
+        ).trim();
+
+        const allowedStatuses = [
+            "Available",
+            "Unavailable",
+            "On Leave"
+        ];
+
+        if (!barberName || !barberSpecialization) {
             return res.status(400).json({
-                message: "Name and role are required."
+                message: "Name and specialization are required."
+            });
+        }
+
+        if (status && !allowedStatuses.includes(status)) {
+            return res.status(400).json({
+                message: "Invalid barber status."
             });
         }
 
         const barber = await Barber.create({
-            name: name.trim(),
-            specialization: role.trim(),
-            status: "Active",
-            date: date || "",
-            time: time || ""
+            name: barberName,
+            specialization: barberSpecialization,
+            status: status || "Available"
         });
 
         res.status(201).json(barber);
     } catch (error) {
         console.error("Add staff error:", error.message);
-        res.status(500).json({ message: "Unable to add staff." });
+        res.status(500).json({
+            message: "Unable to add staff."
+        });
     }
 });
+
 
 // ADMIN: update staff
 router.put("/:id", verifyAdmin, async (req, res) => {
     try {
-        const { name, role, date, time } = req.body;
+        const { name, role, specialization, status } = req.body;
+        const update = {};
+
+        if (name !== undefined) {
+            update.name = String(name).trim();
+
+            if (!update.name) {
+                return res.status(400).json({
+                    message: "Name is required."
+                });
+            }
+        }
+
+        if (role !== undefined || specialization !== undefined) {
+            update.specialization = String(
+                specialization ?? role ?? ""
+            ).trim();
+
+            if (!update.specialization) {
+                return res.status(400).json({
+                    message: "Specialization is required."
+                });
+            }
+        }
+
+        if (status !== undefined) {
+            const allowedStatuses = [
+                "Available",
+                "Unavailable",
+                "On Leave"
+            ];
+
+            if (!allowedStatuses.includes(status)) {
+                return res.status(400).json({
+                    message: "Invalid barber status."
+                });
+            }
+
+            update.status = status;
+        }
 
         const updated = await Barber.findByIdAndUpdate(
             req.params.id,
-            {
-                name: name?.trim(),
-                specialization: role?.trim(),
-                date: date || "",
-                time: time || ""
-            },
+            { $set: update },
             { new: true, runValidators: true }
         );
 
         if (!updated) {
-            return res.status(404).json({ message: "Staff not found." });
+            return res.status(404).json({
+                message: "Staff not found."
+            });
         }
 
         res.json(updated);
     } catch (error) {
         console.error("Update staff error:", error.message);
-        res.status(500).json({ message: "Unable to update staff." });
+        res.status(500).json({
+            message: "Unable to update staff."
+        });
     }
 });
+
 
 // ADMIN: delete staff
 router.delete("/:id", verifyAdmin, async (req, res) => {
