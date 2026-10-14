@@ -1,4 +1,4 @@
-/* ===== Colors & fonts ===== */
+/* ===== Colors & fonts: change these first to redesign quickly ===== */
 :root {
   --sidebar: #101010;
   --sidebar-text: #d9e0e3;
@@ -16,12 +16,9 @@
 }
 
 body {
-  min-width: 320px;
-  min-height: 100vh;
   margin: 0;
   font-family: var(--font);
   background: var(--page);
-  background-attachment: fixed;
   color: var(--text);
 }
 
@@ -33,88 +30,71 @@ body {
 
 .sidebar {
   width: 220px;
-  flex: 0 0 220px;
   background: var(--sidebar);
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
+
   border-top-right-radius: 20px;
   border-bottom-right-radius: 20px;
 }
-
-.sidebar .logo {
-  display: block;
-  width: 100%;
-  max-width: 180px;
-  max-height: 100px;
-  margin: 0 auto 20px;
-  object-fit: contain;
+.sidebar h1 {
+  color: #fff;
+  font-size: 20px;
+  margin: 0 0 28px 8px;
 }
-
-.sidebar br {
-  display: none;
-}
-
-.sidebar a img,
-.sidebar .logout img {
+.sidebar a img {
   width: 20px;
   height: 20px;
-  flex: 0 0 20px;
   margin-right: 8px;
-  object-fit: contain;
 }
-
 .sidebar a {
   display: flex;
   align-items: center;
-  min-height: 44px;
   color: var(--sidebar-text);
   text-decoration: none;
   padding: 10px 12px;
   border-radius: 6px;
   margin-bottom: 4px;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
-}
 
+  transition: 0.4s ease;
+}
 .sidebar a:hover {
   background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.1);
 }
-
 .sidebar a.active {
   background: #a67c3b;
+  transform: scale(1.1);
+
   color: #fff;
 }
-
+.sidebar .logout img {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+}
 .sidebar .logout {
   display: flex;
   align-items: center;
-  min-height: 44px;
   background: #101010;
   margin-top: auto;
   border: 1px solid rgba(255, 255, 255, 0.25);
   text-align: center;
-  font: inherit;
-  cursor: pointer;
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease;
+
+  transition: 0.3s ease;
 }
 
 .sidebar .logout:hover {
   background: #101010;
-  color: #ff6b6b;
-  border-color: #ff6b6b;
+  color: red;
+  border: 1px solid red;
 }
 
 .main {
   flex: 1;
-  min-width: 0;
-  padding: clamp(20px, 3vw, 40px);
+  padding: 32px;
 }
-
-.main h1,
 .main h2 {
   color: white;
   margin: 0 0 20px;
@@ -122,108 +102,90 @@ body {
 
 /* ===== Cards & stats ===== */
 .stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  display: flex;
   gap: 16px;
+  flex-wrap: wrap;
   margin-bottom: 28px;
 }
-
 .card {
-  min-width: 0;
   background: var(--card);
   border: 1px solid var(--border);
   -webkit-backdrop-filter: blur(10px) saturate(150%);
   backdrop-filter: blur(10px) saturate(150%);
+
+  border-radius: 8px;
+
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  border: 1px solid #ddd;
   border-radius: 8px;
 }
 
 .card-title {
-  display: flex;
-  align-items: center;
   width: 100%;
-  min-height: 50px;
+  height: 50px;
+  align-items: center;
+  display: flex;
   padding: 10px;
+
   background-color: rgb(255, 255, 255);
   position: sticky;
   top: 0;
 }
-
 .stat {
-  padding: clamp(16px, 2vw, 24px);
+  padding: 16px;
+  flex: 1;
+  min-width: 180px;
 }
-
 .stat p {
   margin: 0;
   color: var(--muted);
   font-size: 14px;
 }
-
 .stat strong {
   display: block;
-  overflow-wrap: anywhere;
-  font-size: clamp(24px, 2vw, 32px);
+  font-size: 28px;
   margin-top: 6px;
 }
 
 /* ===== Tables ===== */
-.table-wrap {
-  width: 100%;
-  max-height: min(72vh, 900px);
-  overflow: auto;
-  scrollbar-gutter: stable;
-}
-
 table {
   width: 100%;
-  min-width: 680px;
   border-collapse: collapse;
 }
-
 th,
 td {
   text-align: left;
   padding: 12px;
   border-bottom: 1px solid var(--border);
-  vertical-align: middle;
 }
-
 th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: #171717;
   color: var(--muted);
   font-size: 13px;
   font-weight: normal;
-  white-space: nowrap;
 }
 
-td {
-  overflow-wrap: anywhere;
-}
-
-td button {
-  margin: 2px;
+.table-wrap {
+  width: 100%;
+  padding: none;
+  overflow-x: auto;
 }
 
 /* ===== Status labels & buttons ===== */
 .tag {
-  display: inline-block;
   padding: 3px 10px;
   border-radius: 12px;
   font-size: 13px;
-  white-space: nowrap;
   background: var(--border);
 }
-
 .tag.pending {
   background: #a67c3b;
 }
-
 .tag.confirmed {
   background: #35b04d;
 }
-
 .tag.cancelled {
   background: #df5245;
 }
@@ -234,7 +196,6 @@ td button {
 
 button,
 .button {
-  min-height: 40px;
   font-family: var(--font);
   padding: 8px 14px;
   border: 0;
@@ -244,43 +205,26 @@ button,
   cursor: pointer;
   font-size: 14px;
 }
-
-button:disabled {
-  cursor: wait;
-  opacity: 0.7;
-}
-
 button.light {
   background: var(--border);
   color: var(--text);
 }
-
 .toolbar {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 16px;
   margin-bottom: 16px;
 }
 
-.toolbar h1,
-.toolbar h2 {
-  margin: 0;
-  color: white;
-}
-
-/* ===== Login page helpers ===== */
+/* ===== Login page ===== */
 .login-box {
-  width: min(340px, 100%);
+  max-width: 340px;
   margin: 12vh auto;
 }
-
 .login-box label {
   display: block;
   margin: 14px 0 6px;
   font-size: 14px;
 }
-
 .login-box input {
   width: 100%;
   padding: 10px;
@@ -288,30 +232,50 @@ button.light {
   border-radius: 6px;
   font-size: 15px;
 }
-
 .login-box button {
   width: 100%;
   margin-top: 20px;
 }
 
-/* ===== Pop-up form (add / edit) ===== */
-dialog {
-  width: min(90%, 380px);
-  max-height: 90vh;
-  overflow-y: auto;
-  color: var(--text);
+/* ===== Small screens ===== */
+@media (max-width: 700px) {
+  .layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 12px;
+  }
+  .sidebar h1 {
+    width: 100%;
+    margin: 0 0 8px;
+  }
+  .sidebar .logout {
+    margin-top: 0;
+    margin-left: auto;
+  }
+  .main {
+    padding: 20px 16px;
+  }
 }
 
+/* ===== Pop-up form (add / edit) ===== */
+dialog {
+  width: 90%;
+  max-width: 380px;
+  color: var(--text);
+}
 dialog::backdrop {
   background: rgba(0, 0, 0, 0.45);
 }
-
 dialog label {
   display: block;
   margin-top: 14px;
   font-size: 14px;
 }
-
 dialog input,
 dialog select {
   display: block;
@@ -323,11 +287,9 @@ dialog select {
   font-size: 15px;
   font-family: var(--font);
 }
-
 .dialog-buttons {
   display: flex;
   justify-content: flex-end;
-  flex-wrap: wrap;
   gap: 8px;
   margin-top: 22px;
 }
@@ -336,12 +298,10 @@ dialog select {
 .tag.completed {
   background: #d6e4f5;
 }
-
 .empty {
   color: var(--muted);
   text-align: center;
 }
-
 .error {
   color: var(--accent);
   font-size: 14px;
@@ -353,40 +313,36 @@ dialog select {
 .modal {
   position: fixed;
   inset: 0;
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
   padding: 16px;
-  background: rgba(0, 0, 0, 0.55);
 }
-
 .modal-box {
-  width: min(100%, 420px);
-  max-height: min(90vh, 900px);
+  width: 100%;
+  max-width: 380px;
+  max-height: 90vh;
   overflow-y: auto;
-  padding: clamp(20px, 3vw, 32px);
 }
-
-.modal-box h3 {
-  overflow-wrap: anywhere;
-}
-
 .modal-box label {
   display: block;
   margin-top: 14px;
   font-size: 14px;
 }
-
 .modal-box input,
 .modal-box select {
   display: block;
   width: 100%;
-  min-height: 42px;
   margin-top: 6px;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 15px;
   font-family: var(--font);
+}
+.toolbar h1 {
+  color: white;
+  margin: 0;
 }
