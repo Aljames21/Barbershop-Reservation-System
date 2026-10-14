@@ -2101,4 +2101,12 @@ summary {
   .btn:hover::after {
     width: 28%;
   }
+
+  .barber-info h3 {
+    font-size: x-large;
+  }
+
+  .barber-info p {
+    font-size: 13px;
+  }
 }
