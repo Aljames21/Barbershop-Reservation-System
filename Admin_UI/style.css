@@ -391,48 +391,6 @@ dialog select {
   font-family: var(--font);
 }
 
-@media (max-width: 760px) {
-  .layout {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    width: 100%;
-    flex: 0 0 auto;
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px;
-    padding: 12px;
-    border-radius: 0;
-  }
-
-  .sidebar .logo {
-    width: auto;
-    max-width: 120px;
-    max-height: 56px;
-    margin: 0 8px 4px 0;
-  }
-
-  .sidebar a {
-    flex: 1 1 130px;
-    margin: 0;
-  }
-
-  .sidebar .logout {
-    flex: 1 1 130px;
-    margin: 0;
-  }
-
-  .main {
-    padding: 24px 16px;
-  }
-
-  .table-wrap {
-    max-height: 70vh;
-  }
-}
-
 @media (max-width: 500px) {
   .sidebar {
     gap: 6px;
