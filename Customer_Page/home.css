@@ -1998,4 +1998,57 @@ summary {
     margin-top: 5px;
     font-size: 14px;
   }
+
+  .description h1 {
+    font-size: 30px;
+    margin-top: 30px;
+  }
+
+  .paragraph-1 {
+    color: lightgray;
+    margin-top: 1px;
+    font-size: 15px;
+
+    width: 130%;
+    max-width: 800px;
+    margin-left: -40px;
+  }
+
+  .paragraph-2 {
+    margin-top: 30px;
+    font-size: 15px;
+    color: lightgray;
+
+    width: 130%;
+    max-width: 800px;
+    margin-left: -40px;
+    margin-right: auto;
+
+    font-family: Georgia, serif;
+    letter-spacing: 0.08ch;
+
+    text-align: center;
+  }
+
+  .about-them h2 {
+    font-size: 30px;
+    font-family: Georgia, serif;
+    letter-spacing: 0.08ch;
+  }
+
+  .about-them p {
+    font-family: Arial, sans-serif;
+
+    margin-top: 5px;
+    font-size: 15px;
+    color: #a67c3b;
+  }
+
+  .about-them {
+    margin-top: 30px;
+  }
+
+  .barber-card {
+    margin-top: -60px;
+  }
 }
