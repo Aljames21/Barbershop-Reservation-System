@@ -168,10 +168,13 @@ form.onsubmit = async e => {
 
 async function staffForm(s) {
     const fields = [
-        { name: "name", label: "Name", required: true },
-        { name: "role", label: "Role", required: true },
-        { name: "date", label: "Date", type: "date" },
-        { name: "time", label: "Time", type: "time" }
+        { name: "name", label: "Barber name" },
+        { name: "role", label: "Specialization" },
+        {
+            name: "status",
+            label: "Status",
+            options: ["Available", "Unavailable", "On Leave"]
+        }
     ];
 
     openForm(
@@ -179,9 +182,8 @@ async function staffForm(s) {
         fields,
         {
             name: s?.name || "",
-            role: s?.role || s?.specialization || "Barber",
-            date: s?.date || "",
-            time: s?.time || ""
+            role: s?.specialization || s?.role || "Barber",
+            status: s?.status || "Available"
         },
         async (v) => {
             try {
@@ -194,24 +196,25 @@ async function staffForm(s) {
                         body: JSON.stringify({
                             name: v.name,
                             role: v.role,
-                            date: v.date,
-                            time: v.time
+                            specialization: v.role,
+                            status: v.status
                         })
                     }
                 );
 
-                if (!result || result.error) {
-                    alert(result?.error || "Failed to save staff.");
+                if (!result || result.error || result.message === "Staff not found.") {
+                    alert(result?.message || result?.error || "Failed to save staff.");
                     return false;
                 }
 
                 await loadStaffs();
                 return true;
+
             } catch (error) {
-            console.error("SAVE STAFF ERROR:", error);
-            alert("Save failed: " + error.message);
-            return false;
-          }
+                console.error("SAVE STAFF ERROR:", error);
+                alert("Save failed: " + error.message);
+                return false;
+            }
         }
     );
 }
@@ -432,37 +435,44 @@ function render() {
             return;
     }
 
-    // ===== APPOINTMENTS PAGE =====
-    if (page === "appointments" && rows) {
-        const list = [...data.appointments].sort(byDate).reverse();
+// ===== APPOINTMENTS PAGE =====
+if (page === "appointments" && rows) {
+    const list = [...data.appointments].sort(byDate).reverse();
 
-        rows.innerHTML =
-            list.map(apptRow).join("") ||
-            emptyRow(
-                7,
-                "No appointments yet. Bookings from the client site will show up here."
-            );
-    }
+    rows.innerHTML =
+        list.map(apptRow).join("") ||
+        emptyRow(
+            7,
+            "No appointments yet. Bookings from the client site will show up here."
+        );
+}
 
-    // ===== STAFFS PAGE =====
-    if (page === "staffs" && rows) {
-        rows.innerHTML = data.staffs.map(s =>
-            `<tr>
+// ===== STAFFS PAGE =====
+if (page === "staffs" && rows) {
+    rows.innerHTML = data.staffs.map(s => {
+        const status = s.status || "Available";
+
+        return `
+            <tr>
                 <td>${esc(s.name)}</td>
-                <td>${esc(s.role || s.specialization || "Barber")}</td>
-                <td>${esc(s.date || "-")}</td>
-                <td>${esc(s.time || "-")}</td>
+                <td>${esc(s.specialization || s.role || "Barber")}</td>
+                <td>
+                    <span class="tag ${status.toLowerCase()}">
+                        ${esc(status)}
+                    </span>
+                </td>
                 <td>
                     ${btn("edit-staff", s.id || s._id, "Edit", "light")}
                     ${btn("remove-staff", s.id || s._id, "Remove", "light")}
                 </td>
-            </tr>`
-        ).join("") || emptyRow(5, "No staff yet. Click Add staff.");
-    }
-   
-    // ===== SERVICES PAGE =====
-    if (page === "services" && rows) {
-        rows.innerHTML = data.services.map(s => `
+            </tr>
+        `;
+    }).join("") || emptyRow(4, "No staff found. Click Add staff.");
+}
+
+// ===== SERVICES PAGE =====
+if (page === "services" && rows) {
+    rows.innerHTML = data.services.map(s => `
             <tr>
                 <td>${esc(s.name)}</td>
                 <td>${esc(s.description || "-")}</td>

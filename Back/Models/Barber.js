@@ -13,9 +13,10 @@ const barberSchema = new mongoose.Schema({
         trim: true
     },
     status: {
-        type: String,
-        default: "Active"
-    },
+    type: String,
+    enum: ["Available", "Unavailable", "On Leave", "Active"],
+    default: "Available"
+},
     date: {
         type: String,
         default: ""
