@@ -94,9 +94,9 @@ async function loadBarbers() {
     // Map each barber name to the correct existing photo.
     // Make sure each filename matches the actual photo.
     const barberImageMap = {
-        "ian dizon": "images/staff2.jpg",
-        "leo ramos cruz": "images/staff1.jpg",
-        "mia jose silva": "images/staff3.jpg"
+        "ian dizon": "images/staff3.jpg",
+        "leo ramos cruz": "images/staff2.jpg",
+        "mia jose silva": "images/staff1.jpg"
     };
 
     try {
