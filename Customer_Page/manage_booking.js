@@ -61,6 +61,20 @@ function normalizeTime(value) {
     return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
+function formatDisplayTime(value) {
+    const match = String(value || "").trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return value || "";
+
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (hours > 23 || minutes > 59) return value;
+
+    const period = hours < 12 ? "AM" : "PM";
+    const hours12 = hours % 12 || 12;
+
+    return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
+}
+
 
 // ===============================
 // MESSAGE
@@ -166,7 +180,7 @@ function renderAppointment(appointment){
 
 
     bookingTime.textContent =
-        appointment.time || "-";
+        formatDisplayTime(appointment.time) || "-";
 
 
     barberName.textContent =
