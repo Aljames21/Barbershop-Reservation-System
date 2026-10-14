@@ -342,9 +342,8 @@ function apptRow(a) {
 function earnings() {
   // Count Completed appointments only
   const done = data.appointments.filter(
-    a => a.status === "Completed"
-  );
-
+    a => String(a.status).toLowerCase().trim() === "completed"
+);
   // Use Philippine local date
   const dateParts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila",
@@ -373,9 +372,8 @@ function earnings() {
 
   // Parse YYYY-MM-DD as a local calendar date
   const appointmentDate = a => {
-    const [y, m, d] = String(a.date).split("-").map(Number);
-    return new Date(y, m - 1, d);
-  };
+    return new Date(a.date);
+};
 
   const sum = (from, until = null) =>
     done
