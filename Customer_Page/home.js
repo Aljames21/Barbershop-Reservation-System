@@ -1,3 +1,5 @@
+
+// ===== SMOOTH SCROLL FOR NAVIGATION =====
 document.querySelectorAll('a[href^="#"]').forEach((link) => {
     link.addEventListener("click", (event) => {
         const target = document.querySelector(link.getAttribute("href"));
@@ -7,18 +9,25 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
         }
 
         event.preventDefault();
+
         target.scrollIntoView({
             behavior: "smooth",
             block: "start"
         });
+
         history.pushState(null, "", link.getAttribute("href"));
     });
 });
 
 
-const API_URL = "https://barbershop-reservation-system.onrender.com/api";
+// ===== API URL =====
+const API_URL =
+    "https://barbershop-reservation-system.onrender.com/api";
 
-// GET SERVICES FROM MONGODB
+
+// ==================================================
+// LOAD SERVICES FROM MONGODB
+// ==================================================
 async function loadServices() {
     const container = document.getElementById("service-container");
 
@@ -34,7 +43,8 @@ async function loadServices() {
         const services = await response.json();
 
         if (!Array.isArray(services) || services.length === 0) {
-            container.innerHTML = "<p>No services available right now.</p>";
+            container.innerHTML =
+                "<p>No services available right now.</p>";
             return;
         }
 
@@ -51,8 +61,10 @@ async function loadServices() {
 
                         <div>
                             <p class="price">
-                                Starting at <span>₱${service.price}</span>
+                                Starting at
+                                <span>₱${service.price}</span>
                             </p>
+
                             <a href="booking.html?service=${encodeURIComponent(service.name)}">
                                 Book <span>Now</span>
                             </a>
@@ -64,35 +76,31 @@ async function loadServices() {
 
     } catch (error) {
         console.error("Error loading services:", error);
+
         container.innerHTML =
             "<p>Unable to load services. Please refresh the page.</p>";
     }
 }
 
-loadServices();
 
-
-
-/* ===== LOAD BARBERS FROM MONGODB ===== */
-
+// ==================================================
+// LOAD BARBERS FROM MONGODB
+// ==================================================
 async function loadBarbers() {
     const container = document.getElementById("team-container");
 
-
     if (!container) return;
 
-
-    // Panatilihin ang existing barber photos.
-    const barberImages = [
-        "images/staff1.jpg",
-        "images/staff2.jpg",
-        "images/staff3.jpg"
-    ];
+    // Map each barber name to the correct existing photo.
+    // Make sure each filename matches the actual photo.
+    const barberImageMap = {
+        "ian dizon": "images/staff2.jpg",
+        "leo ramos cruz": "images/staff1.jpg",
+        "mia jose silva": "images/staff3.jpg"
+    };
 
     try {
-        const response = await fetch(
-            "https://barbershop-reservation-system.onrender.com/api/barbers"
-        );
+        const response = await fetch(`${API_URL}/barbers`);
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
@@ -101,24 +109,24 @@ async function loadBarbers() {
         const barbers = await response.json();
 
         if (!Array.isArray(barbers) || barbers.length === 0) {
-            container.innerHTML = "<p>No barbers available right now.</p>";
+            container.innerHTML =
+                "<p>No barbers available right now.</p>";
             return;
         }
 
+        // Show only barbers who can currently be selected.
+        // "Active" is retained for compatibility with older records.
         const visibleBarbers = barbers.filter((barber) => {
-            const name =
-                barber.name ||
-                barber.fullName ||
-                [barber.firstName, barber.lastName].filter(Boolean).join(" ") ||
-                "";
+            const status = String(barber.status || "Active")
+                .trim()
+                .toLowerCase();
 
-            return !["test", "janry", "neil feliciano", "janr"].includes(
-                name.trim().toLocaleLowerCase()
-            );
+            return ["available", "active"].includes(status);
         });
 
         if (visibleBarbers.length === 0) {
-            container.innerHTML = "<p>No barbers available right now.</p>";
+            container.innerHTML =
+                "<p>No barbers available right now.</p>";
             return;
         }
 
@@ -126,24 +134,40 @@ async function loadBarbers() {
             const barberName =
                 barber.name ||
                 barber.fullName ||
-                [barber.firstName, barber.lastName].filter(Boolean).join(" ") ||
+                [
+                    barber.firstName,
+                    barber.lastName
+                ].filter(Boolean).join(" ") ||
                 "Barber";
 
-            
-            const position = barber.position || "Barber Specialist";
+            const normalizedName = barberName
+                .trim()
+                .toLowerCase();
+
+            const position =
+                barber.position || "Barber Specialist";
+
             const description =
-                barber.specialization || barber.description ||
-                barber.specialty || "Professional haircut services.";
+                barber.specialization ||
+                barber.description ||
+                barber.specialty ||
+                "Professional haircut services.";
 
+            // Match photos by barber name, not database order.
+            const image =
+                barberImageMap[normalizedName] ||
+                "images/staff1.jpg";
 
-            const image = barber.image || barberImages[index % barberImages.length];
             const cardClass = `barber-${(index % 3) + 1}`;
 
             return `
                 <div class="${cardClass}">
                     <div class="barber-pic">
-                        <img src="${image}" alt="${barberName}"
-                             onerror="this.onerror=null;this.src='images/staff1.jpg';">
+                        <img
+                            src="${image}"
+                            alt="${barberName}"
+                            onerror="this.onerror=null;this.src='images/staff1.jpg';"
+                        >
                     </div>
 
                     <div class="barber-info">
@@ -152,18 +176,27 @@ async function loadBarbers() {
                         <p class="details">${description}</p>
                     </div>
 
-                    <a href="booking.html?barber=${encodeURIComponent(barberName)}"
-                       class="btn-1">Book Now</a>
+                    <a
+                        href="booking.html?barber=${encodeURIComponent(barberName)}"
+                        class="btn-1"
+                    >
+                        Book Now
+                    </a>
                 </div>
             `;
         }).join("");
 
     } catch (error) {
         console.error("Error loading barbers:", error);
+
         container.innerHTML =
             "<p>Unable to load barbers. Please refresh the page.</p>";
     }
 }
 
 
+// ==================================================
+// INITIALIZE HOMEPAGE
+// ==================================================
+loadServices();
 loadBarbers();
