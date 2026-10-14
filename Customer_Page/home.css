@@ -943,7 +943,7 @@ a {
 
   background-image:
     linear-gradient(rgba(30, 30, 30, 0.1), rgba(0, 0, 0, 0.6)),
-    url("images/kalbo.jpg");
+    url("images/Semi-kalbo-pic.jpg");
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -971,7 +971,8 @@ a {
   grid-column: 4;
 
   background-image:
-    linear-gradient(rgba(30, 30, 30, 0.1), rgba(0, 0, 0, 0.6)), url();
+    linear-gradient(rgba(30, 30, 30, 0.1), rgba(0, 0, 0, 0.6)),
+    url("images/kalbo.jpg");
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -981,6 +982,11 @@ a {
   align-items: flex-end;
 
   transition: 0.3s;
+}
+
+.card-9 h4 {
+  color: white;
+  font-size: 20px;
 }
 
 .card-9:hover {
