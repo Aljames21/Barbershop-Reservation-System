@@ -69,9 +69,6 @@ function renderFeedback(feedback) {
     const approveAction = item.status === "Approved"
       ? ""
       : `<button data-action="approve" data-id="${escapeHtml(item._id)}">Approve</button>`;
-    const hideAction = item.status === "Hidden"
-      ? ""
-      : `<button class="light" data-action="hide" data-id="${escapeHtml(item._id)}">Hide</button>`;
 
     return `
       <tr>
@@ -86,7 +83,6 @@ function renderFeedback(feedback) {
         <td><span class="tag feedback-${escapeHtml(statusClass)}">${escapeHtml(item.status || "Pending")}</span></td>
         <td class="feedback-actions">
           ${approveAction}
-          ${hideAction}
           <button class="light" data-action="delete" data-id="${escapeHtml(item._id)}">Delete</button>
         </td>
       </tr>

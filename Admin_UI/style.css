@@ -206,9 +206,10 @@ button,
   font-size: 14px;
 }
 button.light {
-  background: var(--border);
+  background: red;
   color: var(--text);
 }
+
 .toolbar {
   display: flex;
   justify-content: space-between;
@@ -340,16 +341,6 @@ dialog select {
   background: #666;
 }
 
-.feedback-actions {
-  display: flex;
-  gap: 6px;
-  min-width: 170px;
-}
-
-.feedback-actions button {
-  white-space: nowrap;
-}
-
 .feedback-actions button:disabled {
   cursor: wait;
   opacity: 0.65;
@@ -397,4 +388,25 @@ dialog select {
 .toolbar h1 {
   color: white;
   margin: 0;
+}
+
+body[data-page="staffs"] button[data-action="edit-staff"] {
+  background-color: #a67c3b; /* Staffs Edit */
+}
+
+body[data-page="services"] button[data-action="edit-service"] {
+  background-color: #a67c3b; /* Services Edit */
+}
+
+body[data-page="staffs"] .tag.available {
+  font-size: 14px;
+  background: #16a34a;
+}
+
+body[data-page="staffs"] .tag.unavailable {
+  background: #dc2626;
+}
+
+body[data-page="staffs"] .tag.on.leave {
+  background: #d97706;
 }
