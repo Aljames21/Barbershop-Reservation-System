@@ -58,6 +58,42 @@
             </div>
         </section>
 
+        <section id="feedback-panel" class="sub-panel hidden" aria-live="polite">
+            <h3>Share your feedback</h3>
+            <p id="feedback-message">
+                Your feedback will be reviewed before it appears publicly.
+            </p>
+            <form id="feedback-form">
+                <div class="input-row">
+                    <label for="feedback-rating">Rating</label>
+                    <select id="feedback-rating" name="rating" required>
+                        <option value="">Choose a rating</option>
+                        <option value="5">5 - Excellent</option>
+                        <option value="4">4 - Very good</option>
+                        <option value="3">3 - Good</option>
+                        <option value="2">2 - Fair</option>
+                        <option value="1">1 - Poor</option>
+                    </select>
+                </div>
+
+                <div class="input-row">
+                    <label for="feedback-comment">Comment</label>
+                    <textarea
+                        id="feedback-comment"
+                        name="comment"
+                        maxlength="1000"
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="action-btn action-btn-primary">
+                        Submit feedback
+                    </button>
+                </div>
+            </form>
+        </section>
+
         <section class="action-panel" id="action-panel">
             <button id="change-time-btn" class="action-btn action-btn-primary" type="button">Change the time</button>
             <button id="cancel-booking-btn" class="action-btn action-btn-danger" type="button">Cancel appointment</button>

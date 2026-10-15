@@ -9,6 +9,7 @@ const transporter = require("../email");
 const BookingSlot = require("../Models/BookingSlot");
 const Barber = require("../Models/Barber");
 const Appointment = require("../Models/Appointment");
+const Feedback = require("../Models/Feedback");
 const verifyAdmin = require("../Middleware/authMiddleware");
 const mongoose = require("mongoose");
 const Service = require("../Models/Service");   
@@ -151,6 +152,106 @@ async function verifyManageToken(appointmentId, token) {
 
     return appointment;
 }
+
+router.get("/:id/feedback", async (req, res) => {
+    try {
+        const appointment = await verifyManageToken(
+            req.params.id,
+            req.get("X-Manage-Token")
+        );
+
+        if (!appointment) {
+            return res.status(403).json({
+                message: "Invalid or missing booking management token."
+            });
+        }
+
+        if (appointment.status !== "Completed") {
+            return res.status(409).json({
+                message: "Feedback is available after the appointment is completed."
+            });
+        }
+
+        const feedback = await Feedback.findOne({
+            appointment: appointment._id
+        }).select("rating comment status createdAt");
+
+        return res.json(feedback);
+    } catch (error) {
+        console.error("Fetch appointment feedback error:", error);
+        return res.status(500).json({
+            message: "Unable to load feedback status."
+        });
+    }
+});
+
+router.post("/:id/feedback", async (req, res) => {
+    try {
+        const appointment = await verifyManageToken(
+            req.params.id,
+            req.get("X-Manage-Token")
+        );
+
+        if (!appointment) {
+            return res.status(403).json({
+                message: "Invalid or missing booking management token."
+            });
+        }
+
+        if (appointment.status !== "Completed") {
+            return res.status(409).json({
+                message: "Feedback can only be submitted for completed appointments."
+            });
+        }
+
+        const body = req.body || {};
+        const rating = Number(body.rating);
+        const comment =
+            typeof body.comment === "string"
+                ? body.comment.trim()
+                : "";
+
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+            return res.status(400).json({
+                message: "Please choose a rating from 1 to 5."
+            });
+        }
+
+        if (!comment || comment.length > 1000) {
+            return res.status(400).json({
+                message: "Please enter a comment of 1 to 1000 characters."
+            });
+        }
+
+        const feedback = await Feedback.create({
+            appointment: appointment._id,
+            rating,
+            comment
+        });
+
+        return res.status(201).json({
+            message: "Feedback submitted and is awaiting approval.",
+            feedback: {
+                _id: feedback._id,
+                rating: feedback.rating,
+                comment: feedback.comment,
+                status: feedback.status,
+                createdAt: feedback.createdAt
+            }
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "Feedback has already been submitted for this appointment."
+            });
+        }
+
+        console.error("Feedback submission error:", error);
+        return res.status(500).json({
+            message: "Unable to submit feedback."
+        });
+    }
+});
 
 
 
@@ -1018,6 +1119,12 @@ router.delete("/:id", async (req, res) => {
         if (!appointment) {
             return res.status(403).json({
                 message: "Invalid or missing booking management token."
+            });
+        }
+
+        if (await Feedback.exists({ appointment: appointment._id })) {
+            return res.status(409).json({
+                message: "This appointment has feedback and cannot be deleted."
             });
         }
 

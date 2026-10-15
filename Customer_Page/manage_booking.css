@@ -275,7 +275,8 @@ body {
 }
 
 .input-row select,
-.input-row input {
+.input-row input,
+.input-row textarea {
   width: 100%;
   min-height: 46px;
   padding: 12px 14px;
@@ -287,8 +288,26 @@ body {
 }
 
 .input-row select:focus,
-.input-row input:focus {
+.input-row input:focus,
+.input-row textarea:focus {
   outline: 1px solid #a67c3b;
+}
+
+.input-row textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.sub-panel form.hidden {
+  display: none;
+}
+
+#feedback-message.feedback-success {
+  color: #b6d6bd;
+}
+
+#feedback-message.feedback-error {
+  color: #ffd9d3;
 }
 
 .form-actions {

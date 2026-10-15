@@ -22,6 +22,9 @@ const cancelledMessage = document.getElementById("cancelled-message");
 
 const changeTimeSection = document.getElementById("change-time-section");
 const cancelConfirmation = document.getElementById("cancel-confirmation");
+const feedbackPanel = document.getElementById("feedback-panel");
+const feedbackForm = document.getElementById("feedback-form");
+const feedbackMessage = document.getElementById("feedback-message");
 
 const changeTimeForm = document.getElementById("change-time-form");
 
@@ -31,6 +34,37 @@ const editTime = document.getElementById("edit-time");
 
 
 let currentAppointment = null;
+
+async function readApiResponse(response) {
+    const responseText = await response.text();
+    let data;
+
+    try {
+        data = responseText ? JSON.parse(responseText) : null;
+    } catch {
+        if (
+            response.headers.get("content-type")?.includes("text/html") ||
+            responseText.trimStart().startsWith("<")
+        ) {
+            throw new Error(
+                `The feedback API returned an HTML error (HTTP ${response.status}). ` +
+                "The feedback backend routes may not be deployed yet."
+            );
+        }
+
+        throw new Error(
+            `The feedback API returned an invalid response (HTTP ${response.status}).`
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            data?.message || `Feedback request failed (HTTP ${response.status}).`
+        );
+    }
+
+    return data;
+}
 
 
 function normalizeTime(value) {
@@ -200,8 +234,14 @@ function renderAppointment(appointment){
     const status =
         appointment.status || "Pending";
 
-
     setStatusBadge(status);
+
+    const isCompleted = status.toLowerCase() === "completed";
+    feedbackPanel.classList.toggle("hidden", !isCompleted);
+
+    if (isCompleted) {
+        loadAppointmentFeedback();
+    }
 
 
 
@@ -332,6 +372,82 @@ async function fetchAppointment() {
 
 }
 
+
+async function loadAppointmentFeedback() {
+    const appointmentId = getAppointmentId();
+
+    if (!appointmentId || !getManageToken()) return;
+
+    try {
+        const response = await fetch(
+            `${API_BASE}/${encodeURIComponent(appointmentId)}/feedback`,
+            {
+                headers: {
+                    "X-Manage-Token": getManageToken()
+                }
+            }
+        );
+        const data = await readApiResponse(response);
+
+        if (data) {
+            feedbackForm.classList.add("hidden");
+            feedbackMessage.textContent =
+                `Feedback already submitted. Status: ${data.status}.`;
+        }
+    } catch (error) {
+        console.error("Feedback status error:", error);
+        feedbackMessage.textContent = error.message;
+        feedbackMessage.className = "feedback-error";
+    }
+}
+
+feedbackForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const appointmentId = getAppointmentId();
+    const submitButton = feedbackForm.querySelector(
+        'button[type="submit"]'
+    );
+
+    if (!appointmentId || !getManageToken()) {
+        feedbackMessage.textContent =
+            "Please open this page using the appointment management link.";
+        feedbackMessage.className = "feedback-error";
+        return;
+    }
+
+    submitButton.disabled = true;
+    feedbackMessage.textContent = "Submitting your feedback...";
+    feedbackMessage.className = "";
+
+    try {
+        const response = await fetch(
+            `${API_BASE}/${encodeURIComponent(appointmentId)}/feedback`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Manage-Token": getManageToken()
+                },
+                body: JSON.stringify({
+                    rating: Number(document.getElementById("feedback-rating").value),
+                    comment: document.getElementById("feedback-comment").value
+                })
+            }
+        );
+        const data = await readApiResponse(response);
+
+        feedbackForm.classList.add("hidden");
+        feedbackMessage.textContent = data.message;
+        feedbackMessage.className = "feedback-success";
+    } catch (error) {
+        console.error("Feedback submission error:", error);
+        feedbackMessage.textContent = error.message;
+        feedbackMessage.className = "feedback-error";
+    } finally {
+        submitButton.disabled = false;
+    }
+});
 
 
 

@@ -2190,6 +2190,13 @@ summary {
   display: none;
 }
 
+.feedback-empty {
+  width: 100%;
+  padding: 30px 16px;
+  color: #b9c0ca;
+  text-align: center;
+}
+
 /* ===== FEEDBACK CARD ===== */
 
 .feedback-card {

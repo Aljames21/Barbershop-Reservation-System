@@ -302,6 +302,58 @@ dialog select {
   color: var(--muted);
   text-align: center;
 }
+
+.feedback-initials {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  margin-right: 8px;
+  place-items: center;
+  border-radius: 50%;
+  background: #343943;
+  color: #e7bd79;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.feedback-admin-stars {
+  color: #e8b45e;
+  white-space: nowrap;
+}
+
+.feedback-comment-cell {
+  min-width: 220px;
+  max-width: 420px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.feedback-pending {
+  background: #a67c3b;
+}
+
+.feedback-approved {
+  background: #16853b;
+}
+
+.feedback-hidden {
+  background: #666;
+}
+
+.feedback-actions {
+  display: flex;
+  gap: 6px;
+  min-width: 170px;
+}
+
+.feedback-actions button {
+  white-space: nowrap;
+}
+
+.feedback-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
 .error {
   color: var(--accent);
   font-size: 14px;

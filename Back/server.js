@@ -1,3 +1,5 @@
+
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -21,11 +23,13 @@ const serviceRoutes = require("./Routes/serviceRoutes");
 const barberRoutes = require("./Routes/barberoute");
 const appointmentRoutes = require("./Routes/appointmentRoutes");
 const adminRoutes = require("./Routes/adminRoutes");
+const feedbackRoutes = require("./Routes/feedbackRoutes");
 
 app.use("/api/services", serviceRoutes);
 app.use("/api/barbers", barberRoutes);  
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/feedback", feedbackRoutes);
 
 
 // MongoDB Connection
@@ -48,4 +52,3 @@ app.get("/", (req,res)=>{
 app.listen(process.env.PORT,()=>{
     console.log(`Server running on port ${process.env.PORT}`);
 });
-

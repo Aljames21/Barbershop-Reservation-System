@@ -208,6 +208,108 @@ const feedbackTrack = document.getElementById("feedbackTrack");
 const prevButton = document.querySelector(".feedback-arrow.prev");
 const nextButton = document.querySelector(".feedback-arrow.next");
 
+function customerInitials(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length > 1) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+
+  return (parts[0] || "?").slice(0, 2).toUpperCase();
+}
+
+function formatFeedbackDate(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Recently";
+  }
+
+  return date.toLocaleDateString("en-PH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function renderFeedbackCard(feedback) {
+  const appointment = feedback.appointment || {};
+  const name = appointment.customerName || "Customer";
+  const rating = Math.round(
+    Math.min(5, Math.max(1, Number(feedback.rating) || 1))
+  );
+
+  const card = document.createElement("article");
+  card.className = "feedback-card";
+
+  const customer = document.createElement("div");
+  customer.className = "feedback-customer";
+
+  const initials = document.createElement("div");
+  initials.className = "customer-initials";
+  initials.textContent = customerInitials(name);
+
+  const customerDetails = document.createElement("div");
+  const customerName = document.createElement("h3");
+  customerName.textContent = name;
+  const submitted = document.createElement("span");
+  submitted.textContent = formatFeedbackDate(feedback.createdAt);
+  customerDetails.append(customerName, submitted);
+  customer.append(initials, customerDetails);
+
+  const stars = document.createElement("div");
+  stars.className = "feedback-stars";
+  stars.setAttribute("aria-label", `${rating} out of 5 stars`);
+  stars.textContent = `${"★".repeat(rating)}${"☆".repeat(5 - rating)}`;
+
+  const comment = document.createElement("p");
+  comment.className = "feedback-comment";
+  comment.textContent = feedback.comment || "";
+
+  const service = document.createElement("span");
+  service.className = "service-tag";
+  service.textContent = appointment.service || "Service";
+
+  card.append(customer, stars, comment, service);
+  return card;
+}
+
+async function loadFeedback() {
+  if (!feedbackTrack) return;
+
+  try {
+    const response = await fetch(`${API_URL}/feedback`);
+
+    if (!response.ok) {
+      throw new Error(`Feedback API error: ${response.status}`);
+    }
+
+    const feedback = await response.json();
+    feedbackTrack.replaceChildren();
+
+    if (!Array.isArray(feedback) || feedback.length === 0) {
+      const emptyMessage = document.createElement("p");
+      emptyMessage.className = "feedback-empty";
+      emptyMessage.textContent = "No approved customer feedback yet.";
+      feedbackTrack.append(emptyMessage);
+      return;
+    }
+
+    feedback.forEach((item) => {
+      feedbackTrack.append(renderFeedbackCard(item));
+    });
+  } catch (error) {
+    console.error("Error loading customer feedback:", error);
+    feedbackTrack.replaceChildren();
+
+    const errorMessage = document.createElement("p");
+    errorMessage.className = "feedback-empty";
+    errorMessage.textContent =
+      "Unable to load customer feedback right now.";
+    feedbackTrack.append(errorMessage);
+  }
+}
+
 if (feedbackTrack && prevButton && nextButton) {
   const scrollAmount = () => {
     const card = feedbackTrack.querySelector(".feedback-card");
@@ -228,3 +330,5 @@ if (feedbackTrack && prevButton && nextButton) {
     });
   });
 }
+
+loadFeedback();
