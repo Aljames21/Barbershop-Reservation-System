@@ -2140,7 +2140,7 @@ summary {
 
 .feedback-eyebrow {
   display: inline-block;
-  color: #d9ad68;
+  color: #a67c3b;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 2px;
@@ -2156,7 +2156,7 @@ summary {
 }
 
 .feedback-heading h2 span {
-  color: #e2b875;
+  color: #a67c3b;
 }
 
 .feedback-heading > p {
