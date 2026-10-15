@@ -103,11 +103,11 @@ const btn = (act, id, label, cls = "") => `<button class="${cls}" data-action="$
 const emptyRow = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${msg}</td></tr>`;
 
 /* ===== Pop-up form used for add / edit ===== */
-function openForm(title, fields, values, onSave) {
+function openForm(title, fields, values, onSave, modalClass = "") {
  
   const dlg = document.createElement("div");
  
-  dlg.className = "modal";
+  dlg.className = `modal ${modalClass}`.trim();
   dlg.innerHTML = `<div class="card modal-box"><h3 style="margin-top:0">${title}</h3><form>` +
     fields.map(f => {
       const v = values[f.name] ?? "";
@@ -215,7 +215,8 @@ async function staffForm(s) {
                 alert("Save failed: " + error.message);
                 return false;
             }
-        }
+        },
+        "accent-form-modal"
     );
 }
 
@@ -272,7 +273,8 @@ async function serviceForm(service) {
                 alert("Service save failed: " + error.message);
                 return false;
             }
-        }
+        },
+        "accent-form-modal"
     );
 }
 
@@ -756,4 +758,3 @@ if (page === "login") {
 
 
 }
-

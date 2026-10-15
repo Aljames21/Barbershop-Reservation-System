@@ -385,6 +385,107 @@ dialog select {
   font-size: 15px;
   font-family: var(--font);
 }
+
+.accent-form-modal {
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(5px);
+}
+
+.accent-form-modal .modal-box {
+  width: min(100%, 480px);
+  max-width: none;
+  padding: 30px;
+  border: 1px solid rgba(166, 124, 59, 0.7);
+  border-radius: 14px;
+  background: linear-gradient(145deg, #1b1b1b, #101010);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.accent-form-modal .modal-box h3 {
+  margin: 0 0 24px !important;
+  color: #e0b875;
+  font-family: Georgia, serif;
+  font-size: 26px;
+  letter-spacing: 0.04em;
+}
+
+.accent-form-modal .modal-box form {
+  display: grid;
+  gap: 18px;
+}
+
+.accent-form-modal .modal-box label {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  color: #e8e3da;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.accent-form-modal .modal-box input,
+.accent-form-modal .modal-box select {
+  min-height: 46px;
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid #45413a;
+  border-radius: 7px;
+  outline: none;
+  background: #111;
+  color: #fff;
+  font-family: Georgia, serif;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.accent-form-modal .modal-box input:focus,
+.accent-form-modal .modal-box select:focus {
+  border-color: #c49a55;
+  box-shadow: 0 0 0 3px rgba(196, 154, 85, 0.16);
+}
+
+.accent-form-modal .dialog-buttons {
+  margin-top: 6px;
+}
+
+.accent-form-modal .dialog-buttons button {
+  min-width: 100px;
+  min-height: 42px;
+}
+
+.accent-form-modal .dialog-buttons button.light {
+  border: 1px solid #6c6252;
+  background: transparent;
+  color: #e8e3da;
+}
+
+.accent-form-modal .dialog-buttons button.light:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.accent-form-modal .dialog-buttons button[type="submit"] {
+  background: #a67c3b;
+  color: #101010;
+  font-weight: 700;
+}
+
+.accent-form-modal .dialog-buttons button[type="submit"]:hover {
+  background: #c49a55;
+}
+
+@media (max-width: 480px) {
+  .accent-form-modal {
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
+  .accent-form-modal .modal-box {
+    margin: auto 0;
+    padding: 24px 20px;
+  }
+}
+
 .toolbar h1 {
   color: white;
   margin: 0;
