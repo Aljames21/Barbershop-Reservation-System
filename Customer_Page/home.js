@@ -200,3 +200,31 @@ async function loadBarbers() {
 // ==================================================
 loadServices();
 loadBarbers();
+
+
+
+
+const feedbackTrack = document.getElementById("feedbackTrack");
+const prevButton = document.querySelector(".feedback-arrow.prev");
+const nextButton = document.querySelector(".feedback-arrow.next");
+
+if (feedbackTrack && prevButton && nextButton) {
+  const scrollAmount = () => {
+    const card = feedbackTrack.querySelector(".feedback-card");
+    return card ? card.getBoundingClientRect().width + 20 : 300;
+  };
+
+  nextButton.addEventListener("click", () => {
+    feedbackTrack.scrollBy({
+      left: scrollAmount(),
+      behavior: "smooth"
+    });
+  });
+
+  prevButton.addEventListener("click", () => {
+    feedbackTrack.scrollBy({
+      left: -scrollAmount(),
+      behavior: "smooth"
+    });
+  });
+}
