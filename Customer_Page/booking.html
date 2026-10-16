@@ -88,6 +88,51 @@
                     <input id="contact" type="email" name="contact" placeholder="Enter your email" required> 
                 </div>
 
+
+                
+
+<div class="input">
+    <label for="phoneNumber">Mobile Number</label>
+    <input
+        type="tel"
+        id="phoneNumber"
+        name="phoneNumber"
+        placeholder="09XXXXXXXXX"
+        inputmode="tel"
+        pattern="09[0-9]{9}"
+        maxlength="11"
+        required
+    >
+</div>
+
+<div class="input">
+    <button type="button" id="sendOtpBtn">
+        SEND OTP
+    </button>
+</div>
+
+<div class="input" id="otpSection" hidden>
+    <label for="otpCode">Verification Code</label>
+    <input
+        type="text"
+        id="otpCode"
+        placeholder="Enter 6-digit OTP"
+        inputmode="numeric"
+        pattern="[0-9]{6}"
+        maxlength="6"
+        autocomplete="one-time-code"
+    >
+
+    <button type="button" id="verifyOtpBtn">
+        VERIFY OTP
+    </button>
+</div>
+
+<p id="otpStatus" role="status" aria-live="polite"></p>
+
+<div id="recaptcha-container"></div>
+
+
                 <div class="input">
                     <label for="message">Additional Message</label>
                     <textarea name="message" id="message" placeholder="Enter addtional details"></textarea>

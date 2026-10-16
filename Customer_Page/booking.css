@@ -282,3 +282,85 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     gap: 16px;
   }
 }
+
+
+/* ==============================
+   PHONE OTP VERIFICATION
+================================ */
+
+#phoneNumber,
+#otpCode {
+    border: 1px solid #55401f;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+}
+
+#phoneNumber:focus,
+#otpCode:focus {
+    border-color: #c99a52;
+}
+
+#sendOtpBtn,
+#verifyOtpBtn {
+    display: block;
+    width: 100%;
+    padding: 15px 25px;
+
+    background-color: #c99a52;
+    color: #080808;
+
+    border: none;
+    border-radius: 4px;
+
+    font-family: Georgia, serif;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 0.08ch;
+
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#sendOtpBtn:hover,
+#verifyOtpBtn:hover {
+    background-color: orange;
+}
+
+#sendOtpBtn:disabled,
+#verifyOtpBtn:disabled {
+    background-color: #665638;
+    color: #bbb;
+    cursor: not-allowed;
+}
+
+#otpSection {
+    padding: 20px;
+    background-color: #111;
+    border: 1px solid #55401f;
+    border-left: 3px solid #c99a52;
+    border-radius: 4px;
+}
+
+#otpSection[hidden] {
+    display: none;
+}
+
+#otpCode {
+    margin-bottom: 15px;
+}
+
+#otpStatus {
+    margin: 10px 0 22px;
+    color: #c99a52;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+#otpStatus:empty {
+    display: none;
+}
+
+#recaptcha-container {
+    margin: 12px 0;
+}
+
