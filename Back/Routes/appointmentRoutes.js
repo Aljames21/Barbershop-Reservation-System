@@ -20,7 +20,7 @@ const {
 const feedbackRateLimit = require("../Middleware/feedbackRateLimit");
 const verifyAdmin = require("../Middleware/authMiddleware");
 const mongoose = require("mongoose");
-const firebaseAdmin = require("../Config/firebaseAdmin");
+const { getAuth } = require("../Config/firebaseAdmin");
 const Service = require("../Models/Service");   
 
 
@@ -30,13 +30,56 @@ function normalizeCustomerEmail(email) {
         : "";
 }
 
+
 async function findCustomerBookingConflict({
     email,
+    phoneNumber = null,
     date,
     time,
     excludeAppointmentId = null,
     session = null
 }) {
+    const normalizedEmail = normalizeCustomerEmail(email);
+
+    const customerIdentifiers = [];
+
+    if (normalizedEmail) {
+        customerIdentifiers.push({ email: normalizedEmail });
+    }
+
+    if (typeof phoneNumber === "string" && phoneNumber.trim()) {
+        customerIdentifiers.push({
+            phoneNumber: phoneNumber.trim()
+        });
+    }
+
+    if (customerIdentifiers.length === 0) {
+        return null;
+    }
+
+    const query = {
+        $or: customerIdentifiers,
+        date,
+        time,
+        status: {
+            $nin: ["Cancelled", "Declined", "Completed"]
+        }
+    };
+
+    if (excludeAppointmentId) {
+        query._id = { $ne: excludeAppointmentId };
+    }
+
+    let search = Appointment.findOne(query)
+        .select("_id date time");
+
+    if (session) {
+        search = search.session(session);
+    }
+
+    return search;
+}
+
     const normalizedEmail = normalizeCustomerEmail(email);
 
     if (!normalizedEmail) {
@@ -64,7 +107,7 @@ async function findCustomerBookingConflict({
     }
 
     return search;
-}
+
 
 
 function validateAppointmentDateTime(dateValue, timeValue) {
@@ -541,7 +584,7 @@ const idToken = authHeader.slice(7).trim();
 let decodedToken;
 
 try {
-    decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+    decodedToken = await getAuth().verifyIdToken(idToken);
 } catch (error) {
     return res.status(401).json({
         message: "Phone verification expired or invalid. Please verify again."
@@ -739,6 +782,7 @@ const verifiedPhone = decodedToken.phone_number;
                 
             const customerConflict = await findCustomerBookingConflict({
                 email: customerEmail,
+                phoneNumber: verifiedPhone,
                  date,
                  time,
                 session
@@ -811,12 +855,13 @@ const verifiedPhone = decodedToken.phone_number;
 
                 // Create the appointment
                 const appointment = new Appointment({
-                    ...req.body,
-                    customerName,
-                    email: customerEmail,
-                    barber: assignedBarber.name,
-                    manageTokenHash
-                });
+                ...req.body,
+                customerName,
+                email: customerEmail,
+                phoneNumber: verifiedPhone,
+                barber: assignedBarber.name,
+                manageTokenHash
+});
 
                 await appointment.save({ session });
 
@@ -1019,6 +1064,7 @@ if (!service) {
             
         const customerConflict = await findCustomerBookingConflict({
         email: existing.email,
+        phoneNumber: existing.phoneNumber,
         date: nextDate,
         time: nextTime,
         excludeAppointmentId: existing._id,
@@ -1223,6 +1269,7 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
             
              const customerConflict = await findCustomerBookingConflict({
                  email: existing.email,
+                  phoneNumber: existing.phoneNumber,
                  date: nextDate,
                 time: nextTime,
                 excludeAppointmentId: existing._id,
