@@ -28,6 +28,28 @@ test("blocks prohibited English and Filipino terms", () => {
     assert.equal(classifyFeedbackComment("Gago ang barber."), "prohibited");
     assert.equal(classifyFeedbackComment("Putang ina."), "prohibited");
     assert.equal(classifyFeedbackComment("gago."), "prohibited");
+    assert.equal(classifyFeedbackComment("Putangina mo."), "prohibited");
+    assert.equal(classifyFeedbackComment("Tangina."), "prohibited");
+    assert.equal(classifyFeedbackComment("Tarantado."), "prohibited");
+    assert.equal(classifyFeedbackComment("Bobo."), "prohibited");
+    assert.equal(classifyFeedbackComment("Tanga."), "prohibited");
+    assert.equal(classifyFeedbackComment("Pakshet."), "prohibited");
+    assert.equal(classifyFeedbackComment("Punyeta."), "prohibited");
+    assert.equal(classifyFeedbackComment("Leche."), "prohibited");
+    assert.equal(classifyFeedbackComment("Letse."), "prohibited");
+    assert.equal(classifyFeedbackComment("Bwisit."), "prohibited");
+    assert.equal(classifyFeedbackComment("Peste."), "prohibited");
+    assert.equal(classifyFeedbackComment("Hayop."), "prohibited");
+    assert.equal(classifyFeedbackComment("Hayop ka."), "prohibited");
+    assert.equal(classifyFeedbackComment("Walang hiya."), "prohibited");
+    assert.equal(classifyFeedbackComment("Tae."), "prohibited");
+    assert.equal(classifyFeedbackComment("Puke."), "prohibited");
+    assert.equal(classifyFeedbackComment("Pepe."), "prohibited");
+    assert.equal(classifyFeedbackComment("Tite."), "prohibited");
+    assert.equal(classifyFeedbackComment("Puwet."), "prohibited");
+    assert.equal(classifyFeedbackComment("Pwet."), "prohibited");  
+    assert.equal(classifyFeedbackComment("Pakyu."), "prohibited");
+    assert.equal(classifyFeedbackComment("Oten."), "prohibited");
 });
 
 test("matches common capitalization, leetspeak, punctuation, and accent variants", () => {
