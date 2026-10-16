@@ -941,11 +941,45 @@ const verifiedPhone = decodedToken.phone_number;
     } catch (error) {
         console.error("Appointment creation error:", error);
 
-        if (error.code === 11000) {
-            return res.status(409).json({
-                message: "This barber is already booked for that date and time. Please choose another barber or time."
-            });
-        }
+      
+if (error.code === 11000) {
+    const duplicateIndex = String(
+        error.message || ""
+    );
+
+    const isPhoneConflict =
+        duplicateIndex.includes("unique_active_phone_date_time") ||
+        (
+            error.keyPattern?.phoneNumber === 1 &&
+            error.keyPattern?.date === 1 &&
+            error.keyPattern?.time === 1
+        );
+
+    if (isPhoneConflict) {
+        return res.status(409).json({
+            message: "You already have an appointment at this date and time. Please choose another schedule."
+        });
+    }
+
+    const isBarberConflict =
+        duplicateIndex.includes("unique_barber_date_time") ||
+        (
+            error.keyPattern?.barber === 1 &&
+            error.keyPattern?.date === 1 &&
+            error.keyPattern?.time === 1
+        );
+
+    if (isBarberConflict) {
+        return res.status(409).json({
+            message: "This barber is already booked for that date and time. Please choose another barber or time."
+        });
+    }
+
+    return res.status(409).json({
+        message: "A conflicting reservation already exists. Please choose another schedule."
+    });
+}
+
 
         if (error.statusCode) {
     return res.status(error.statusCode).json({
@@ -989,6 +1023,16 @@ if (!appointment) {
                 error.statusCode = 404;
                 throw error;
             }
+
+            
+if (!["Pending", "Confirmed"].includes(existing.status)) {
+    const error = new Error(
+        "This appointment can no longer be rescheduled."
+    );
+    error.statusCode = 409;
+    throw error;
+}
+
 
             
 const allowedFields = ["date", "time", "service", "barber"];
@@ -1115,11 +1159,45 @@ if (!service) {
     } catch (error) {
         console.error("Appointment update error:", error);
 
-        if (error.code === 11000) {
-            return res.status(409).json({
-                message: "This barber is already booked for that date and time."
-            });
-        }
+        
+if (error.code === 11000) {
+    const isPhoneConflict =
+        String(error.message || "").includes(
+            "unique_active_phone_date_time"
+        ) ||
+        (
+            error.keyPattern?.phoneNumber === 1 &&
+            error.keyPattern?.date === 1 &&
+            error.keyPattern?.time === 1
+        );
+
+    if (isPhoneConflict) {
+        return res.status(409).json({
+            message: "This customer already has another appointment at this date and time."
+        });
+    }
+
+    const isBarberConflict =
+        String(error.message || "").includes(
+            "unique_barber_date_time"
+        ) ||
+        (
+            error.keyPattern?.barber === 1 &&
+            error.keyPattern?.date === 1 &&
+            error.keyPattern?.time === 1
+        );
+
+    if (isBarberConflict) {
+        return res.status(409).json({
+            message: "This barber is already booked for that date and time."
+        });
+    }
+
+    return res.status(409).json({
+        message: "A conflicting reservation already exists."
+    });
+}
+
 
         return res.status(error.statusCode || 500).json({
             message: error.statusCode
@@ -1213,6 +1291,16 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
             }
 
             // ADMIN RESCHEDULING
+
+            
+if (!["Pending", "Confirmed"].includes(existing.status)) {
+    const error = new Error(
+        "This appointment can no longer be rescheduled."
+    );
+    error.statusCode = 409;
+    throw error;
+}
+
             const nextDate = req.body.date ?? existing.date;
             const nextTime = req.body.time ?? existing.time;
             const nextBarber = req.body.barber ?? existing.barber;

@@ -7,7 +7,9 @@ const STORAGE_KEY = "barber-data";
 
 const page = document.body.dataset.page;
 
+
 const API = "https://barbershop-reservation-system.onrender.com/api";
+
 
 
 
