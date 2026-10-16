@@ -14,6 +14,7 @@ const PROHIBITED_TERMS = Object.freeze([
     "gago",
     "motherfucker",
     "motherfuckers",
+    "burikat",
     "tarantado",
     "pakyu",
     "puta",
