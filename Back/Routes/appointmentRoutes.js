@@ -31,6 +31,7 @@ function normalizeCustomerEmail(email) {
 }
 
 
+
 async function findCustomerBookingConflict({
     email,
     phoneNumber = null,
@@ -44,7 +45,9 @@ async function findCustomerBookingConflict({
     const customerIdentifiers = [];
 
     if (normalizedEmail) {
-        customerIdentifiers.push({ email: normalizedEmail });
+        customerIdentifiers.push({
+            email: normalizedEmail
+        });
     }
 
     if (typeof phoneNumber === "string" && phoneNumber.trim()) {
@@ -78,35 +81,7 @@ async function findCustomerBookingConflict({
     }
 
     return search;
-}
-
-    const normalizedEmail = normalizeCustomerEmail(email);
-
-    if (!normalizedEmail) {
-        return null;
-    }
-
-    const query = {
-        email: normalizedEmail,
-        date,
-        time,
-        status: {
-            $nin: ["Cancelled", "Declined", "Completed"]
-        }
-    };
-
-    if (excludeAppointmentId) {
-        query._id = { $ne: excludeAppointmentId };
-    }
-
-    let search = Appointment.findOne(query)
-        .select("_id date time");
-
-    if (session) {
-        search = search.session(session);
-    }
-
-    return search;
+}   
 
 
 

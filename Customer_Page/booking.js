@@ -426,7 +426,7 @@ loadBarbers();
 
 // SUBMIT BOOKING
 
-form.addEventListener("submit", function(event){
+form.addEventListener("submit", async function(event){
 
     event.preventDefault();
 
@@ -480,16 +480,36 @@ if (!form.reportValidity()) {
 };
 
 
-    console.log("Sending:", reservation);
+    // Require Firebase Phone OTP verification before booking
+let idToken;
+
+try {
+    if (typeof window.getVerifiedPhoneAuth !== "function") {
+        throw new Error(
+            "Phone verification is not ready. Please refresh the page."
+        );
+    }
+
+    const verifiedAuth = await window.getVerifiedPhoneAuth();
+    idToken = verifiedAuth.idToken;
+
+} catch (error) {
+    alert(error.message || "Please verify your mobile number first.");
+    return;
+}
+
+console.log("Sending booking request...");
+
     // SEND TO MONGODB
 
-    fetch(`${API_URL}/appointments`,{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify(reservation)
-    })
+    fetch(`${API_URL}/appointments`, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${idToken}`
+    },
+    body: JSON.stringify(reservation)
+})
     .then(async (res) => {
     const data = await res.json();
 
