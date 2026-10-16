@@ -51,6 +51,7 @@ test("blocks prohibited English and Filipino terms", () => {
     assert.equal(classifyFeedbackComment("Pwet."), "prohibited");  
     assert.equal(classifyFeedbackComment("Pakyu."), "prohibited");
     assert.equal(classifyFeedbackComment("Oten."), "prohibited");
+    assert.equal(classifyFeedbackComment("Otin."), "prohibited");
     assert.equal(classifyFeedbackComment("Fuck."), "prohibited");
     assert.equal(classifyFeedbackComment("Shit."), "prohibited");
     assert.equal(classifyFeedbackComment("Bitch."), "prohibited");
