@@ -528,9 +528,14 @@ if (!form.reportValidity()) {
 
 })
 
-    .catch(error=>{
-        console.error("Booking error:", error);
-        alert("Unable to save your appointment. Please try again.");
-    });
+.catch(error => {
+    console.error("Booking error:", error);
+
+    alert(
+        error.message ||
+        "Unable to save your appointment. Please try again."
+    );
+});
+
 
 });

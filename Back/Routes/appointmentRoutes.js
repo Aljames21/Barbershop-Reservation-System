@@ -22,6 +22,50 @@ const verifyAdmin = require("../Middleware/authMiddleware");
 const mongoose = require("mongoose");
 const Service = require("../Models/Service");   
 
+
+function normalizeCustomerEmail(email) {
+    return typeof email === "string"
+        ? email.trim().toLowerCase()
+        : "";
+}
+
+async function findCustomerBookingConflict({
+    email,
+    date,
+    time,
+    excludeAppointmentId = null,
+    session = null
+}) {
+    const normalizedEmail = normalizeCustomerEmail(email);
+
+    if (!normalizedEmail) {
+        return null;
+    }
+
+    const query = {
+        email: normalizedEmail,
+        date,
+        time,
+        status: {
+            $nin: ["Cancelled", "Declined", "Completed"]
+        }
+    };
+
+    if (excludeAppointmentId) {
+        query._id = { $ne: excludeAppointmentId };
+    }
+
+    let search = Appointment.findOne(query)
+        .select("_id date time");
+
+    if (session) {
+        search = search.session(session);
+    }
+
+    return search;
+}
+
+
 function validateAppointmentDateTime(dateValue, timeValue) {
     // Require a valid YYYY-MM-DD date
     if (
@@ -528,6 +572,19 @@ router.post("/", async (req, res) => {
             });
         }
 
+        
+        const customerEmail = normalizeCustomerEmail(req.body.email);
+
+        if (
+            !customerEmail ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)
+        ) {
+    return res.status(400).json({
+        message: "Please provide a valid email address."
+    });
+}
+
+
         // Get active barbers from the Barber collection
         const barbers = await Barber.find({
             status: { $in: ["Active", "Available"] }
@@ -646,6 +703,24 @@ router.post("/", async (req, res) => {
                             .toLowerCase()
                     )
                 );
+
+                
+            const customerConflict = await findCustomerBookingConflict({
+                email: customerEmail,
+                 date,
+                 time,
+                session
+        });
+
+        if (customerConflict) {
+        const error = new Error(
+        "You already have an appointment at this date and time. Please choose another schedule."
+        );
+
+        error.statusCode = 409;
+        throw error;
+        }
+
 
                 let assignedBarber;
 
@@ -897,6 +972,7 @@ if (!service) {
 }
 
             const dateTimeError = validateAppointmentDateTime(
+
                 nextDate,
                 nextTime
             );
@@ -906,6 +982,25 @@ if (!service) {
                 error.statusCode = 400;
                 throw error;
             }
+
+            
+        const customerConflict = await findCustomerBookingConflict({
+        email: existing.email,
+        date: nextDate,
+        time: nextTime,
+        excludeAppointmentId: existing._id,
+        session
+    });
+
+    if (customerConflict) {
+        const error = new Error(
+            "You already have another appointment at this date and time."
+        );
+
+        error.statusCode = 409;
+        throw error;
+    }
+
 
             const barber = await Barber.findOne({
                 name: {
@@ -1091,6 +1186,25 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
                 error.statusCode = 400;
                 throw error;
             }
+
+            
+             const customerConflict = await findCustomerBookingConflict({
+                 email: existing.email,
+                 date: nextDate,
+                time: nextTime,
+                excludeAppointmentId: existing._id,
+                session
+        });
+
+    if (customerConflict) {
+        const error = new Error(
+            "This customer already has another appointment at this date and time."
+        );
+
+        error.statusCode = 409;
+        throw error;
+    }
+
 
             const barber = await Barber.findOne({
                 name: nextBarber,
