@@ -1,0 +1,7 @@
+{
+  "name": "barbershop-feedback-page-test",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  }
+}
