@@ -113,6 +113,20 @@ test("blocks prohibited English and Filipino terms", () => {
     
 });
 
+test("Personal attack and insult", () => {
+    assert.equal(classifyFeedbackComment("idiot"), "flagged");
+    assert.equal(classifyFeedbackComment("stupid"), "flagged");
+    assert.equal(classifyFeedbackComment("useless"), "flagged");
+    assert.equal(classifyFeedbackComment("worthless"), "flagged");
+    assert.equal(classifyFeedbackComment("Disgusting"), "flagged");
+    assert.equal(classifyFeedbackComment("Trash"), "flagged");
+    assert.equal(classifyFeedbackComment("wala kayong silbi"), "flagged");
+    assert.equal(classifyFeedbackComment("walang kwenta"), "flagged");
+    assert.equal(classifyFeedbackComment("pangit ng gupit"), "flagged");
+    assert.equal(classifyFeedbackComment("pangit"), "flagged");
+    assert.equal(classifyFeedbackComment("panget"), "flagged");
+});
+
 test("matches common capitalization, leetspeak, punctuation, and accent variants", () => {
     assert.equal(classifyFeedbackComment("f.u.c.k"), "flagged");
     assert.equal(classifyFeedbackComment("f*ck"), "flagged");

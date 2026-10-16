@@ -4,6 +4,7 @@ const PROHIBITED_TERMS = Object.freeze([
     "punyeta",
     "letche",
     "letse",
+    "leche",
     "bwisit",
     "bwiset",
     "hayop",
@@ -34,6 +35,7 @@ const PROHIBITED_TERMS = Object.freeze([
     "go die",
     "die bastard",
     "you bastard",
+    "bastard",
     "dumb",
     "dumbass",
     "slut",
@@ -101,6 +103,20 @@ const PROHIBITED_TERMS = Object.freeze([
     "ulol"
 ]);
 
+const PERSONAL_ATTACK_TERMS = Object.freeze([
+    "idiot",
+    "stupid",
+    "useless",
+    "worthless",
+    "disgusting",
+    "trash",
+    "wala kayong silbi",
+    "walang kwenta",
+    "pangit ng gupit",
+    "pangit",
+    "panget"
+]);
+
 function normalizeForModeration(value) {
     return String(value)
         .normalize("NFKD")
@@ -131,15 +147,15 @@ function containsWholeTerm(normalizedText, terms) {
     });
 }
 
-function hasSuspiciousVariant(comment, normalizedText) {
-    const termsWithoutSpaces = PROHIBITED_TERMS.map((term) =>
+function hasSuspiciousVariant(comment, normalizedText, terms) {
+    const termsWithoutSpaces = terms.map((term) =>
         normalizeForModeration(term).replace(/\s+/g, "")
     );
     const collapsedWords = normalizedText
         .split(" ")
         .map((word) => word.replace(/(.)\1+/g, "$1"));
 
-    if (containsWholeTerm(collapsedWords.join(" "), PROHIBITED_TERMS)) {
+    if (containsWholeTerm(collapsedWords.join(" "), terms)) {
         return true;
     }
 
@@ -188,7 +204,7 @@ function hasSuspiciousVariant(comment, normalizedText) {
 
     return containsWholeTerm(
         normalizeForModeration(punctuationJoined),
-        PROHIBITED_TERMS
+        terms
     );
 }
 
@@ -199,7 +215,14 @@ function classifyFeedbackComment(comment) {
         return "prohibited";
     }
 
-    if (hasSuspiciousVariant(comment, normalizedText)) {
+    if (hasSuspiciousVariant(comment, normalizedText, PROHIBITED_TERMS)) {
+        return "flagged";
+    }
+
+    if (
+        containsWholeTerm(normalizedText, PERSONAL_ATTACK_TERMS) ||
+        hasSuspiciousVariant(comment, normalizedText, PERSONAL_ATTACK_TERMS)
+    ) {
         return "flagged";
     }
 
@@ -207,6 +230,7 @@ function classifyFeedbackComment(comment) {
 }
 
 module.exports = {
+    PERSONAL_ATTACK_TERMS,
     PROHIBITED_TERMS,
     classifyFeedbackComment,
     normalizeForModeration
