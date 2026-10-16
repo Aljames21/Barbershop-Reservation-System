@@ -12,6 +12,11 @@ const Appointment = require("../Models/Appointment");
 const Feedback = require("../Models/Feedback");
 const { classifyFeedbackComment } = require("../Utils/feedbackModeration");
 const { validateFeedbackInput } = require("../Utils/feedbackValidation");
+const {
+    createReviewToken,
+    hashReviewToken,
+    matchesReviewToken
+} = require("../Utils/reviewToken");
 const feedbackRateLimit = require("../Middleware/feedbackRateLimit");
 const verifyAdmin = require("../Middleware/authMiddleware");
 const mongoose = require("mongoose");
@@ -155,6 +160,117 @@ async function verifyManageToken(appointmentId, token) {
 
     return appointment;
 }
+
+async function findReviewAppointment(token) {
+    if (typeof token !== "string" || !/^[a-f\d]{64}$/i.test(token)) {
+        return null;
+    }
+
+    const appointment = await Appointment.findOne({
+        reviewTokenHash: hashReviewToken(token),
+        reviewTokenExpiresAt: { $gt: new Date() }
+    }).select("+reviewTokenHash");
+
+    if (
+        !appointment ||
+        !matchesReviewToken(token, appointment.reviewTokenHash)
+    ) {
+        return null;
+    }
+
+    return appointment;
+}
+
+router.get("/review/:token", async (req, res) => {
+    try {
+        const appointment = await findReviewAppointment(req.params.token);
+
+        if (!appointment || appointment.status !== "Completed") {
+            return res.status(404).json({
+                message: "This review link is invalid, expired, or already used."
+            });
+        }
+
+        if (await Feedback.exists({ appointment: appointment._id })) {
+            return res.status(409).json({
+                message: "Feedback has already been submitted for this appointment."
+            });
+        }
+
+        return res.json({
+            service: appointment.service || "Appointment",
+            date: appointment.date
+        });
+    } catch (error) {
+        console.error("Review link validation error:", error);
+        return res.status(500).json({
+            message: "Unable to validate this review link."
+        });
+    }
+});
+
+router.post("/review/:token", feedbackRateLimit, async (req, res) => {
+    try {
+        const appointment = await findReviewAppointment(req.params.token);
+
+        if (!appointment || appointment.status !== "Completed") {
+            return res.status(404).json({
+                message: "This review link is invalid, expired, or already used."
+            });
+        }
+
+        const validation = validateFeedbackInput(req.body);
+        if (validation.error) {
+            return res.status(400).json({
+                message: validation.error
+            });
+        }
+
+        const { rating, comment } = validation.value;
+        const moderation = classifyFeedbackComment(comment);
+        if (moderation === "prohibited") {
+            return res.status(400).json({
+                message: "Please revise your comment to remove prohibited language."
+            });
+        }
+
+        const status = moderation === "flagged" ? "Flagged" : "Approved";
+        const feedback = await Feedback.create({
+            appointment: appointment._id,
+            rating,
+            comment,
+            status
+        });
+
+        appointment.reviewTokenHash = undefined;
+        appointment.reviewTokenExpiresAt = undefined;
+        await appointment.save();
+
+        return res.status(status === "Flagged" ? 202 : 201).json({
+            message: status === "Flagged"
+                ? "Your feedback was received and is awaiting review."
+                : "Thank you. Your feedback has been published.",
+            feedback: {
+                _id: feedback._id,
+                rating: feedback.rating,
+                comment: feedback.comment,
+                status: feedback.status,
+                createdAt: feedback.createdAt
+            }
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "Feedback has already been submitted for this appointment."
+            });
+        }
+
+        console.error("Review link feedback submission error:", error);
+        return res.status(500).json({
+            message: "Unable to submit feedback."
+        });
+    }
+});
 
 router.get("/:id/feedback", async (req, res) => {
     try {
@@ -873,6 +989,7 @@ if (!service) {
 router.patch("/:id", verifyAdmin, async (req, res) => {
     const session = await mongoose.startSession();
     let statusChangedFrom = null;
+    let reviewToken = null;
 
 
     try {
@@ -922,9 +1039,16 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
                     throw error;
                 }
 
-                
-        statusChangedFrom = existing.status;
-        existing.status = nextStatus;
+                statusChangedFrom = existing.status;
+                existing.status = nextStatus;
+
+                if (nextStatus === "Completed") {
+                    reviewToken = createReviewToken();
+                    existing.reviewTokenHash = hashReviewToken(reviewToken);
+                    existing.reviewTokenExpiresAt = new Date(
+                        Date.now() + 30 * 24 * 60 * 60 * 1000
+                    );
+                }
 
                 // Release the reserved slot when the appointment
                 // is cancelled or completed.
@@ -1082,7 +1206,95 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
             }
         }
 
-        return res.json(updatedAppointment);
+        let feedbackInvitation = null;
+
+        if (
+            statusChangedFrom &&
+            statusChangedFrom !== updatedAppointment?.status &&
+            updatedAppointment?.status === "Completed"
+        ) {
+            try {
+                const customerAppUrl = process.env.CUSTOMER_APP_URL?.trim();
+                if (!customerAppUrl) {
+                    throw new Error("CUSTOMER_APP_URL is not configured.");
+                }
+
+                const appBaseUrl = new URL(
+                    `${customerAppUrl.replace(/\/+$/, "")}/`
+                );
+                const isLocalHttp =
+                    appBaseUrl.protocol === "http:" &&
+                    ["localhost", "127.0.0.1"].includes(appBaseUrl.hostname);
+
+                if (appBaseUrl.protocol !== "https:" && !isLocalHttp) {
+                    throw new Error(
+                        "CUSTOMER_APP_URL must use HTTPS, except for localhost development."
+                    );
+                }
+
+                const feedbackUrl = new URL(
+                    `customer_feedback.html?token=${encodeURIComponent(reviewToken)}`,
+                    appBaseUrl
+                ).toString();
+                const appointment = updatedAppointment;
+                const details =
+                    `Service: ${appointment.service || "Appointment"}\n` +
+                    `Date: ${appointment.date}\n` +
+                    `Time: ${appointment.time}\n`;
+
+                await transporter.sendMail({
+                    from: `"Sañado's Barbershop" <${process.env.EMAIL_USER}>`,
+                    to: appointment.email,
+                    subject: "Thank You for Visiting Sañado's Barbershop!",
+                    text:
+                        `Hello ${appointment.customerName},\n\n` +
+                        "Thank you for choosing our barbershop! We hope you enjoyed your service.\n\n" +
+                        "We would appreciate it if you could share your experience with us. Your feedback helps us improve our services and provide a better experience for our customers.\n\n" +
+                        `${details}\n` +
+                        `Add Review: ${feedbackUrl}\n\n` +
+                        "Thank you for your support!\n\n" +
+                        "Best regards,\nSañado's Barbershop",
+                    html: `
+                        <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;background:#171717;color:#fff;border-radius:12px">
+                            <h2 style="color:#c99443">Sañado's Barbershop</h2>
+                            <p>Hello ${escapeHtml(appointment.customerName)},</p>
+                            <p>Thank you for choosing our barbershop! We hope you enjoyed your service.</p>
+                            <p>We would appreciate it if you could share your experience with us. Your feedback helps us improve our services and provide a better experience for our customers.</p>
+                            <p><strong>Service:</strong> ${escapeHtml(appointment.service || "Appointment")}<br>
+                            <strong>Date:</strong> ${escapeHtml(appointment.date)}<br>
+                            <strong>Time:</strong> ${escapeHtml(appointment.time)}</p>
+                            <p style="margin:28px 0">
+                                <a href="${escapeHtml(feedbackUrl)}" style="display:inline-block;padding:14px 24px;background:#c99443;color:#171717;text-decoration:none;font-weight:bold;border-radius:6px">Add Review</a>
+                            </p>
+                            <p>Thank you for your support!</p>
+                            <p>Best regards,<br>Sañado's Barbershop</p>
+                        </div>
+                    `
+                });
+
+                feedbackInvitation = { sent: true };
+                console.log(
+                    "Feedback invitation sent:",
+                    appointment.email
+                );
+            } catch (emailError) {
+                console.error(
+                    "Feedback invitation email failed:",
+                    emailError.message
+                );
+                feedbackInvitation = {
+                    sent: false,
+                    message: "The appointment is completed, but the feedback invitation could not be sent. Check the email configuration and CUSTOMER_APP_URL."
+                };
+            }
+        }
+
+        const response = updatedAppointment.toObject();
+        if (feedbackInvitation) {
+            response.feedbackInvitation = feedbackInvitation;
+        }
+
+        return res.json(response);
 
 
     } catch (error) {
