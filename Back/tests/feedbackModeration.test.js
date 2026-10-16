@@ -75,6 +75,42 @@ test("blocks prohibited English and Filipino terms", () => {
     assert.equal(classifyFeedbackComment("Kupal."), "prohibited"); 
     assert.equal(classifyFeedbackComment("Pokpok."), "prohibited");
     assert.equal(classifyFeedbackComment("Burikat."), "prohibited");
+    assert.equal(classifyFeedbackComment("Tits."), "prohibited");
+    assert.equal(classifyFeedbackComment("Anus."), "prohibited");
+    assert.equal(classifyFeedbackComment("iyot."), "prohibited");
+    assert.equal(classifyFeedbackComment("uten."), "prohibited");
+    assert.equal(classifyFeedbackComment("Kantot."), "prohibited");
+    assert.equal(classifyFeedbackComment("Kantutan."), "prohibited");
+    assert.equal(classifyFeedbackComment("Kantutin."), "prohibited");
+    assert.equal(classifyFeedbackComment("Kantuten."), "prohibited");
+    assert.equal(classifyFeedbackComment("Whore."), "prohibited");
+    assert.equal(classifyFeedbackComment("Burat."), "prohibited");
+    assert.equal(classifyFeedbackComment("Bayag."), "prohibited");
+    assert.equal(classifyFeedbackComment("Jakol."), "prohibited");
+    assert.equal(classifyFeedbackComment("Salsal."), "prohibited");
+    assert.equal(classifyFeedbackComment("Mamatay ka na."), "prohibited");
+    assert.equal(classifyFeedbackComment("Pisti."), "prohibited");
+    assert.equal(classifyFeedbackComment("Pisteng yawa."), "prohibited");
+    assert.equal(classifyFeedbackComment("Pisting yawa."), "prohibited");
+    assert.equal(classifyFeedbackComment("Engot."), "prohibited");
+    assert.equal(classifyFeedbackComment("Ingot."), "prohibited");
+    assert.equal(classifyFeedbackComment("Ratbu."), "prohibited");
+    assert.equal(classifyFeedbackComment("Nigger."), "prohibited");
+    assert.equal(classifyFeedbackComment("Nigga."), "prohibited");
+    assert.equal(classifyFeedbackComment("Shithole."), "prohibited");
+    assert.equal(classifyFeedbackComment("Kill yourself."), "prohibited");
+    assert.equal(classifyFeedbackComment("Go die."), "prohibited");
+    assert.equal(classifyFeedbackComment("Die bastard."), "prohibited");
+    assert.equal(classifyFeedbackComment("You bastard."), "prohibited");
+    assert.equal(classifyFeedbackComment("Dumb."), "prohibited");
+    assert.equal(classifyFeedbackComment("Dumbass."), "prohibited");
+    assert.equal(classifyFeedbackComment("Slut."), "prohibited");
+    assert.equal(classifyFeedbackComment("Dipshit."), "prohibited");
+    assert.equal(classifyFeedbackComment("Shithead."), "prohibited");
+    assert.equal(classifyFeedbackComment("Fuckface."), "prohibited");
+    assert.equal(classifyFeedbackComment("Holyshit."), "prohibited");
+    assert.equal(classifyFeedbackComment("Eatshit."), "prohibited");
+    
 });
 
 test("matches common capitalization, leetspeak, punctuation, and accent variants", () => {
