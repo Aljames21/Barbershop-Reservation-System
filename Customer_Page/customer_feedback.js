@@ -9,6 +9,8 @@ const reviewToken = new URLSearchParams(window.location.search).get("token");
 const reviewEndpoint = reviewToken
     ? `${API_URL}/appointments/review/${encodeURIComponent(reviewToken)}`
     : null;
+const isLocalPreview = window.location.protocol === "file:" ||
+    ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
 function showMessage(message, type) {
     feedbackMessage.textContent = message;
@@ -48,6 +50,17 @@ async function readResponse(response) {
 
 async function loadReviewLink() {
     if (!reviewEndpoint) {
+        if (isLocalPreview) {
+            feedbackForm.hidden = false;
+            submitButton.disabled = true;
+            submitButton.textContent = "Preview Only";
+            showMessage(
+                "Design preview: open a valid Add Review link to submit feedback.",
+                "info"
+            );
+            return;
+        }
+
         showMessage("This review link is invalid, expired, or already used.", "error");
         return;
     }
