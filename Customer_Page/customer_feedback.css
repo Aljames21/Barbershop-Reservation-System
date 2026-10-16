@@ -248,6 +248,11 @@ h1 {
     color: #b6d6bd;
 }
 
+.feedback-message.is-info {
+    border-color: #665638;
+    color: #e1c58f;
+}
+
 .feedback-message.is-warning {
     border-color: #8a6b31;
     color: #f1d99e;
