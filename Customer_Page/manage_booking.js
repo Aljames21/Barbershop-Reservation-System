@@ -36,6 +36,39 @@ const editDate = document.getElementById("edit-date");
 const editTime = document.getElementById("edit-time");
 
 
+function getPhilippineNow() {
+    const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Manila",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+    }).formatToParts(new Date());
+
+    const values = Object.fromEntries(
+        parts.map(part => [part.type, part.value])
+    );
+
+    return {
+        date: `${values.year}-${values.month}-${values.day}`,
+        time: `${values.hour}:${values.minute}`
+    };
+}
+
+function isPastBookingSlot(date, time) {
+    const now = getPhilippineNow();
+    const normalized = normalizeTime(time);
+
+    if (!date || !normalized) return false;
+
+    return date < now.date ||
+        (date === now.date && normalized <= now.time);
+}
+
+
+
 let currentAppointment = null;
 
 async function readApiResponse(response) {
@@ -110,6 +143,44 @@ function formatDisplayTime(value) {
     const hours12 = hours % 12 || 12;
 
     return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
+}
+
+
+
+function refreshManageTimeOptions() {
+    const selectedDate = editDate.value;
+    const previousValue = editTime.value;
+
+    Array.from(editTime.options).forEach(option => {
+        if (!option.value) return;
+
+        const past = isPastBookingSlot(
+            selectedDate,
+            option.value
+        );
+
+        // Keep every time visible.
+        option.hidden = false;
+
+        // Past times cannot be selected.
+        option.disabled = past;
+
+        // Avoid repeated "(Unavailable)" labels.
+        const originalLabel = option.textContent
+            .replace(/\s*\(Unavailable\)$/, "");
+
+        option.textContent = past
+            ? `${originalLabel} (Unavailable)`
+            : originalLabel;
+    });
+
+    // Clear the selection if it has already passed.
+    const selectedOption = Array.from(editTime.options)
+        .find(option => option.value === previousValue);
+
+    if (selectedOption?.disabled) {
+        editTime.value = "";
+    }
 }
 
 
@@ -615,6 +686,9 @@ changeTimeBtn.addEventListener(
         "hidden"
     );
 
+    setDateMin();
+    refreshManageTimeOptions();
+
     cancelConfirmation.classList.add(
         "hidden"
     );
@@ -679,11 +753,7 @@ async(e)=>{
     e.preventDefault();
 
     
-const today = new Date();
-today.setMinutes(
-    today.getMinutes() - today.getTimezoneOffset()
-);
-const todayString = today.toISOString().slice(0, 10);
+const todayString = getPhilippineNow().date;
 
 if (!editDate.value || editDate.value < todayString) {
     showMessage("Past dates are not allowed.", "error");
@@ -701,6 +771,18 @@ if (!selectedTime) {
 }
 
 editTime.value = selectedTime;
+
+
+    if (isPastBookingSlot(editDate.value, selectedTime)) {
+    showMessage(
+        "This time has already passed. Please select a future time.",
+        "error"
+    );
+
+    refreshManageTimeOptions();
+    return;
+}
+
 
 
 
@@ -795,23 +877,31 @@ document.getElementById("confirm-cancel-btn")
 // DATE LIMIT
 // ===============================
 
-function setDateMin(){
 
-    const today =
-    new Date();
-
-
-    today.setMinutes(
-        today.getMinutes() -
-        today.getTimezoneOffset()
-    );
-
-
-    editDate.min =
-    today.toISOString()
-    .slice(0,10);
-
+function setDateMin() {
+    editDate.min = getPhilippineNow().date;
 }
+
+
+
+editDate.addEventListener("change", () => {
+    refreshManageTimeOptions();
+});
+
+setInterval(() => {
+    if (!changeTimeSection.classList.contains("hidden")) {
+        setDateMin();
+        refreshManageTimeOptions();
+    }
+}, 30000);
+
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        setDateMin();
+        refreshManageTimeOptions();
+    }
+});
+
 
 // ===============================
 // INITIALIZE
