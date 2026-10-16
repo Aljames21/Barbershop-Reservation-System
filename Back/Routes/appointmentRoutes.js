@@ -20,6 +20,7 @@ const {
 const feedbackRateLimit = require("../Middleware/feedbackRateLimit");
 const verifyAdmin = require("../Middleware/authMiddleware");
 const mongoose = require("mongoose");
+const firebaseAdmin = require("../Config/firebaseAdmin");
 const Service = require("../Models/Service");   
 
 
@@ -526,6 +527,37 @@ router.post("/", async (req, res) => {
     console.log("POST APPOINTMENT RECEIVED");
 
     try {
+        // Verify Firebase Phone OTP token
+const authHeader = req.get("Authorization") || "";
+
+if (!authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({
+        message: "Please verify your mobile number before booking."
+    });
+}
+
+const idToken = authHeader.slice(7).trim();
+
+let decodedToken;
+
+try {
+    decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+} catch (error) {
+    return res.status(401).json({
+        message: "Phone verification expired or invalid. Please verify again."
+    });
+}
+
+if (
+    decodedToken.firebase?.sign_in_provider !== "phone" ||
+    !decodedToken.phone_number
+) {
+    return res.status(403).json({
+        message: "A verified mobile number is required."
+    });
+}
+
+const verifiedPhone = decodedToken.phone_number;
         const customerAppUrl = process.env.CUSTOMER_APP_URL?.trim();
         let appBaseUrl = null;
 

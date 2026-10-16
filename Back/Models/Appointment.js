@@ -16,6 +16,14 @@ const appointmentSchema = new mongoose.Schema({
     lowercase: true
 },
 
+
+phoneNumber: {
+    type: String,
+    trim: true,
+    default: undefined
+},
+
+
     service:String,
 
     price:{
