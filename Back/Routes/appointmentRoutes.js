@@ -781,6 +781,7 @@ router.post("/", async (req, res) => {
                 const appointment = new Appointment({
                     ...req.body,
                     customerName,
+                    email: customerEmail,
                     barber: assignedBarber.name,
                     manageTokenHash
                 });
