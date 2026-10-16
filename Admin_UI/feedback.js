@@ -69,6 +69,7 @@ function renderFeedback(feedback) {
     const approveAction = item.status === "Approved"
       ? ""
       : `<button data-action="approve" data-id="${escapeHtml(item._id)}">Approve</button>`;
+    const archiveAction = `<button class="light" data-action="archive" data-id="${escapeHtml(item._id)}">Archive</button>`;
 
     return `
       <tr>
@@ -83,7 +84,7 @@ function renderFeedback(feedback) {
         <td><span class="tag feedback-${escapeHtml(statusClass)}">${escapeHtml(item.status || "Pending")}</span></td>
         <td class="feedback-actions">
           ${approveAction}
-          <button class="light" data-action="delete" data-id="${escapeHtml(item._id)}">Delete</button>
+          ${archiveAction}
         </td>
       </tr>
     `;
@@ -114,28 +115,15 @@ feedbackRows.addEventListener("click", async (event) => {
 
   const { action, id } = button.dataset;
 
-  if (
-    action === "delete" &&
-    !window.confirm("Delete this feedback permanently?")
-  ) {
-    return;
-  }
-
   button.disabled = true;
   feedbackStatus.textContent = "";
 
   try {
-    if (action === "delete") {
-      await adminFetch(`/feedback/${encodeURIComponent(id)}`, {
-        method: "DELETE"
-      });
-    } else {
-      const status = action === "approve" ? "Approved" : "Hidden";
-      await adminFetch(`/feedback/${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status })
-      });
-    }
+    const status = action === "approve" ? "Approved" : "Archived";
+    await adminFetch(`/feedback/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    });
 
     await loadFeedback();
   } catch (error) {

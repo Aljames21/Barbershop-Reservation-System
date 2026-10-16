@@ -22,8 +22,13 @@ const feedbackSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["Pending", "Approved", "Hidden"],
+        enum: ["Pending", "Approved", "Hidden", "Flagged", "Archived"],
         default: "Pending"
+    },
+    archivedFromStatus: {
+        type: String,
+        enum: ["Pending", "Approved", "Hidden", "Flagged"],
+        default: undefined
     },
     createdAt: {
         type: Date,

@@ -341,6 +341,14 @@ dialog select {
   background: #666;
 }
 
+.feedback-flagged {
+  background: #9a4f37;
+}
+
+.feedback-archived {
+  background: #555;
+}
+
 .feedback-actions button:disabled {
   cursor: wait;
   opacity: 0.65;

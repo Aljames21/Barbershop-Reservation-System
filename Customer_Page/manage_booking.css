@@ -310,6 +310,10 @@ body {
   color: #ffd9d3;
 }
 
+#feedback-message.feedback-warning {
+  color: #f0c879;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;

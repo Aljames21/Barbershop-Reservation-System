@@ -6,6 +6,11 @@ const cors = require("cors");
 require("dotenv").config();
 const app = express();
 
+const trustProxyHops = Number(process.env.TRUST_PROXY_HOPS ?? 1);
+if (!Number.isSafeInteger(trustProxyHops) || trustProxyHops < 0) {
+    throw new Error("TRUST_PROXY_HOPS must be a non-negative integer.");
+}
+app.set("trust proxy", trustProxyHops);
 
 // Middleware
 app.use(cors());
@@ -47,6 +52,21 @@ app.get("/", (req,res)=>{
     res.send("Barbershop API Running");
 });
 
+app.use((error, req, res, next) => {
+    if (error.type === "entity.parse.failed") {
+        return res.status(400).json({
+            message: "Request body must be valid JSON."
+        });
+    }
+
+    if (error.type === "entity.too.large") {
+        return res.status(413).json({
+            message: "Request is too large."
+        });
+    }
+
+    return next(error);
+});
 
 // Start Server
 app.listen(process.env.PORT,()=>{

@@ -290,7 +290,7 @@ async function loadFeedback() {
     if (!Array.isArray(feedback) || feedback.length === 0) {
       const emptyMessage = document.createElement("p");
       emptyMessage.className = "feedback-empty";
-      emptyMessage.textContent = "No approved customer feedback yet.";
+      emptyMessage.textContent = "No customer feedback yet.";
       feedbackTrack.append(emptyMessage);
       return;
     }

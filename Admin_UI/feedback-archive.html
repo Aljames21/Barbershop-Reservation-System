@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Archived Feedback</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="feedback-archive">
+  <div class="layout">
+    <nav class="sidebar">
+      <img class="logo" src="logo.jpg" alt="logo">
+      <br>
+      <a href="dashboard.html"><img src="icons/dashboardwhite.png" alt="Dashboard"> Dashboard</a>
+      <a href="staffs.html"><img src="icons/barberwhite.png" alt="Staffs"> Staffs</a>
+      <a href="services.html"><img src="icons/Scissors_Icon.png" alt="Services"> Services</a>
+      <a href="appointments.html"><img src="icons/appointmentwhite.png" alt="Appointments"> Appointments</a>
+      <a href="feedback.html"><img src="icons/customerwhite.png" alt="Feedback"> Feedback</a>
+      <a href="feedback-archive.html" class="active"><img src="icons/customerwhite.png" alt="Archived Feedback"> Archived Feedback</a>
+      <a href="index.html" class="logout"><img src="icons/logout (2).png" alt="Log out"> Log out</a>
+    </nav>
+
+    <main class="main">
+      <div class="toolbar">
+        <h1>Archived Feedback</h1>
+      </div>
+      <p id="feedback-status" class="error" role="status" aria-live="polite"></p>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Rating</th>
+              <th>Comment</th>
+              <th>Service</th>
+              <th>Submitted</th>
+              <th>Previous Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="feedback-rows">
+            <tr><td colspan="7" class="empty">Loading archived feedback...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="feedback-archive.js"></script>
+</body>
+</html>

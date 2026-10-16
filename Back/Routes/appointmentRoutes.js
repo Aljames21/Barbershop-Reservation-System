@@ -10,6 +10,9 @@ const BookingSlot = require("../Models/BookingSlot");
 const Barber = require("../Models/Barber");
 const Appointment = require("../Models/Appointment");
 const Feedback = require("../Models/Feedback");
+const { classifyFeedbackComment } = require("../Utils/feedbackModeration");
+const { validateFeedbackInput } = require("../Utils/feedbackValidation");
+const feedbackRateLimit = require("../Middleware/feedbackRateLimit");
 const verifyAdmin = require("../Middleware/authMiddleware");
 const mongoose = require("mongoose");
 const Service = require("../Models/Service");   
@@ -185,7 +188,7 @@ router.get("/:id/feedback", async (req, res) => {
     }
 });
 
-router.post("/:id/feedback", async (req, res) => {
+router.post("/:id/feedback", feedbackRateLimit, async (req, res) => {
     try {
         const appointment = await verifyManageToken(
             req.params.id,
@@ -204,33 +207,33 @@ router.post("/:id/feedback", async (req, res) => {
             });
         }
 
-        const body = req.body || {};
-        const rating = Number(body.rating);
-        const comment =
-            typeof body.comment === "string"
-                ? body.comment.trim()
-                : "";
-
-        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        const validation = validateFeedbackInput(req.body);
+        if (validation.error) {
             return res.status(400).json({
-                message: "Please choose a rating from 1 to 5."
+                message: validation.error
             });
         }
 
-        if (!comment || comment.length > 1000) {
+        const { rating, comment } = validation.value;
+        const moderation = classifyFeedbackComment(comment);
+        if (moderation === "prohibited") {
             return res.status(400).json({
-                message: "Please enter a comment of 1 to 1000 characters."
+                message: "Please revise your comment to remove prohibited language."
             });
         }
 
+        const status = moderation === "flagged" ? "Flagged" : "Approved";
         const feedback = await Feedback.create({
             appointment: appointment._id,
             rating,
-            comment
+            comment,
+            status
         });
 
-        return res.status(201).json({
-            message: "Feedback submitted and is awaiting approval.",
+        return res.status(status === "Flagged" ? 202 : 201).json({
+            message: status === "Flagged"
+                ? "Your feedback was received and is awaiting review."
+                : "Thank you. Your feedback has been published.",
             feedback: {
                 _id: feedback._id,
                 rating: feedback.rating,

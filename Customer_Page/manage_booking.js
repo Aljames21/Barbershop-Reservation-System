@@ -25,6 +25,9 @@ const cancelConfirmation = document.getElementById("cancel-confirmation");
 const feedbackPanel = document.getElementById("feedback-panel");
 const feedbackForm = document.getElementById("feedback-form");
 const feedbackMessage = document.getElementById("feedback-message");
+const feedbackComment = document.getElementById("feedback-comment");
+const feedbackGuidance =
+    "Feedback is checked automatically before publication. Some comments may be held for review.";
 
 const changeTimeForm = document.getElementById("change-time-form");
 
@@ -401,6 +404,28 @@ async function loadAppointmentFeedback() {
     }
 }
 
+feedbackComment.addEventListener("input", async () => {
+    const comment = feedbackComment.value;
+
+    try {
+        const isProhibited = await window.feedbackModeration
+            .containsProhibitedTerm(comment);
+
+        if (comment !== feedbackComment.value) return;
+
+        if (isProhibited) {
+            feedbackMessage.textContent =
+                "Please revise your comment to remove prohibited language.";
+            feedbackMessage.className = "feedback-error";
+        } else if (feedbackMessage.classList.contains("feedback-error")) {
+            feedbackMessage.textContent = feedbackGuidance;
+            feedbackMessage.className = "";
+        }
+    } catch (error) {
+        console.error("Unable to load feedback moderation rules:", error);
+    }
+});
+
 feedbackForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -414,6 +439,22 @@ feedbackForm.addEventListener("submit", async (event) => {
             "Please open this page using the appointment management link.";
         feedbackMessage.className = "feedback-error";
         return;
+    }
+
+    try {
+        const comment = feedbackComment.value;
+        const isProhibited = await window.feedbackModeration
+            .containsProhibitedTerm(comment);
+
+        if (isProhibited && comment === feedbackComment.value) {
+            feedbackMessage.textContent =
+                "Please revise your comment to remove prohibited language.";
+            feedbackMessage.className = "feedback-error";
+            feedbackComment.focus();
+            return;
+        }
+    } catch (error) {
+        console.error("Unable to load feedback moderation rules:", error);
     }
 
     submitButton.disabled = true;
@@ -439,7 +480,10 @@ feedbackForm.addEventListener("submit", async (event) => {
 
         feedbackForm.classList.add("hidden");
         feedbackMessage.textContent = data.message;
-        feedbackMessage.className = "feedback-success";
+        feedbackMessage.className =
+            data.feedback?.status === "Flagged"
+                ? "feedback-warning"
+                : "feedback-success";
     } catch (error) {
         console.error("Feedback submission error:", error);
         feedbackMessage.textContent = error.message;
