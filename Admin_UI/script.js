@@ -598,6 +598,13 @@ if (["accept", "decline", "cancel", "complete"].includes(act)) {
             data.appointments[index] = updated;
         }
 
+        if (
+            act === "complete" &&
+            updated.feedbackInvitation?.sent === false
+        ) {
+            alert(updated.feedbackInvitation.message);
+        }
+
         render();
 
     } catch (error) {

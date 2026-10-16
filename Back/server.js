@@ -18,7 +18,11 @@ app.use(cors());
 app.use(express.json());
 
 app.use((req,res,next)=>{
-    console.log("REQUEST:", req.method, req.url);
+    const safeUrl = req.url.replace(
+        /(^|\/appointments\/review\/)[a-f\d]{64}(?=[/?#]|$)/i,
+        "$1[REDACTED]"
+    );
+    console.log("REQUEST:", req.method, safeUrl);
      console.log("BODY FIELDS:", Object.keys(req.body || {}));
     next();
 });

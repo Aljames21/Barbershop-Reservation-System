@@ -47,6 +47,18 @@ const appointmentSchema = new mongoose.Schema({
     select: false
 },
 
+    reviewTokenHash: {
+        type: String,
+        default: undefined,
+        select: false,
+        index: { sparse: true }
+    },
+
+    reviewTokenExpiresAt: {
+        type: Date,
+        default: undefined
+    },
+
     createdAt:{
         type:String,
         default:()=>{
