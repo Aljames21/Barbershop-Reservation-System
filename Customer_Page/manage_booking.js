@@ -311,11 +311,13 @@ function renderAppointment(appointment){
     setStatusBadge(status);
 
     const isCompleted = status.toLowerCase() === "completed";
+   if (feedbackPanel) {
     feedbackPanel.classList.toggle("hidden", !isCompleted);
 
     if (isCompleted) {
         loadAppointmentFeedback();
     }
+}
 
 
 
@@ -475,29 +477,31 @@ async function loadAppointmentFeedback() {
     }
 }
 
-feedbackComment.addEventListener("input", async () => {
-    const comment = feedbackComment.value;
+if (feedbackComment && feedbackMessage) {
+    feedbackComment.addEventListener("input", async () => {
+        const comment = feedbackComment.value;
 
-    try {
-        const isProhibited = await window.feedbackModeration
-            .containsProhibitedTerm(comment);
+        try {
+            const isProhibited = await window.feedbackModeration
+                .containsProhibitedTerm(comment);
 
-        if (comment !== feedbackComment.value) return;
+            if (comment !== feedbackComment.value) return;
 
-        if (isProhibited) {
-            feedbackMessage.textContent =
-                "Please revise your comment to remove prohibited language.";
-            feedbackMessage.className = "feedback-error";
-        } else if (feedbackMessage.classList.contains("feedback-error")) {
-            feedbackMessage.textContent = feedbackGuidance;
-            feedbackMessage.className = "";
+            if (isProhibited) {
+                feedbackMessage.textContent =
+                    "Please revise your comment to remove prohibited language.";
+                feedbackMessage.className = "feedback-error";
+            } else if (feedbackMessage.classList.contains("feedback-error")) {
+                feedbackMessage.textContent = feedbackGuidance;
+                feedbackMessage.className = "";
+            }
+        } catch (error) {
+            console.error("Unable to load feedback moderation rules:", error);
         }
-    } catch (error) {
-        console.error("Unable to load feedback moderation rules:", error);
-    }
-});
-
-feedbackForm.addEventListener("submit", async (event) => {
+    });
+}
+if (feedbackForm && feedbackComment && feedbackMessage) {
+    feedbackForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const appointmentId = getAppointmentId();
@@ -562,7 +566,8 @@ feedbackForm.addEventListener("submit", async (event) => {
     } finally {
         submitButton.disabled = false;
     }
-});
+    });
+}
 
 
 
