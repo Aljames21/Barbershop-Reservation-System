@@ -81,6 +81,35 @@ async function testReplay() {
             ) {
                 console.log("SECOND USE: BLOCKED");
                 console.log("REPLAY TEST PASSED");
+
+                const response = await fetch("http://localhost:5000/api/appointments", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+        customerName: "OTP Replay Test",
+        email: "otp-replay@example.com",
+        phoneNumber: "+639000000000",
+        date: "2026-10-20",
+        time: "10:00 AM",
+        barber: "Test Barber",
+        service: "Haircut"
+    })
+});
+
+const result = await response.json();
+
+console.log("BOOKING API STATUS:", response.status);
+console.log("BOOKING API MESSAGE:", result.message);
+
+if (response.status !== 409 ||
+    !String(result.message || "").includes("already been used")) {
+    throw new Error("BOOKING API REPLAY TEST FAILED");
+}
+
+console.log("BOOKING API REPLAY TEST PASSED");
             } else {
                 throw error;
             }
