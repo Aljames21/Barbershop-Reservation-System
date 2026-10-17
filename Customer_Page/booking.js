@@ -16,14 +16,78 @@ const timeInput = document.getElementById("time");
 const availableTimeSlots = new Set();
 
 
+
+function getPhilippineNow() {
+    const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Manila",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+    }).formatToParts(new Date());
+
+    const values = Object.fromEntries(
+        parts.map(part => [part.type, part.value])
+    );
+
+    return {
+        date: `${values.year}-${values.month}-${values.day}`,
+        time: `${values.hour}:${values.minute}`
+    };
+}
+
+function isPastBookingSlot(selectedDate, selectedTime) {
+    const nowPH = getPhilippineNow();
+
+    if (selectedDate < nowPH.date) return true;
+
+    if (selectedDate === nowPH.date) {
+        return selectedTime <= nowPH.time;
+    }
+
+    return false;
+}
+
+
+
 let barberAvailability = [];
 
+
+let availabilityRequestId = 0;
+
 async function refreshTimeAvailability() {
+    const requestId = ++availabilityRequestId;
     const selectedDate = dateInput.value;
 
-    // Walang date na pinili
+    setDateMin();
+
     if (!selectedDate) {
+        timeInput.value = "";
         return;
+    }
+
+    Array.from(timeInput.options).forEach(option => {
+    if (!option.value) return;
+
+    const isPast = isPastBookingSlot(
+        selectedDate,
+        option.value
+    );
+
+    option.hidden = false;
+    option.disabled = isPast;
+
+    const label = option.textContent
+        .replace(/\s*\(Unavailable\)$/, "");
+
+    option.textContent = isPast
+        ? `${label} (Unavailable)`
+        : label;
+});
+    if (timeInput.selectedOptions[0]?.disabled) {
+        timeInput.value = "";
     }
 
     try {
@@ -33,67 +97,120 @@ async function refreshTimeAvailability() {
 
         const data = await response.json();
 
+        // Ignore outdated API responses.
+        if (
+            requestId !== availabilityRequestId ||
+            selectedDate !== dateInput.value
+        ) {
+            return;
+        }
+
         if (!response.ok || !Array.isArray(data.barbers)) {
-            throw new Error(data.message || "Unable to load availability.");
+            throw new Error(
+                data.message || "Unable to load availability."
+            );
         }
 
         barberAvailability = data.barbers;
 
-        // I-check ang bawat time slot
-        Array.from(timeInput.options).forEach((option) => {
+        Array.from(timeInput.options).forEach(option => {
             if (!option.value) return;
+
+            const isPast = isPastBookingSlot(
+                selectedDate,
+                option.value
+            );
 
             const bookedNames = new Set(
                 barberAvailability
-                    .filter((barber) =>
+                    .filter(barber =>
                         (barber.bookedTimes || []).some(
-                            (bookedTime) =>
+                            bookedTime =>
                                 String(bookedTime).trim().toUpperCase() ===
                                 option.value.toUpperCase()
                         )
                     )
-                    .map((barber) => barber.name.trim().toLowerCase())
+                    .map(barber =>
+                        barber.name.trim().toLowerCase()
+                    )
             );
 
             let unavailable;
 
             if (selectedBarber) {
-                // Specific barber ang pinili ng customer
                 unavailable = bookedNames.has(
                     selectedBarber.trim().toLowerCase()
                 );
             } else {
-                // Walang preference: disabled lamang kung lahat ay booked
                 const activeBarberCount = barberAvailability.length;
+
                 unavailable =
                     activeBarberCount === 0 ||
                     bookedNames.size >= activeBarberCount;
             }
 
-            option.disabled = unavailable;
+            // Hide past times; disable fully booked times.
+            option.hidden = isPast;
+            option.disabled = isPast || unavailable;
 
-            const label = option.textContent.replace(
-                /\s*\(Unavailable\)$/,
-                ""
-            );
+            const label = option.textContent
+                .replace(/\s*\(Unavailable\)$/, "");
 
-            option.textContent = unavailable
+            option.textContent = unavailable && !isPast
                 ? `${label} (Unavailable)`
                 : label;
         });
 
-        // I-clear kung ang dating napiling oras ay unavailable na
-        if (timeInput.selectedOptions[0]?.disabled) {
+        if (
+            timeInput.selectedOptions[0]?.disabled ||
+            isPastBookingSlot(selectedDate, timeInput.value)
+        ) {
             timeInput.value = "";
         }
 
+        const hasAvailableSlots = Array.from(
+            timeInput.options
+        ).some(option =>
+            option.value &&
+            !option.disabled
+        );
+
+        if (!hasAvailableSlots) {
+            timeInput.value = "";
+            timeInput.options[0].textContent =
+            "No available time slots for today";
+
+            timeInput.setCustomValidity(
+        "Please select another date."
+    );
+    } else {
+     timeInput.options[0].textContent = "Select a time";
+     timeInput.setCustomValidity("");
+}
+
     } catch (error) {
+        if (
+            requestId !== availabilityRequestId ||
+            selectedDate !== dateInput.value
+        ) {
+            return;
+        }
+
         console.error("Availability loading error:", error);
-        alert(
-            "Unable to check available time slots. Please refresh the page and try again."
+
+        // Do not allow booking when availability cannot be checked.
+        Array.from(timeInput.options).forEach(option => {
+            if (!option.value) return;
+            option.disabled = true;
+        });
+
+        timeInput.value = "";
+        timeInput.setCustomValidity(
+            "Unable to check availability. Please try again."
         );
     }
 }
+
 
 
 function populateTimeOptions() {
@@ -117,15 +234,29 @@ function populateTimeOptions() {
 populateTimeOptions();
 timeInput.addEventListener("change", () => timeInput.setCustomValidity(""));
 
+
 function setDateMin() {
-    const today = new Date();
-    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-    dateInput.min = today.toISOString().slice(0, 10);
+    dateInput.min = getPhilippineNow().date;
 }
+
 
 setDateMin();
 dateInput.addEventListener("focus", setDateMin);
 dateInput.addEventListener("change", refreshTimeAvailability);
+
+
+setInterval(() => {
+    if (dateInput.value) {
+        refreshTimeAvailability();
+    }
+}, 30000);
+
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && dateInput.value) {
+        refreshTimeAvailability();
+    }
+});
+
 
 const summaryMessage = document.getElementById("summary-message");
 const summaryDetails = document.getElementById("summary-details");
@@ -295,14 +426,25 @@ loadBarbers();
 
 // SUBMIT BOOKING
 
-form.addEventListener("submit", function(event){
+form.addEventListener("submit", async function(event){
 
     event.preventDefault();
 
+  
     setDateMin();
-    if (!form.reportValidity()) {
-        return;
+
+    if (isPastBookingSlot(dateInput.value, timeInput.value)) {
+    timeInput.setCustomValidity(
+        "This time has already passed. Please choose a future time."
+    );
+    timeInput.reportValidity();
+    return;
     }
+
+if (!form.reportValidity()) {
+    return;
+}
+
 
     if (!availableTimeSlots.has(timeInput.value)) {
         timeInput.setCustomValidity("Please select a time between 8:00 AM and 8:00 PM.");
@@ -338,16 +480,36 @@ form.addEventListener("submit", function(event){
 };
 
 
-    console.log("Sending:", reservation);
+    // Require Firebase Phone OTP verification before booking
+let idToken;
+
+try {
+    if (typeof window.getVerifiedPhoneAuth !== "function") {
+        throw new Error(
+            "Phone verification is not ready. Please refresh the page."
+        );
+    }
+
+    const verifiedAuth = await window.getVerifiedPhoneAuth();
+    idToken = verifiedAuth.idToken;
+
+} catch (error) {
+    alert(error.message || "Please verify your mobile number first.");
+    return;
+}
+
+console.log("Sending booking request...");
+
     // SEND TO MONGODB
 
-    fetch(`${API_URL}/appointments`,{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify(reservation)
-    })
+    fetch(`${API_URL}/appointments`, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${idToken}`
+    },
+    body: JSON.stringify(reservation)
+})
     .then(async (res) => {
     const data = await res.json();
 
@@ -363,12 +525,12 @@ form.addEventListener("submit", function(event){
 
     console.log("Saved:", data);
 
-    
-    const savedReservation = {
-        ...reservation,
-        _id: data._id || data.id,
-        manageToken: data.manageToken
-    };
+const savedReservation = {
+    ...reservation,
+    barber: data.barber || reservation.barber,
+    _id: data._id || data.id,
+    manageToken: data.manageToken
+};
 
     // Save for receipt display
     localStorage.setItem(
@@ -386,9 +548,14 @@ form.addEventListener("submit", function(event){
 
 })
 
-    .catch(error=>{
-        console.error("Booking error:", error);
-        alert("Unable to save your appointment. Please try again.");
-    });
+.catch(error => {
+    console.error("Booking error:", error);
+
+    alert(
+        error.message ||
+        "Unable to save your appointment. Please try again."
+    );
+});
+
 
 });

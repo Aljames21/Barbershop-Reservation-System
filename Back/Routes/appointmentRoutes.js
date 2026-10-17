@@ -20,7 +20,71 @@ const {
 const feedbackRateLimit = require("../Middleware/feedbackRateLimit");
 const verifyAdmin = require("../Middleware/authMiddleware");
 const mongoose = require("mongoose");
-const Service = require("../Models/Service");   
+const { verifyOtpToken } = require("../Utils/otpToken");
+const UsedOtpToken = require("../Models/UsedOtpToken");
+const Service = require("../Models/Service");
+
+
+function normalizeCustomerEmail(email) {
+    return typeof email === "string"
+        ? email.trim().toLowerCase()
+        : "";
+}
+
+
+
+async function findCustomerBookingConflict({
+    email,
+    phoneNumber = null,
+    date,
+    time,
+    excludeAppointmentId = null,
+    session = null
+}) {
+    const normalizedEmail = normalizeCustomerEmail(email);
+
+    const customerIdentifiers = [];
+
+    if (normalizedEmail) {
+        customerIdentifiers.push({
+            email: normalizedEmail
+        });
+    }
+
+    if (typeof phoneNumber === "string" && phoneNumber.trim()) {
+        customerIdentifiers.push({
+            phoneNumber: phoneNumber.trim()
+        });
+    }
+
+    if (customerIdentifiers.length === 0) {
+        return null;
+    }
+
+    const query = {
+        $or: customerIdentifiers,
+        date,
+        time,
+        status: {
+            $nin: ["Cancelled", "Declined", "Completed"]
+        }
+    };
+
+    if (excludeAppointmentId) {
+        query._id = { $ne: excludeAppointmentId };
+    }
+
+    let search = Appointment.findOne(query)
+        .select("_id date time");
+
+    if (session) {
+        search = search.session(session);
+    }
+
+    return search;
+}
+
+
 
 function validateAppointmentDateTime(dateValue, timeValue) {
     // Require a valid YYYY-MM-DD date
@@ -123,7 +187,7 @@ const renderAppointmentEmail = (values) =>
         return values[key];
     });
 
-    
+
 async function verifyManageToken(appointmentId, token) {
     if (
         typeof appointmentId !== "string" ||
@@ -482,6 +546,29 @@ router.post("/", async (req, res) => {
     console.log("POST APPOINTMENT RECEIVED");
 
     try {
+
+// Verify textbee phone OTP token
+const authHeader = req.get("Authorization") || "";
+
+if (!authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({
+        message: "Please verify your mobile number before booking."
+    });
+}
+
+const verificationToken = authHeader.slice(7).trim();
+
+let verifiedPhone;
+
+try {
+    verifiedPhone = verifyOtpToken(verificationToken);
+} catch (error) {
+    return res.status(401).json({
+        message: "Phone verification expired or invalid. Please verify again."
+    });
+}
+
+
         const customerAppUrl = process.env.CUSTOMER_APP_URL?.trim();
         let appBaseUrl = null;
 
@@ -527,6 +614,19 @@ router.post("/", async (req, res) => {
                 message: dateTimeError
             });
         }
+
+
+        const customerEmail = normalizeCustomerEmail(req.body.email);
+
+        if (
+            !customerEmail ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)
+        ) {
+    return res.status(400).json({
+        message: "Please provide a valid email address."
+    });
+}
+
 
         // Get active barbers from the Barber collection
         const barbers = await Barber.find({
@@ -598,8 +698,8 @@ router.post("/", async (req, res) => {
         }
 
         // Save the appointment with the assigned barber
-      
-       
+
+
         // Assign a barber and reserve the slot atomically
         let saved;
 
@@ -613,6 +713,29 @@ router.post("/", async (req, res) => {
 
         try {
             await session.withTransaction(async () => {
+
+
+const tokenHash = crypto
+    .createHash("sha256")
+    .update(verificationToken)
+    .digest("hex");
+
+const tokenPayload = JSON.parse(
+    Buffer.from(
+        verificationToken.split(".")[0],
+        "base64url"
+    ).toString("utf8")
+);
+
+await UsedOtpToken.create(
+    [{
+        tokenHash,
+        expiresAt: new Date(tokenPayload.expiresAt)
+    }],
+    { session }
+);
+
+
                 // Get active barbers
                 const barbers = await Barber.find({
                     status: { $in: ["Active", "Available"] }
@@ -646,6 +769,25 @@ router.post("/", async (req, res) => {
                             .toLowerCase()
                     )
                 );
+
+
+            const customerConflict = await findCustomerBookingConflict({
+                email: customerEmail,
+                phoneNumber: verifiedPhone,
+                 date,
+                 time,
+                session
+        });
+
+        if (customerConflict) {
+        const error = new Error(
+        "You already have an appointment at this date and time. Please choose another schedule."
+        );
+
+        error.statusCode = 409;
+        throw error;
+        }
+
 
                 let assignedBarber;
 
@@ -701,14 +843,29 @@ router.post("/", async (req, res) => {
                         throw error;
                     }
                 }
+const selectedService = await Service.findOne({
+    name: req.body.service
+}).session(session);
 
+if (!selectedService) {
+    const error = new Error(
+        "The selected service does not exist."
+    );
+    error.statusCode = 400;
+    throw error;
+}
                 // Create the appointment
-                const appointment = new Appointment({
-                    ...req.body,
-                    customerName,
-                    barber: assignedBarber.name,
-                    manageTokenHash
-                });
+      const appointment = new Appointment({
+    customerName,
+    email: customerEmail,
+    phoneNumber: verifiedPhone,
+    date,
+    time,
+    service: selectedService.name,
+    price: selectedService.price,
+    barber: assignedBarber.name,
+    manageTokenHash
+});
 
                 await appointment.save({ session });
 
@@ -742,7 +899,7 @@ router.post("/", async (req, res) => {
         const emailTime = escapeHtml(saved.time);
         const price = `₱${Number(saved.price || 0).toLocaleString("en-PH")}`;
 
-        
+
     let manageBookingUrl = "";
 
         if (appBaseUrl) {
@@ -802,22 +959,65 @@ router.post("/", async (req, res) => {
             console.error("BOOKING EMAIL FAILED:", emailError.message);
         }
 
-        
+
         return res.status(201).json({
             ...saved.toObject(),
             manageToken
         });
 
 
-    
+
     } catch (error) {
         console.error("Appointment creation error:", error);
 
-        if (error.code === 11000) {
-            return res.status(409).json({
-                message: "This barber is already booked for that date and time. Please choose another barber or time."
-            });
-        }
+
+if (error.code === 11000) {
+
+
+    if (error.keyPattern?.tokenHash === 1 ||
+        String(error.message || "").includes("tokenHash_1")) {
+        return res.status(409).json({
+        message: "This phone verification has already been used. Please verify your phone number again."
+    });
+}
+
+    const duplicateIndex = String(
+        error.message || ""
+    );
+
+    const isPhoneConflict =
+        duplicateIndex.includes("unique_active_phone_date_time") ||
+        (
+            error.keyPattern?.phoneNumber === 1 &&
+            error.keyPattern?.date === 1 &&
+            error.keyPattern?.time === 1
+        );
+
+    if (isPhoneConflict) {
+        return res.status(409).json({
+            message: "You already have an appointment at this date and time. Please choose another schedule."
+        });
+    }
+
+    const isBarberConflict =
+        duplicateIndex.includes("unique_barber_date_time") ||
+        (
+            error.keyPattern?.barber === 1 &&
+            error.keyPattern?.date === 1 &&
+            error.keyPattern?.time === 1
+        );
+
+    if (isBarberConflict) {
+        return res.status(409).json({
+            message: "This barber is already booked for that date and time. Please choose another barber or time."
+        });
+    }
+
+    return res.status(409).json({
+        message: "A conflicting reservation already exists. Please choose another schedule."
+    });
+}
+
 
         if (error.statusCode) {
     return res.status(error.statusCode).json({
@@ -862,7 +1062,17 @@ if (!appointment) {
                 throw error;
             }
 
-            
+
+if (!["Pending", "Confirmed"].includes(existing.status)) {
+    const error = new Error(
+        "This appointment can no longer be rescheduled."
+    );
+    error.statusCode = 409;
+    throw error;
+}
+
+
+
 const allowedFields = ["date", "time", "service", "barber"];
 
 const invalidFields = Object.keys(req.body).filter(
@@ -878,7 +1088,7 @@ if (invalidFields.length > 0) {
 }
 
 
-           
+
 const nextDate = req.body.date ?? existing.date;
 const nextTime = req.body.time ?? existing.time;
 const nextBarber = req.body.barber ?? existing.barber;
@@ -897,6 +1107,7 @@ if (!service) {
 }
 
             const dateTimeError = validateAppointmentDateTime(
+
                 nextDate,
                 nextTime
             );
@@ -906,6 +1117,26 @@ if (!service) {
                 error.statusCode = 400;
                 throw error;
             }
+
+
+        const customerConflict = await findCustomerBookingConflict({
+        email: existing.email,
+        phoneNumber: existing.phoneNumber,
+        date: nextDate,
+        time: nextTime,
+        excludeAppointmentId: existing._id,
+        session
+    });
+
+    if (customerConflict) {
+        const error = new Error(
+            "You already have another appointment at this date and time."
+        );
+
+        error.statusCode = 409;
+        throw error;
+    }
+
 
             const barber = await Barber.findOne({
                 name: {
@@ -966,11 +1197,45 @@ if (!service) {
     } catch (error) {
         console.error("Appointment update error:", error);
 
-        if (error.code === 11000) {
-            return res.status(409).json({
-                message: "This barber is already booked for that date and time."
-            });
-        }
+
+if (error.code === 11000) {
+    const isPhoneConflict =
+        String(error.message || "").includes(
+            "unique_active_phone_date_time"
+        ) ||
+        (
+            error.keyPattern?.phoneNumber === 1 &&
+            error.keyPattern?.date === 1 &&
+            error.keyPattern?.time === 1
+        );
+
+    if (isPhoneConflict) {
+        return res.status(409).json({
+            message: "This customer already has another appointment at this date and time."
+        });
+    }
+
+    const isBarberConflict =
+        String(error.message || "").includes(
+            "unique_barber_date_time"
+        ) ||
+        (
+            error.keyPattern?.barber === 1 &&
+            error.keyPattern?.date === 1 &&
+            error.keyPattern?.time === 1
+        );
+
+    if (isBarberConflict) {
+        return res.status(409).json({
+            message: "This barber is already booked for that date and time."
+        });
+    }
+
+    return res.status(409).json({
+        message: "A conflicting reservation already exists."
+    });
+}
+
 
         return res.status(error.statusCode || 500).json({
             message: error.statusCode
@@ -1064,6 +1329,16 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
             }
 
             // ADMIN RESCHEDULING
+
+
+if (!["Pending", "Confirmed"].includes(existing.status)) {
+    const error = new Error(
+        "This appointment can no longer be rescheduled."
+    );
+    error.statusCode = 409;
+    throw error;
+}
+
             const nextDate = req.body.date ?? existing.date;
             const nextTime = req.body.time ?? existing.time;
             const nextBarber = req.body.barber ?? existing.barber;
@@ -1091,6 +1366,26 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
                 error.statusCode = 400;
                 throw error;
             }
+
+
+             const customerConflict = await findCustomerBookingConflict({
+                 email: existing.email,
+                  phoneNumber: existing.phoneNumber,
+                 date: nextDate,
+                time: nextTime,
+                excludeAppointmentId: existing._id,
+                session
+        });
+
+    if (customerConflict) {
+        const error = new Error(
+            "This customer already has another appointment at this date and time."
+        );
+
+        error.statusCode = 409;
+        throw error;
+    }
+
 
             const barber = await Barber.findOne({
                 name: nextBarber,
@@ -1139,7 +1434,7 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
             updatedAppointment = existing;
         });
 
-       
+
         // SEND EMAIL WHEN ADMIN CONFIRMS OR CANCELS
         if (
             statusChangedFrom &&

@@ -16,6 +16,14 @@ const appointmentSchema = new mongoose.Schema({
     lowercase: true
 },
 
+
+phoneNumber: {
+    type: String,
+    trim: true,
+    default: undefined
+},
+
+
     service:String,
 
     price:{
@@ -71,6 +79,20 @@ const appointmentSchema = new mongoose.Schema({
     }
 
 });
+
+
+appointmentSchema.index(
+    { phoneNumber: 1, date: 1, time: 1 },
+    {
+        unique: true,
+        name: "unique_active_phone_date_time",
+        partialFilterExpression: {
+            phoneNumber: { $type: "string" },
+            status: { $in: ["Pending", "Confirmed"] }
+        }
+    }
+);
+
 
 
 module.exports = mongoose.model(
