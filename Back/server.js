@@ -13,7 +13,25 @@ if (!Number.isSafeInteger(trustProxyHops) || trustProxyHops < 0) {
 app.set("trust proxy", trustProxyHops);
 
 // Middleware
-app.use(cors());
+const allowedOrigins = [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    ...(process.env.FRONTEND_URL
+        ? [process.env.FRONTEND_URL.trim().replace(/\/$/, "")]
+        : [])
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+       const error = new Error("CORS origin not allowed");
+        error.status = 403;
+        return callback(error);
+    }
+}));
 
 app.use(express.json());
 
@@ -46,6 +64,7 @@ app.use("/api/otp", otpRoutes);
 mongoose.connect(process.env.MONGODB_URI)
 .then(() => {
     console.log("MongoDB Connected");
+    console.log("Connected Database:", mongoose.connection.name);
 })
 .catch((error) => {
     console.log("MongoDB Error:", error);
@@ -58,6 +77,11 @@ app.get("/", (req,res)=>{
 });
 
 app.use((error, req, res, next) => {
+    if (error.message === "CORS origin not allowed") {
+    return res.status(403).json({
+        message: "Origin not allowed."
+    });
+}
     if (error.type === "entity.parse.failed") {
         return res.status(400).json({
             message: "Request body must be valid JSON."

@@ -2,12 +2,15 @@
 const express = require("express");
 const crypto = require("crypto");
 const OtpVerification = require("../Models/OtpVerification");
-
+const OtpSendLimit = require("../Models/OtpSendLimit");
 const router = express.Router();
 
 const OTP_EXPIRY_MS = 5 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_ATTEMPTS = 5;
+
+const DAILY_SMS_LIMIT = 5;
+const DAILY_SMS_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // Temporary protection for each server instance.
 // Additional persistent rate limiting is needed before production.
@@ -56,6 +59,71 @@ function checkIpLimit(ip) {
     return true;
 }
 
+
+
+
+async function reserveDailySmsLimit(phone) {
+    const now = new Date();
+    const newExpiry = new Date(
+        now.getTime() + DAILY_SMS_WINDOW_MS
+    );
+
+    // Create a counter for a new phone number.
+    try {
+        const created = await OtpSendLimit.create({
+            phoneNumber: phone,
+            count: 1,
+            windowStart: now,
+            expiresAt: newExpiry
+        });
+
+        if (created) {
+            return true;
+        }
+    } catch (error) {
+        // Another request may have created the counter.
+        if (error.code !== 11000) {
+            throw error;
+        }
+    }
+
+    // Reset an expired window and reserve the first request.
+    const resetResult = await OtpSendLimit.findOneAndUpdate(
+        {
+            phoneNumber: phone,
+            expiresAt: { $lte: now }
+        },
+        {
+            $set: {
+                count: 1,
+                windowStart: now,
+                expiresAt: newExpiry
+            }
+        },
+        { returnDocument: "after" }
+    );
+
+    if (resetResult) {
+        return true;
+    }
+
+    // Reserve another request without exceeding the limit.
+    const result = await OtpSendLimit.findOneAndUpdate(
+        {
+            phoneNumber: phone,
+            count: { $lt: DAILY_SMS_LIMIT },
+            expiresAt: { $gt: now }
+        },
+        {
+            $inc: { count: 1 }
+        },
+       { returnDocument: "after" }
+    );
+
+    return Boolean(result);
+}
+
+
 // SEND OTP
 router.post("/send", async (req, res) => {
     let phone;
@@ -82,12 +150,13 @@ router.post("/send", async (req, res) => {
             message: "Too many OTP requests. Please try again later."
         });
     }
-
     const now = new Date();
     const code = String(crypto.randomInt(100000, 1000000));
     const codeHash = hashOtp(phone, code);
 
-    try {
+ try {
+    // Reserve the phone number atomically before sending SMS.
+
         // Reserve the phone number atomically before sending SMS.
         const result = await OtpVerification.updateOne(
             {
@@ -129,6 +198,17 @@ router.post("/send", async (req, res) => {
                 throw error;
             }
         }
+
+       if (!dailyAllowed) {
+    await OtpVerification.deleteOne({
+        phoneNumber: phone,
+        codeHash
+    });
+
+    return res.status(429).json({
+        message: "Daily OTP request limit reached. Please try again after 24 hours."
+    });
+}
 
         const response = await fetch(
             `https://api.textbee.dev/api/v1/gateway/devices/${encodeURIComponent(process.env.TEXTBEE_DEVICE_ID)}/send-sms`,
@@ -195,7 +275,7 @@ router.post("/verify", async (req, res) => {
                 attempts: { $lt: MAX_ATTEMPTS }
             },
             { $inc: { attempts: 1 } },
-            { new: true }
+            { returnDocument: "after" }
         );
 
         if (!entry) {
