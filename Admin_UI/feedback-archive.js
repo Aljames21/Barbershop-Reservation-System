@@ -62,8 +62,164 @@ async function adminFetch(path, options = {}) {
   return result;
 }
 
+const ARCHIVE_PAGE_SIZE = 10;
+const archivePageController = (() => {
+  const container = document.getElementById("feedback-archive-pagination");
+
+  if (!container) {
+    return null;
+  }
+
+  const state = {
+    currentPage: 1,
+    totalPages: 1,
+    editMode: false,
+    onPageChange: null,
+    refresh() {
+      const hasRecords = state.totalPages > 0;
+      prevButton.disabled = !hasRecords || state.currentPage <= 1;
+      nextButton.disabled = !hasRecords || state.currentPage >= state.totalPages;
+      indicator.textContent = state.totalPages === 0 ? "Page 0 of 0" : `Page ${state.currentPage} of ${state.totalPages}`;
+      if (!state.editMode) {
+        editor.hidden = true;
+        indicator.hidden = false;
+      }
+      message.textContent = "";
+    }
+  };
+
+  const prevButton = document.createElement("button");
+  prevButton.type = "button";
+  prevButton.className = "pagination-nav";
+  prevButton.textContent = "Previous";
+
+  const indicator = document.createElement("button");
+  indicator.type = "button";
+  indicator.className = "pagination-indicator";
+  indicator.textContent = "Page 1 of 1";
+
+  const editor = document.createElement("div");
+  editor.className = "pagination-editor";
+  editor.hidden = true;
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = "1";
+  input.step = "1";
+  input.placeholder = "Page";
+
+  const goButton = document.createElement("button");
+  goButton.type = "button";
+  goButton.className = "pagination-go";
+  goButton.textContent = "Go";
+
+  const nextButton = document.createElement("button");
+  nextButton.type = "button";
+  nextButton.className = "pagination-nav";
+  nextButton.textContent = "Next";
+
+  const message = document.createElement("div");
+  message.className = "pagination-message";
+  message.setAttribute("aria-live", "polite");
+
+  prevButton.addEventListener("click", () => {
+    if (state.totalPages > 0) {
+      state.currentPage = Math.max(1, state.currentPage - 1);
+      state.refresh();
+      if (typeof state.onPageChange === "function") {
+        state.onPageChange();
+      }
+    }
+  });
+
+  nextButton.addEventListener("click", () => {
+    if (state.totalPages > 0) {
+      state.currentPage = Math.min(state.totalPages, state.currentPage + 1);
+      state.refresh();
+      if (typeof state.onPageChange === "function") {
+        state.onPageChange();
+      }
+    }
+  });
+
+  indicator.addEventListener("click", () => {
+    if (state.totalPages === 0) {
+      return;
+    }
+
+    state.editMode = true;
+    editor.hidden = false;
+    indicator.hidden = true;
+    input.value = String(state.currentPage);
+    input.focus();
+    input.select();
+  });
+
+  goButton.addEventListener("click", () => {
+    const value = input.value.trim();
+
+    if (!value || !/^\d+$/.test(value)) {
+      message.textContent = "Please enter a valid page number.";
+      input.focus();
+      return;
+    }
+
+    const numericValue = Number.parseInt(value, 10);
+
+    if (numericValue <= 0 || numericValue > state.totalPages) {
+      message.textContent = `Enter a page between 1 and ${state.totalPages}.`;
+      input.focus();
+      return;
+    }
+
+    state.currentPage = numericValue;
+    state.editMode = false;
+    editor.hidden = true;
+    indicator.hidden = false;
+    state.refresh();
+    if (typeof state.onPageChange === "function") {
+      state.onPageChange();
+    }
+  });
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      goButton.click();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      state.editMode = false;
+      editor.hidden = true;
+      indicator.hidden = false;
+      input.value = String(state.currentPage || 1);
+      message.textContent = "";
+    }
+  });
+
+  editor.append(input, goButton);
+  container.append(prevButton, indicator, editor, nextButton, message);
+  state.refresh();
+  return state;
+})();
+
 function renderFeedback(feedback) {
-  const rows = feedback.map((item) => {
+  const controller = archivePageController;
+  const startIndex = controller && controller.totalPages > 0 ? (controller.currentPage - 1) * ARCHIVE_PAGE_SIZE : 0;
+  const pageStart = controller ? Math.max(0, startIndex) : 0;
+  const pagedFeedback = controller
+    ? feedback.slice(pageStart, pageStart + ARCHIVE_PAGE_SIZE)
+    : feedback.slice(0, ARCHIVE_PAGE_SIZE);
+
+  if (controller) {
+    controller.totalPages = feedback.length > 0 ? Math.ceil(feedback.length / ARCHIVE_PAGE_SIZE) : 0;
+    controller.currentPage = controller.totalPages === 0 ? 0 : Math.min(controller.currentPage || 1, controller.totalPages);
+    controller.refresh();
+  }
+
+  const rows = pagedFeedback.map((item) => {
     const appointment = item.appointment || {};
     const name = appointment.customerName || "Appointment unavailable";
     const previousStatus = item.archivedFromStatus || "Flagged";
@@ -93,6 +249,10 @@ function renderFeedback(feedback) {
 
 async function loadArchivedFeedback() {
   feedbackStatus.textContent = "";
+
+  if (archivePageController) {
+    archivePageController.onPageChange = loadArchivedFeedback;
+  }
 
   try {
     const feedback = await adminFetch("/feedback/admin/archived");

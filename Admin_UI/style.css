@@ -173,6 +173,248 @@ th {
   overflow-x: auto;
 }
 
+body[data-page="appointments"] .main,
+body[data-page="services"] .main {
+  min-width: 0;
+}
+
+body[data-page="appointments"] .table-wrap,
+body[data-page="services"] .table-wrap {
+  max-height: none;
+  overflow: visible;
+}
+
+body[data-page="appointments"] .table-wrap table,
+body[data-page="services"] .table-wrap table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+body[data-page="appointments"] .table-wrap th,
+body[data-page="appointments"] .table-wrap td,
+body[data-page="services"] .table-wrap th,
+body[data-page="services"] .table-wrap td {
+  overflow-wrap: anywhere;
+}
+
+body[data-page="appointments"] .table-wrap th:nth-child(1),
+body[data-page="appointments"] .table-wrap td:nth-child(1) {
+  width: 18%;
+}
+
+body[data-page="appointments"] .table-wrap th:nth-child(2),
+body[data-page="appointments"] .table-wrap td:nth-child(2) {
+  width: 15%;
+}
+
+body[data-page="appointments"] .table-wrap th:nth-child(3),
+body[data-page="appointments"] .table-wrap td:nth-child(3) {
+  width: 13%;
+}
+
+body[data-page="appointments"] .table-wrap th:nth-child(4),
+body[data-page="appointments"] .table-wrap td:nth-child(4) {
+  width: 15%;
+}
+
+body[data-page="appointments"] .table-wrap th:nth-child(5),
+body[data-page="appointments"] .table-wrap td:nth-child(5) {
+  width: 10%;
+}
+
+body[data-page="appointments"] .table-wrap th:nth-child(6),
+body[data-page="appointments"] .table-wrap td:nth-child(6) {
+  width: 12%;
+}
+
+body[data-page="appointments"] .table-wrap th:nth-child(7),
+body[data-page="appointments"] .table-wrap td:nth-child(7) {
+  width: 17%;
+}
+
+body[data-page="services"] .table-wrap th:nth-child(1),
+body[data-page="services"] .table-wrap td:nth-child(1) {
+  width: 17%;
+}
+
+body[data-page="services"] .table-wrap th:nth-child(2),
+body[data-page="services"] .table-wrap td:nth-child(2) {
+  width: 29%;
+}
+
+body[data-page="services"] .table-wrap th:nth-child(3),
+body[data-page="services"] .table-wrap td:nth-child(3) {
+  width: 12%;
+}
+
+body[data-page="services"] .table-wrap th:nth-child(4),
+body[data-page="services"] .table-wrap td:nth-child(4) {
+  width: 14%;
+}
+
+body[data-page="services"] .table-wrap th:nth-child(5),
+body[data-page="services"] .table-wrap td:nth-child(5) {
+  width: 12%;
+}
+
+body[data-page="services"] .table-wrap th:nth-child(6),
+body[data-page="services"] .table-wrap td:nth-child(6) {
+  width: 16%;
+}
+
+body[data-page="appointments"] .table-wrap td:last-child button,
+body[data-page="services"] .table-wrap td:last-child button {
+  padding: 6px 8px;
+  margin: 2px 2px 2px 0;
+  font-size: 16px;
+}
+
+.feedback-table-wrap {
+  overflow-x: hidden;
+}
+
+.feedback-table-wrap table {
+  table-layout: fixed;
+}
+
+.feedback-table-wrap th:nth-child(1),
+.feedback-table-wrap td:nth-child(1) {
+  width: 16%;
+}
+
+.feedback-table-wrap th:nth-child(2),
+.feedback-table-wrap td:nth-child(2) {
+  width: 8%;
+}
+
+.feedback-table-wrap th:nth-child(3),
+.feedback-table-wrap td:nth-child(3) {
+  width: 25%;
+}
+
+.feedback-table-wrap th:nth-child(4),
+.feedback-table-wrap td:nth-child(4) {
+  width: 11%;
+}
+
+.feedback-table-wrap th:nth-child(5),
+.feedback-table-wrap td:nth-child(5) {
+  width: 11%;
+}
+
+.feedback-table-wrap th:nth-child(6),
+.feedback-table-wrap td:nth-child(6) {
+  width: 11%;
+}
+
+.feedback-table-wrap th:nth-child(7),
+.feedback-table-wrap td:nth-child(7) {
+  width: 18%;
+}
+
+.feedback-table-wrap th,
+.feedback-table-wrap td {
+  word-break: normal;
+}
+
+.feedback-table-wrap .feedback-comment-cell {
+  min-width: 0;
+  max-width: none;
+  overflow-wrap: break-word;
+}
+
+.feedback-table-wrap .feedback-actions {
+  white-space: nowrap;
+}
+
+.feedback-table-wrap .feedback-actions button + button {
+  margin-left: 6px;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 16px;
+  flex-wrap: wrap;
+}
+
+.pagination-nav,
+.pagination-go,
+.pagination-indicator {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.15);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.pagination-nav,
+.pagination-go {
+  padding: 6px 12px;
+}
+
+.pagination-nav:disabled,
+.pagination-go:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pagination-indicator {
+  min-width: 120px;
+  text-align: center;
+  padding: 6px 10px;
+  background: rgba(166, 124, 59, 0.18);
+}
+
+.pagination-indicator:hover:not(:disabled),
+.pagination-nav:hover:not(:disabled),
+.pagination-go:hover:not(:disabled) {
+  background: rgba(166, 124, 59, 0.32);
+}
+
+.pagination-editor {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-editor[hidden] {
+  display: none;
+}
+
+.pagination-editor input {
+  width: 72px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.pagination-editor input:focus {
+  outline: 2px solid rgba(166, 124, 59, 0.7);
+  outline-offset: 1px;
+}
+
+.pagination-message {
+  flex-basis: 100%;
+  text-align: right;
+  font-size: 12px;
+  color: #ffd9d9;
+  min-height: 16px;
+  margin-top: -2px;
+}
+
 /* ===== Status labels & buttons ===== */
 .tag {
   padding: 3px 10px;
@@ -261,6 +503,20 @@ button.light {
   .main {
     padding: 20px 16px;
   }
+
+  body[data-page="appointments"] .table-wrap th,
+  body[data-page="appointments"] .table-wrap td,
+  body[data-page="services"] .table-wrap th,
+  body[data-page="services"] .table-wrap td {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+
+  body[data-page="appointments"] .table-wrap td:last-child button,
+  body[data-page="services"] .table-wrap td:last-child button {
+    padding: 5px 6px;
+    font-size: 11px;
+  }
 }
 
 /* ===== Pop-up form (add / edit) ===== */
@@ -326,7 +582,6 @@ dialog select {
   min-width: 220px;
   max-width: 420px;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 
 .feedback-pending {

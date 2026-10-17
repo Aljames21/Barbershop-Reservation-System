@@ -1,7 +1,13 @@
 const crypto = require("crypto");
 
 function createReviewToken() {
-    return crypto.randomBytes(32).toString("hex");
+    let token = "";
+
+    do {
+        token = crypto.randomBytes(32).toString("hex");
+    } while (token.endsWith("0"));
+
+    return token;
 }
 
 function hashReviewToken(token) {

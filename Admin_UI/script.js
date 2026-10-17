@@ -406,6 +406,196 @@ if (earnMonth) {
 
 
 
+const PAGE_SIZE = 10;
+const paginationControllers = new Map();
+
+function clampPageNumber(value, totalPages) {
+    if (!Number.isFinite(value)) {
+        return 1;
+    }
+
+    if (!totalPages || totalPages <= 0) {
+        return 0;
+    }
+
+    return Math.min(Math.max(1, Math.floor(value)), totalPages);
+}
+
+function createPageController(containerId) {
+    const container = document.getElementById(containerId);
+
+    if (!container) {
+        return null;
+    }
+
+    if (paginationControllers.has(containerId)) {
+        return paginationControllers.get(containerId);
+    }
+
+    const prevButton = document.createElement("button");
+    prevButton.type = "button";
+    prevButton.className = "pagination-nav";
+    prevButton.textContent = "Previous";
+
+    const indicator = document.createElement("button");
+    indicator.type = "button";
+    indicator.className = "pagination-indicator";
+    indicator.textContent = "Page 1 of 1";
+
+    const editor = document.createElement("div");
+    editor.className = "pagination-editor";
+    editor.hidden = true;
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "1";
+    input.step = "1";
+    input.placeholder = "Page";
+
+    const goButton = document.createElement("button");
+    goButton.type = "button";
+    goButton.className = "pagination-go";
+    goButton.textContent = "Go";
+
+    const nextButton = document.createElement("button");
+    nextButton.type = "button";
+    nextButton.className = "pagination-nav";
+    nextButton.textContent = "Next";
+
+    const message = document.createElement("div");
+    message.className = "pagination-message";
+    message.setAttribute("aria-live", "polite");
+
+    const state = {
+        currentPage: 1,
+        totalPages: 1,
+        editMode: false,
+        onPageChange: null,
+        setRecords(recordCount) {
+            const totalPages = recordCount > 0 ? Math.ceil(recordCount / PAGE_SIZE) : 0;
+            state.totalPages = totalPages;
+            state.currentPage = totalPages === 0 ? 0 : clampPageNumber(state.currentPage, totalPages);
+            state.refresh();
+        },
+        getPage() {
+            return state.totalPages === 0 ? 0 : state.currentPage;
+        },
+        goTo(pageNumber) {
+            if (state.totalPages === 0) {
+                state.closeEditor();
+                return;
+            }
+
+            const requestedPage = Number.parseInt(String(pageNumber), 10);
+            const validPage = clampPageNumber(requestedPage, state.totalPages);
+            state.currentPage = validPage;
+            state.refresh();
+            return validPage;
+        },
+        refresh() {
+            const hasRecords = state.totalPages > 0;
+            prevButton.disabled = !hasRecords || state.currentPage <= 1;
+            nextButton.disabled = !hasRecords || state.currentPage >= state.totalPages;
+            indicator.textContent = state.totalPages === 0 ? "Page 0 of 0" : `Page ${state.currentPage} of ${state.totalPages}`;
+            indicator.disabled = !hasRecords;
+            if (!state.editMode) {
+                editor.hidden = true;
+                indicator.hidden = false;
+            }
+            message.textContent = "";
+        },
+        openEditor() {
+            if (state.totalPages === 0) {
+                return;
+            }
+
+            state.editMode = true;
+            indicator.hidden = true;
+            editor.hidden = false;
+            input.value = String(state.currentPage);
+            input.focus();
+            input.select();
+        },
+        closeEditor() {
+            state.editMode = false;
+            editor.hidden = true;
+            indicator.hidden = false;
+            message.textContent = "";
+            input.value = String(state.currentPage || 1);
+        }
+    };
+
+    prevButton.addEventListener("click", () => {
+        if (state.totalPages > 0) {
+            state.currentPage = Math.max(1, state.currentPage - 1);
+            state.refresh();
+            if (typeof state.onPageChange === "function") {
+                state.onPageChange();
+            }
+        }
+    });
+
+    nextButton.addEventListener("click", () => {
+        if (state.totalPages > 0) {
+            state.currentPage = Math.min(state.totalPages, state.currentPage + 1);
+            state.refresh();
+            if (typeof state.onPageChange === "function") {
+                state.onPageChange();
+            }
+        }
+    });
+
+    indicator.addEventListener("click", () => {
+        if (state.totalPages > 0) {
+            state.openEditor();
+        }
+    });
+
+    goButton.addEventListener("click", () => {
+        const value = input.value.trim();
+
+        if (!value || !/^\d+$/.test(value)) {
+            message.textContent = "Please enter a valid page number.";
+            input.focus();
+            return;
+        }
+
+        const numericValue = Number.parseInt(value, 10);
+
+        if (numericValue <= 0 || !Number.isInteger(numericValue) || numericValue > state.totalPages) {
+            message.textContent = `Enter a page between 1 and ${state.totalPages}.`;
+            input.focus();
+            return;
+        }
+
+        state.currentPage = numericValue;
+        state.closeEditor();
+        state.refresh();
+        if (typeof state.onPageChange === "function") {
+            state.onPageChange();
+        }
+    });
+
+    input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            goButton.click();
+            return;
+        }
+
+        if (event.key === "Escape") {
+            event.preventDefault();
+            state.closeEditor();
+        }
+    });
+
+    editor.append(input, goButton);
+    container.append(prevButton, indicator, editor, nextButton, message);
+    paginationControllers.set(containerId, state);
+    state.refresh();
+    return state;
+}
+
 function render() {
     const rows = document.getElementById("rows");
 
@@ -438,6 +628,21 @@ function render() {
 // ===== APPOINTMENTS PAGE =====
 if (page === "appointments" && rows) {
     const list = [...data.appointments].sort(byDate).reverse();
+    const controller = createPageController("appointments-pagination");
+
+    if (controller) {
+        controller.onPageChange = () => render();
+        controller.setRecords(list.length);
+        const pageNumber = controller.getPage();
+        const startIndex = pageNumber > 0 ? (pageNumber - 1) * PAGE_SIZE : 0;
+        const visibleRecords = list.slice(startIndex, startIndex + PAGE_SIZE);
+
+        rows.innerHTML = visibleRecords.map(apptRow).join("") || emptyRow(
+            7,
+            "No appointments yet. Bookings from the client site will show up here."
+        );
+        return;
+    }
 
     rows.innerHTML =
         list.map(apptRow).join("") ||
@@ -472,6 +677,32 @@ if (page === "staffs" && rows) {
 
 // ===== SERVICES PAGE =====
 if (page === "services" && rows) {
+    const list = [...data.services];
+    const controller = createPageController("services-pagination");
+
+    if (controller) {
+        controller.onPageChange = () => render();
+        controller.setRecords(list.length);
+        const pageNumber = controller.getPage();
+        const startIndex = pageNumber > 0 ? (pageNumber - 1) * PAGE_SIZE : 0;
+        const visibleRecords = list.slice(startIndex, startIndex + PAGE_SIZE);
+
+        rows.innerHTML = visibleRecords.map(s => `
+            <tr>
+                <td>${esc(s.name)}</td>
+                <td>${esc(s.description || "-")}</td>
+                <td>${money(s.price || 0)}</td>
+                <td>${Number(s.duration) || 0}</td>
+                <td>${esc(s.status || "Active")}</td>
+                <td>
+                    ${btn("edit-service", s._id, "Edit", "light")}
+                    ${btn("delete-service", s._id, "Delete", "light")}
+                </td>
+            </tr>
+        `).join("") || emptyRow(6, "No services found. Click Add service.");
+        return;
+    }
+
     rows.innerHTML = data.services.map(s => `
             <tr>
                 <td>${esc(s.name)}</td>
