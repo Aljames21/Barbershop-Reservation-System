@@ -382,8 +382,69 @@
     <h3>Copyright © 2026 Sañado's Barbershop.. All Rights Reserved.</h3>
 </footer>
 
+
+<!-- FAQ CHATBOT -->
+<div id="faq-chatbot">
+    <button id="chat-toggle" type="button" aria-label="Open chat">
+        💬
+    </button>
+
+    <section id="chat-window" aria-label="Barbershop FAQ chat" hidden>
+      
+    <header class="chat-header">
+        <div class="chat-brand">
+            <span class="chat-logo" aria-hidden="true">✂</span>
+            <div>
+                <strong>Sañado's AI Assistant</strong>
+                <p>Customer Support · Online assistant</p>
+            </div>
+        </div>
+
+        <span class="chat-online" title="FAQ assistant ready"></span>
+
+        <button id="chat-close" type="button" aria-label="Close chat">
+            ✕
+        </button>
+    </header>
+
+
+        <div id="chat-messages" aria-live="polite">
+            <div class="chat-bubble bot">
+                Hi! Welcome to Sañado's Barbershop.
+                What would you like to know?
+            </div>
+        </div>
+
+        <div class="chat-quick-questions">
+            <button type="button" data-question="How much is a haircut?">
+                Prices
+            </button>
+            <button type="button" data-question="What are your business hours?">
+                Business hours
+            </button>
+            <button type="button" data-question="Where is your location?">
+                Location
+            </button>
+        </div>
+
+        
+    <form id="chat-form">
+        <input
+            id="chat-input"
+            type="text"
+            placeholder="Type your question..."
+            aria-label="Your question"
+            autocomplete="off"
+            required
+        >
+        <button type="submit" aria-label="Send message">➤</button>
+    </form>
+</section>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.2.2/dist/bundles/anime.umd.min.js"></script>
 <script src="home.js"></script>
+<script src="customer-faq-chatbot.js"></script>
 
 </body>
 </html>
