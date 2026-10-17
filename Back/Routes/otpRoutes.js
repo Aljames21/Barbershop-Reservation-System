@@ -198,7 +198,7 @@ router.post("/send", async (req, res) => {
                 throw error;
             }
         }
-
+        const dailyAllowed = await reserveDailySmsLimit(phone);
        if (!dailyAllowed) {
     await OtpVerification.deleteOne({
         phoneNumber: phone,
@@ -209,6 +209,7 @@ router.post("/send", async (req, res) => {
         message: "Daily OTP request limit reached. Please try again after 24 hours."
     });
 }
+
 
         const response = await fetch(
             `https://api.textbee.dev/api/v1/gateway/devices/${encodeURIComponent(process.env.TEXTBEE_DEVICE_ID)}/send-sms`,
