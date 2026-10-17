@@ -9,7 +9,7 @@ const OTP_EXPIRY_MS = 5 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_ATTEMPTS = 5;
 
-const DAILY_SMS_LIMIT = 5;
+const DAILY_SMS_LIMIT = 10;
 const DAILY_SMS_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // Temporary protection for each server instance.
