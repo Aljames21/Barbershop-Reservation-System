@@ -1,27 +1,5 @@
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
-
-import {
-    getAuth,
-    RecaptchaVerifier,
-    signInWithPhoneNumber,
-    signOut
-} from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
-
-// Firebase Web App configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyDteaHluYsTMITJOzYLPTYfPUTM_rA9DsU",
-  authDomain: "sanados-barbershop.firebaseapp.com",
-  projectId: "sanados-barbershop",
-  storageBucket: "sanados-barbershop.firebasestorage.app",
-  messagingSenderId: "479458312169",
-  appId: "1:479458312169:web:d42e8b19632ec85b021578",
-  measurementId: "G-BH5V2T0JPW"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+const API_URL = "http://localhost:5000/api";
 
 const phoneInput = document.getElementById("phoneNumber");
 const sendOtpBtn = document.getElementById("sendOtpBtn");
@@ -30,36 +8,44 @@ const otpInput = document.getElementById("otpCode");
 const otpSection = document.getElementById("otpSection");
 const otpStatus = document.getElementById("otpStatus");
 
-let confirmationResult = null;
 let verifiedPhone = null;
-let recaptchaVerifier = null;
+let verificationToken = null;
+let pendingPhone = null;
 
 function setOtpStatus(message) {
     otpStatus.textContent = message;
 }
 
 function formatPhilippineNumber(value) {
-    const phone = value.replace(/\s|-/g, "");
+    const phone = String(value || "").replace(/[\s-]/g, "");
 
-    if (!/^09\d{9}$/.test(phone)) {
-        throw new Error("Enter a valid 11-digit Philippine mobile number.");
+    if (/^09\d{9}$/.test(phone)) {
+        return "+63" + phone.substring(1);
     }
 
-    return "+63" + phone.substring(1);
+    if (/^\+639\d{9}$/.test(phone)) {
+        return phone;
+    }
+
+    throw new Error("Enter a valid Philippine mobile number.");
 }
 
-async function setupRecaptcha() {
-    if (!recaptchaVerifier) {
-        recaptchaVerifier = new RecaptchaVerifier(
-            auth,
-            "recaptcha-container",
-            {
-                size: "normal"
-            }
-        );
+async function requestOtp(endpoint, data) {
+    const response = await fetch(`${API_URL}/otp/${endpoint}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.message || "OTP request failed.");
     }
 
-    await recaptchaVerifier.render();
+    return result;
 }
 
 // SEND OTP
@@ -70,30 +56,32 @@ sendOtpBtn.addEventListener("click", async () => {
         const phone = formatPhilippineNumber(phoneInput.value);
 
         verifiedPhone = null;
-        confirmationResult = null;
+        verificationToken = null;
+        pendingPhone = null;
         otpSection.hidden = true;
+        otpInput.value = "";
 
-        setOtpStatus("Preparing phone verification...");
+        setOtpStatus("Sending verification code...");
 
-        await setupRecaptcha();
+        const result = await requestOtp("send", {
+            phoneNumber: phone
+        });
 
-        confirmationResult = await signInWithPhoneNumber(
-            auth,
-            phone,
-            recaptchaVerifier
-        );
-
+        pendingPhone = phone;
         otpSection.hidden = false;
+
         setOtpStatus(
-            "Verification code requested. Enter the 6-digit OTP."
+            result.message ||
+            "Enter the 6-digit OTP sent to your phone."
         );
+
     } catch (error) {
         console.error("Send OTP error:", error);
-        setOtpStatus(
-            "Unable to send OTP: " + error.message
-        );
+        setOtpStatus(error.message);
     } finally {
-        sendOtpBtn.disabled = false;
+        if (!verifiedPhone) {
+            sendOtpBtn.disabled = false;
+        }
     }
 });
 
@@ -102,8 +90,14 @@ verifyOtpBtn.addEventListener("click", async () => {
     verifyOtpBtn.disabled = true;
 
     try {
-        if (!confirmationResult) {
+        if (!pendingPhone) {
             throw new Error("Please send an OTP first.");
+        }
+
+        if (formatPhilippineNumber(phoneInput.value) !== pendingPhone) {
+            throw new Error(
+                "Phone number changed. Please request a new OTP."
+            );
         }
 
         const code = otpInput.value.trim();
@@ -112,11 +106,21 @@ verifyOtpBtn.addEventListener("click", async () => {
             throw new Error("Enter the 6-digit verification code.");
         }
 
-        const result = await confirmationResult.confirm(code);
+        const result = await requestOtp("verify", {
+            phoneNumber: pendingPhone,
+            code: code
+        });
 
-        verifiedPhone = result.user.phoneNumber;
+        if (!result.verificationToken ||
+            result.phoneNumber !== pendingPhone) {
+            throw new Error("Invalid verification response.");
+        }
+
+        verifiedPhone = result.phoneNumber;
+        verificationToken = result.verificationToken;
 
         setOtpStatus("Phone number verified successfully!");
+
         otpSection.hidden = true;
         phoneInput.readOnly = true;
         sendOtpBtn.disabled = true;
@@ -129,17 +133,18 @@ verifyOtpBtn.addEventListener("click", async () => {
     }
 });
 
-// Expose a function for the existing booking.js
+// Keep compatibility with existing booking.js
 window.getVerifiedPhoneAuth = async function () {
-    const user = auth.currentUser;
-
-    if (!user || !verifiedPhone ||
-        user.phoneNumber !== verifiedPhone) {
+    if (!verifiedPhone || !verificationToken) {
         throw new Error("Please verify your mobile number first.");
+    }
+
+    if (formatPhilippineNumber(phoneInput.value) !== verifiedPhone) {
+        throw new Error("Verified phone number does not match.");
     }
 
     return {
         phoneNumber: verifiedPhone,
-        idToken: await user.getIdToken()
+        idToken: verificationToken
     };
 };

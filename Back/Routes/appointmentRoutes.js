@@ -20,8 +20,9 @@ const {
 const feedbackRateLimit = require("../Middleware/feedbackRateLimit");
 const verifyAdmin = require("../Middleware/authMiddleware");
 const mongoose = require("mongoose");
-const { getAuth } = require("../Config/firebaseAdmin");
-const Service = require("../Models/Service");   
+const { verifyOtpToken } = require("../Utils/otpToken");
+const UsedOtpToken = require("../Models/UsedOtpToken");
+const Service = require("../Models/Service");
 
 
 function normalizeCustomerEmail(email) {
@@ -81,7 +82,7 @@ async function findCustomerBookingConflict({
     }
 
     return search;
-}   
+}
 
 
 
@@ -186,7 +187,7 @@ const renderAppointmentEmail = (values) =>
         return values[key];
     });
 
-    
+
 async function verifyManageToken(appointmentId, token) {
     if (
         typeof appointmentId !== "string" ||
@@ -545,7 +546,8 @@ router.post("/", async (req, res) => {
     console.log("POST APPOINTMENT RECEIVED");
 
     try {
-        // Verify Firebase Phone OTP token
+
+// Verify textbee phone OTP token
 const authHeader = req.get("Authorization") || "";
 
 if (!authHeader.startsWith("Bearer ")) {
@@ -554,28 +556,19 @@ if (!authHeader.startsWith("Bearer ")) {
     });
 }
 
-const idToken = authHeader.slice(7).trim();
+const verificationToken = authHeader.slice(7).trim();
 
-let decodedToken;
+let verifiedPhone;
 
 try {
-    decodedToken = await getAuth().verifyIdToken(idToken);
+    verifiedPhone = verifyOtpToken(verificationToken);
 } catch (error) {
     return res.status(401).json({
         message: "Phone verification expired or invalid. Please verify again."
     });
 }
 
-if (
-    decodedToken.firebase?.sign_in_provider !== "phone" ||
-    !decodedToken.phone_number
-) {
-    return res.status(403).json({
-        message: "A verified mobile number is required."
-    });
-}
 
-const verifiedPhone = decodedToken.phone_number;
         const customerAppUrl = process.env.CUSTOMER_APP_URL?.trim();
         let appBaseUrl = null;
 
@@ -622,7 +615,7 @@ const verifiedPhone = decodedToken.phone_number;
             });
         }
 
-        
+
         const customerEmail = normalizeCustomerEmail(req.body.email);
 
         if (
@@ -705,8 +698,8 @@ const verifiedPhone = decodedToken.phone_number;
         }
 
         // Save the appointment with the assigned barber
-      
-       
+
+
         // Assign a barber and reserve the slot atomically
         let saved;
 
@@ -720,6 +713,29 @@ const verifiedPhone = decodedToken.phone_number;
 
         try {
             await session.withTransaction(async () => {
+
+
+const tokenHash = crypto
+    .createHash("sha256")
+    .update(verificationToken)
+    .digest("hex");
+
+const tokenPayload = JSON.parse(
+    Buffer.from(
+        verificationToken.split(".")[0],
+        "base64url"
+    ).toString("utf8")
+);
+
+await UsedOtpToken.create(
+    [{
+        tokenHash,
+        expiresAt: new Date(tokenPayload.expiresAt)
+    }],
+    { session }
+);
+
+
                 // Get active barbers
                 const barbers = await Barber.find({
                     status: { $in: ["Active", "Available"] }
@@ -754,7 +770,7 @@ const verifiedPhone = decodedToken.phone_number;
                     )
                 );
 
-                
+
             const customerConflict = await findCustomerBookingConflict({
                 email: customerEmail,
                 phoneNumber: verifiedPhone,
@@ -827,15 +843,28 @@ const verifiedPhone = decodedToken.phone_number;
                         throw error;
                     }
                 }
+const selectedService = await Service.findOne({
+    name: req.body.service
+}).session(session);
 
+if (!selectedService) {
+    const error = new Error(
+        "The selected service does not exist."
+    );
+    error.statusCode = 400;
+    throw error;
+}
                 // Create the appointment
-                const appointment = new Appointment({
-                ...req.body,
-                customerName,
-                email: customerEmail,
-                phoneNumber: verifiedPhone,
-                barber: assignedBarber.name,
-                manageTokenHash
+      const appointment = new Appointment({
+    customerName,
+    email: customerEmail,
+    phoneNumber: verifiedPhone,
+    date,
+    time,
+    service: selectedService.name,
+    price: selectedService.price,
+    barber: assignedBarber.name,
+    manageTokenHash
 });
 
                 await appointment.save({ session });
@@ -870,7 +899,7 @@ const verifiedPhone = decodedToken.phone_number;
         const emailTime = escapeHtml(saved.time);
         const price = `₱${Number(saved.price || 0).toLocaleString("en-PH")}`;
 
-        
+
     let manageBookingUrl = "";
 
         if (appBaseUrl) {
@@ -930,19 +959,28 @@ const verifiedPhone = decodedToken.phone_number;
             console.error("BOOKING EMAIL FAILED:", emailError.message);
         }
 
-        
+
         return res.status(201).json({
             ...saved.toObject(),
             manageToken
         });
 
 
-    
+
     } catch (error) {
         console.error("Appointment creation error:", error);
 
-      
+
 if (error.code === 11000) {
+
+
+    if (error.keyPattern?.tokenHash === 1 ||
+        String(error.message || "").includes("tokenHash_1")) {
+        return res.status(409).json({
+        message: "This phone verification has already been used. Please verify your phone number again."
+    });
+}
+
     const duplicateIndex = String(
         error.message || ""
     );
@@ -1024,7 +1062,7 @@ if (!appointment) {
                 throw error;
             }
 
-            
+
 if (!["Pending", "Confirmed"].includes(existing.status)) {
     const error = new Error(
         "This appointment can no longer be rescheduled."
@@ -1034,7 +1072,7 @@ if (!["Pending", "Confirmed"].includes(existing.status)) {
 }
 
 
-            
+
 const allowedFields = ["date", "time", "service", "barber"];
 
 const invalidFields = Object.keys(req.body).filter(
@@ -1050,7 +1088,7 @@ if (invalidFields.length > 0) {
 }
 
 
-           
+
 const nextDate = req.body.date ?? existing.date;
 const nextTime = req.body.time ?? existing.time;
 const nextBarber = req.body.barber ?? existing.barber;
@@ -1080,7 +1118,7 @@ if (!service) {
                 throw error;
             }
 
-            
+
         const customerConflict = await findCustomerBookingConflict({
         email: existing.email,
         phoneNumber: existing.phoneNumber,
@@ -1159,7 +1197,7 @@ if (!service) {
     } catch (error) {
         console.error("Appointment update error:", error);
 
-        
+
 if (error.code === 11000) {
     const isPhoneConflict =
         String(error.message || "").includes(
@@ -1292,7 +1330,7 @@ router.patch("/:id", verifyAdmin, async (req, res) => {
 
             // ADMIN RESCHEDULING
 
-            
+
 if (!["Pending", "Confirmed"].includes(existing.status)) {
     const error = new Error(
         "This appointment can no longer be rescheduled."
@@ -1329,7 +1367,7 @@ if (!["Pending", "Confirmed"].includes(existing.status)) {
                 throw error;
             }
 
-            
+
              const customerConflict = await findCustomerBookingConflict({
                  email: existing.email,
                   phoneNumber: existing.phoneNumber,
@@ -1396,7 +1434,7 @@ if (!["Pending", "Confirmed"].includes(existing.status)) {
             updatedAppointment = existing;
         });
 
-       
+
         // SEND EMAIL WHEN ADMIN CONFIRMS OR CANCELS
         if (
             statusChangedFrom &&
