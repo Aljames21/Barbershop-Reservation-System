@@ -61,6 +61,52 @@ header {
   padding-bottom: 20px;
 }
 
+.service-marquee {
+  overflow: hidden;
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(166, 124, 59, 0.45);
+  background-color: #111;
+}
+
+.service-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: service-marquee-left 24s linear infinite;
+}
+
+.service-marquee-group {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-around;
+  gap: clamp(32px, 7vw, 110px);
+  padding-right: clamp(32px, 7vw, 110px);
+}
+
+.service-marquee-group img {
+  display: block;
+  width: clamp(130px, 20vw, 230px);
+  height: 40px;
+  object-fit: contain;
+}
+
+.service-marquee-group .service-scissors {
+  width: 48px;
+  height: 40px;
+  filter: invert(68%) sepia(26%) saturate(857%) hue-rotate(2deg) brightness(91%)
+    contrast(86%);
+}
+
+@keyframes service-marquee-left {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 .head,
 .head1 {
   font-size: 23px;
@@ -2463,6 +2509,10 @@ summary {
   }
 
   .booking-marquee-track {
+    animation: none;
+  }
+
+  .service-marquee-track {
     animation: none;
   }
 }
