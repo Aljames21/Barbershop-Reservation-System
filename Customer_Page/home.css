@@ -1171,7 +1171,7 @@ a {
 .booking-marquee-track {
   display: flex;
   width: max-content;
-  animation: booking-marquee-right 20s linear infinite;
+  animation: booking-marquee-right 90s linear infinite;
 }
 
 .booking-marquee-track span {
@@ -1232,6 +1232,12 @@ a {
   text-align: center;
 
   margin-top: 40px;
+  transition: 0.3s ease;
+}
+
+.layer-2 a:hover {
+  box-shadow: 0 0 40px #a67c3b;
+  transform: scale(1.1);
 }
 
 footer {
