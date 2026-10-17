@@ -2,7 +2,7 @@
 const serviceCatalog = new Map();
 const serviceSelect = document.getElementById("service");
 
-const API_URL = "https://barbershop-reservation-system.onrender.com/api";
+const API_URL = "http://localhost:5000/api";
 
 
 let barbers = [];
