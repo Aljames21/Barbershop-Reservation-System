@@ -1430,6 +1430,24 @@ details p {
   letter-spacing: 0.08ch;
 }
 
+@supports selector(details::details-content) {
+  details::details-content {
+    block-size: 0;
+    overflow: clip;
+    opacity: 0;
+    interpolate-size: allow-keywords;
+    transition:
+      block-size 300ms ease,
+      content-visibility 300ms allow-discrete,
+      opacity 300ms ease;
+  }
+
+  details[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+  }
+}
+
 @keyframes slideInLeft {
   from {
     opacity: 0;
@@ -1448,6 +1466,8 @@ details p {
   animation-range: entry 0% cover 15%;
 
   margin-right: 176px;
+  width: 100%;
+  max-width: 500px;
 }
 
 .barber-section {
@@ -2500,6 +2520,10 @@ summary {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  details::details-content {
+    transition: none;
+  }
+
   .feedback-track {
     scroll-behavior: auto;
   }
