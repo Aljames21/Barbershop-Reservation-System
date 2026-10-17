@@ -525,12 +525,12 @@ console.log("Sending booking request...");
 
     console.log("Saved:", data);
 
-    
-    const savedReservation = {
-        ...reservation,
-        _id: data._id || data.id,
-        manageToken: data.manageToken
-    };
+const savedReservation = {
+    ...reservation,
+    barber: data.barber || reservation.barber,
+    _id: data._id || data.id,
+    manageToken: data.manageToken
+};
 
     // Save for receipt display
     localStorage.setItem(
