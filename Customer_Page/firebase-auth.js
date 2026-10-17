@@ -1,5 +1,5 @@
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://barbershop-reservation-system.onrender.com/api";
 
 const phoneInput = document.getElementById("phoneNumber");
 const sendOtpBtn = document.getElementById("sendOtpBtn");
