@@ -54,13 +54,40 @@ let data = {
 
 async function loadAppointments() {
     const appointments = await apiFetch("/appointments");
+if (appointments) {
+    data.appointments = appointments;
 
-    if (appointments) {
-        data.appointments = appointments;
+    // Populate barber filter using appointment records
+    if (page === "appointments") {
+        const barberFilter = document.getElementById(
+            "appointment-barber-filter"
+        );
 
-        earnings(); // Update earnings cards
-        render();
+        if (barberFilter) {
+            const barbers = [
+                ...new Set(
+                    data.appointments
+                        .map(a => String(a.barber || "").trim())
+                        .filter(Boolean)
+                )
+            ].sort((a, b) => a.localeCompare(b));
+
+            barberFilter.replaceChildren(
+                new Option("All Barbers", "all"),
+                ...barbers.map(name => new Option(name, name))
+            );
+
+            barberFilter.value = barbers.includes(appointmentFilters.barber)
+                ? appointmentFilters.barber
+                : "all";
+
+            appointmentFilters.barber = barberFilter.value;
+        }
     }
+
+    earnings();
+    render();
+}
 }
 
 
@@ -406,6 +433,45 @@ if (earnMonth) {
 
 }
 
+// ===== APPOINTMENT SEARCH & FILTER STATE =====
+const appointmentFilters = {
+    search: "",
+    status: "all",
+    date: "",
+    barber: "all"
+};
+
+function getFilteredAppointments() {
+    return data.appointments.filter(a => {
+        const search = appointmentFilters.search.toLowerCase();
+
+        const searchableText = [
+            a.customerName || a.client || "",
+            a.service || "",
+            a.barber || ""
+        ].join(" ").toLowerCase();
+
+        const matchesSearch = searchableText.includes(search);
+
+        const matchesStatus =
+            appointmentFilters.status === "all" ||
+            a.status === appointmentFilters.status;
+
+        const matchesDate =
+            !appointmentFilters.date ||
+            String(a.date).slice(0, 10) === appointmentFilters.date;
+
+        const matchesBarber =
+            appointmentFilters.barber === "all" ||
+            a.barber === appointmentFilters.barber;
+
+        return matchesSearch &&
+               matchesStatus &&
+               matchesDate &&
+               matchesBarber;
+    });
+}
+
 
 
 const PAGE_SIZE = 10;
@@ -628,30 +694,54 @@ function render() {
     }
 
 // ===== APPOINTMENTS PAGE =====
+// ===== APPOINTMENTS PAGE =====
 if (page === "appointments" && rows) {
-    const list = [...data.appointments].sort(byDate).reverse();
-    const controller = createPageController("appointments-pagination");
+
+    // Filter all appointments before pagination
+    const list = getFilteredAppointments()
+        .sort(byDate)
+        .reverse();
+
+    // Update results count
+    const resultsCount = document.getElementById(
+        "appointment-results-count"
+    );
+
+    if (resultsCount) {
+        resultsCount.textContent =
+            `Showing ${list.length} of ${data.appointments.length} appointments`;
+    }
+
+    // Existing pagination
+    const controller = createPageController(
+        "appointments-pagination"
+    );
 
     if (controller) {
         controller.onPageChange = () => render();
         controller.setRecords(list.length);
-        const pageNumber = controller.getPage();
-        const startIndex = pageNumber > 0 ? (pageNumber - 1) * PAGE_SIZE : 0;
-        const visibleRecords = list.slice(startIndex, startIndex + PAGE_SIZE);
 
-        rows.innerHTML = visibleRecords.map(apptRow).join("") || emptyRow(
-            7,
-            "No appointments yet. Bookings from the client site will show up here."
+        const pageNumber = controller.getPage();
+
+        const startIndex = pageNumber > 0
+            ? (pageNumber - 1) * PAGE_SIZE
+            : 0;
+
+        const visibleRecords = list.slice(
+            startIndex,
+            startIndex + PAGE_SIZE
         );
+
+        rows.innerHTML = visibleRecords.map(apptRow).join("") ||
+            emptyRow(7, "No matching appointments found.");
+
         return;
     }
 
-    rows.innerHTML =
-        list.map(apptRow).join("") ||
-        emptyRow(
-            7,
-            "No appointments yet. Bookings from the client site will show up here."
-        );
+    rows.innerHTML = list.map(apptRow).join("") ||
+        emptyRow(7, "No matching appointments found.");
+
+    return;
 }
 
 // ===== STAFFS PAGE =====
@@ -760,6 +850,71 @@ function commit() { save(); render(); }
 
 /* ===== Button clicks ===== */
 function start() {
+
+if (page === "appointments") {
+
+    const searchInput = document.getElementById("appointment-search");
+    const statusFilter = document.getElementById("appointment-status-filter");
+    const dateFilter = document.getElementById("appointment-date-filter");
+    const barberFilter = document.getElementById("appointment-barber-filter");
+    const resetButton = document.getElementById("reset-appointment-filters");
+
+   function applyFilters() {
+    const hasActiveFilters =
+        appointmentFilters.search !== "" ||
+        appointmentFilters.status !== "all" ||
+        appointmentFilters.date !== "" ||
+        appointmentFilters.barber !== "all";
+
+    // Show Reset button only when filters are active
+    resetButton.hidden = !hasActiveFilters;
+
+    // Return to page 1 whenever filters change
+    const controller = createPageController("appointments-pagination");
+
+    if (controller) {
+        controller.goTo(1);
+    }
+
+    render();
+}
+
+resetButton.hidden = true;
+
+    searchInput.addEventListener("input", () => {
+        appointmentFilters.search = searchInput.value.trim();
+        applyFilters();
+    });
+
+    statusFilter.addEventListener("change", () => {
+        appointmentFilters.status = statusFilter.value;
+        applyFilters();
+    });
+
+    dateFilter.addEventListener("change", () => {
+        appointmentFilters.date = dateFilter.value;
+        applyFilters();
+    });
+
+    barberFilter.addEventListener("change", () => {
+        appointmentFilters.barber = barberFilter.value;
+        applyFilters();
+    });
+
+    resetButton.addEventListener("click", () => {
+        appointmentFilters.search = "";
+        appointmentFilters.status = "all";
+        appointmentFilters.date = "";
+        appointmentFilters.barber = "all";
+
+        searchInput.value = "";
+        statusFilter.value = "all";
+        dateFilter.value = "";
+        barberFilter.value = "all";
+
+        applyFilters();
+    });
+}
   document.querySelector(".logout").onclick = () => {
 
     sessionStorage.removeItem("admin");

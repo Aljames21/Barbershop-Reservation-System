@@ -774,3 +774,82 @@ body[data-page="staffs"] .tag.unavailable {
 body[data-page="staffs"] .tag.on.leave {
   background: #d97706;
 }
+
+/* ===== APPOINTMENT SEARCH & FILTERS ===== */
+
+.appointment-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.appointment-filters input,
+.appointment-filters select {
+    background: #151515;
+    color: #ffffff;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 14px;
+    min-height: 44px;
+    box-sizing: border-box;
+}
+
+#appointment-search {
+    flex: 2 1 260px;
+    min-width: 200px;
+}
+
+#appointment-status-filter,
+#appointment-date-filter,
+#appointment-barber-filter {
+    flex: 1 1 150px;
+    min-width: 140px;
+}
+
+.appointment-filters input:focus,
+.appointment-filters select:focus {
+    outline: none;
+    border-color: #aa803c;
+}
+
+#reset-appointment-filters {
+    background: #aa803c;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 18px;
+    min-height: 44px;
+    cursor: pointer;
+}
+
+#reset-appointment-filters:hover {
+    background: #8f6b31;
+}
+
+#appointment-results-count {
+    color: #cccccc;
+    font-size: 13px;
+    margin: 0 0 12px;
+}
+
+@media (max-width: 768px) {
+    .appointment-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #appointment-search,
+    #appointment-status-filter,
+    #appointment-date-filter,
+    #appointment-barber-filter {
+        width: 100%;
+        flex: none;
+    }
+}
+
+#reset-appointment-filters[hidden] {
+    display: none !important;
+}

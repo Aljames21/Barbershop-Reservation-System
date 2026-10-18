@@ -8,43 +8,76 @@
   <link rel="stylesheet" href="style.css">
   
 </head>
-<body data-page="appointments">
+    <body data-page="appointments">
 
-  <div>
-<div class="layout">
+        <div>
+      <div class="layout">
 
-  <nav class="sidebar">
-    <img class="logo" src="logo.jpg" alt="logo">
-    <br>
-    <a href="dashboard.html"><img src="icons/dashboardwhite.png" alt="Dashboard"> Dashboard</a>
-    <a href="staffs.html"><img src="icons/barberwhite.png" alt="barber"> Staffs</a>
-    <a href="services.html"><img src="icons/Scissors_Icon.png" alt="service"> Services</a>
-    <a href="appointments.html" class="active"><img src="icons/appointmentwhite.png" alt="appointment"> Appointments</a>
-    <a href="feedback.html"><img src="icons/customerwhite.png" alt="Feedback"> Feedback</a>
-    <a href="login.html" class="logout"><img src="icons/logout (2).png" alt="logout"> Log out</a>
-  </nav>
+        <nav class="sidebar">
+          <img class="logo" src="logo.jpg" alt="logo">
+          <br>
+          <a href="dashboard.html"><img src="icons/dashboardwhite.png" alt="Dashboard"> Dashboard</a>
+          <a href="staffs.html"><img src="icons/barberwhite.png" alt="barber"> Staffs</a>
+          <a href="services.html"><img src="icons/Scissors_Icon.png" alt="service"> Services</a>
+          <a href="appointments.html" class="active"><img src="icons/appointmentwhite.png" alt="appointment"> Appointments</a>
+          <a href="feedback.html"><img src="icons/customerwhite.png" alt="Feedback"> Feedback</a>
+          <a href="login.html" class="logout"><img src="icons/logout (2).png" alt="logout"> Log out</a>
+        </nav>
 
-  <main class="main">
-    <div class="toolbar">
-      <h1>Appointments</h1>
-    </div>
+        <main class="main">
+          <div class="toolbar">
+            <h1>Appointments</h1>
+          </div>
 
-    <!-- Rows are filled in by script.js -->
-    <div class="card table-wrap">
-      <table>
-        <thead>
-          <tr><th>Date &amp; time</th><th>Client</th><th>Service</th><th>Preferred staff</th><th>Price</th><th>Status</th><th></th></tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
-    </div>
+      <div class="appointment-filters">
 
-    <div id="appointments-pagination" class="pagination-container" aria-live="polite">
+        <input
+          type="search"
+          id="appointment-search"
+          placeholder="Search customer, service, or barber..."
+        >
+
+        <select id="appointment-status-filter">
+          <option value="all">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+
+        <input
+          type="date"
+          id="appointment-date-filter"
+        >
+
+        <select id="appointment-barber-filter">
+          <option value="all">All Barbers</option>
+        </select>
+
+        <button type="button" id="reset-appointment-filters">
+          Reset Filters
+        </button>
+
       </div>
-  </main>
 
-</div>
-<script src="script.js"></script>
-<script src="auth.js"></script>
-</body>
-</html>
+      <p id="appointment-results-count" aria-live="polite"></p>
+
+          <!-- Rows are filled in by script.js -->
+          <div class="card table-wrap">
+            <table>
+              <thead>
+                <tr><th>Date &amp; time</th><th>Client</th><th>Service</th><th>Preferred staff</th><th>Price</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+
+          <div id="appointments-pagination" class="pagination-container" aria-live="polite">
+            </div>
+        </main>
+
+      </div>
+      <script src="script.js"></script>
+      <script src="auth.js"></script>
+      </body>
+      </html>
