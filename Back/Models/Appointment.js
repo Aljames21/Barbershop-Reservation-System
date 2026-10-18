@@ -44,6 +44,18 @@ phoneNumber: {
         default:"Pending"
     },
 
+
+    isArchived: {
+        type: Boolean,
+        default: false
+    },
+
+    archivedAt: {
+        type: Date,
+        default: null
+    },
+
+
     cancelledAt:{
         type:Date,
         default:null

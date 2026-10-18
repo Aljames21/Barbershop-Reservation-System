@@ -486,6 +486,90 @@ router.get("/availability/:date", async (req, res) => {
     }
 });
 
+
+/* ===== BULK ARCHIVE APPOINTMENTS ===== */
+
+router.patch("/archive/bulk", verifyAdmin, async (req, res) => {
+    try {
+        const { appointmentIds } = req.body || {};
+
+        if (
+            !Array.isArray(appointmentIds) ||
+            appointmentIds.length === 0 ||
+            appointmentIds.length > 100 ||
+            !appointmentIds.every(id =>
+                typeof id === "string" &&
+                mongoose.isValidObjectId(id)
+            )
+        ) {
+            return res.status(400).json({
+                message: "Please select 1 to 100 valid appointments."
+            });
+        }
+
+        const uniqueIds = [...new Set(appointmentIds)];
+
+        // Check every selected appointment first.
+        const appointments = await Appointment.find({
+            _id: { $in: uniqueIds }
+        });
+
+        if (appointments.length !== uniqueIds.length) {
+            return res.status(404).json({
+                message: "One or more appointments were not found."
+            });
+        }
+
+        const invalidAppointment = appointments.some(
+            appointment =>
+                !["Completed", "Cancelled"].includes(appointment.status) ||
+                appointment.isArchived === true
+        );
+
+        if (invalidAppointment) {
+            return res.status(409).json({
+                message:
+                    "Only non-archived Completed or Cancelled appointments can be archived."
+            });
+        }
+
+        const result = await Appointment.updateMany(
+            {
+                _id: { $in: uniqueIds },
+                status: { $in: ["Completed", "Cancelled"] },
+                isArchived: { $ne: true }
+            },
+            {
+                $set: {
+                    isArchived: true,
+                    archivedAt: new Date()
+                }
+            }
+        );
+
+        if (result.modifiedCount !== uniqueIds.length) {
+            return res.status(409).json({
+                message:
+                    "Some appointments changed during archiving. Please refresh the list.",
+                archivedCount: result.modifiedCount
+            });
+        }
+
+        return res.json({
+            message: "Appointments archived successfully.",
+            archivedCount: result.modifiedCount
+        });
+
+    } catch (error) {
+        console.error("Bulk archive error:", error);
+
+        return res.status(500).json({
+            message: "Unable to archive appointments."
+        });
+    }
+});
+
+
 // GET APPOINTMENTS
 
 router.get("/", verifyAdmin, async(req,res)=>{
