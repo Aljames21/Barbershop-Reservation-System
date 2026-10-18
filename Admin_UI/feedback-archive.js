@@ -221,7 +221,7 @@ function renderFeedback(feedback) {
 
   const rows = pagedFeedback.map((item) => {
     const appointment = item.appointment || {};
-    const name = appointment.customerName || "Appointment unavailable";
+    const name = appointment.customerName || item.customerName || "Customer";
     const previousStatus = item.archivedFromStatus || "Flagged";
 
     return `

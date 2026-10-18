@@ -301,6 +301,10 @@ router.post("/review/:token", feedbackRateLimit, async (req, res) => {
         const status = moderation === "flagged" ? "Flagged" : "Approved";
         const feedback = await Feedback.create({
             appointment: appointment._id,
+            customerName: appointment.customerName || "",
+            service: appointment.service || "",
+            appointmentDate: appointment.date || "",
+            appointmentStatus: appointment.status || "",
             rating,
             comment,
             status
@@ -405,10 +409,15 @@ router.post("/:id/feedback", feedbackRateLimit, async (req, res) => {
         const status = moderation === "flagged" ? "Flagged" : "Approved";
         const feedback = await Feedback.create({
             appointment: appointment._id,
+            customerName: appointment.customerName || "",
+            service: appointment.service || "",
+            appointmentDate: appointment.date || "",
+            appointmentStatus: appointment.status || "",
             rating,
             comment,
             status
         });
+
 
         return res.status(status === "Flagged" ? 202 : 201).json({
             message: status === "Flagged"
@@ -598,9 +607,7 @@ router.patch("/archive/:id/restore", verifyAdmin, async (req, res) => {
         );
 
         if (!appointment) {
-            return res.status(404).json({
-                message: "Archived appointment not found."
-            });
+            throw new Error("Archived appointment not found.");
         }
 
         return res.json({
@@ -620,31 +627,31 @@ router.patch("/archive/:id/restore", verifyAdmin, async (req, res) => {
 
 /* ===== GET ARCHIVED APPOINTMENTS ===== */
 
-router.get("/archive/list", verifyAdmin, async (req, res) => {
-    try {
-        const archivedAppointments = await Appointment.find({
-            isArchived: true
-        }).sort({
-            archivedAt: -1
-        });
+    router.get("/archive/list", verifyAdmin, async (req, res) => {
+        try {
+            const archivedAppointments = await Appointment.find({
+                isArchived: true
+            }).sort({
+                archivedAt: -1
+            });
 
-        return res.json(archivedAppointments);
+            return res.json(archivedAppointments);
 
-    } catch (error) {
-        console.error("Get archived appointments error:", error);
+        } catch (error) {
+            console.error("Get archived appointments error:", error);
 
-        return res.status(500).json({
-            message: "Unable to load archived appointments."
-        });
-    }
-});
+            return res.status(500).json({
+                message: "Unable to load archived appointments."
+            });
+        }
+    });
 
 
 
-/* ===== PERMANENTLY DELETE ARCHIVED APPOINTMENT ===== */
+    /* ===== PERMANENTLY DELETE ARCHIVED APPOINTMENT ===== */
 
-router.delete("/archive/:id/permanent", verifyAdmin, async (req, res) => {
-    try {
+
+    router.delete("/archive/:id/permanent", verifyAdmin, async (req, res) => {
         const { id } = req.params;
 
         if (!mongoose.isValidObjectId(id)) {
@@ -653,52 +660,127 @@ router.delete("/archive/:id/permanent", verifyAdmin, async (req, res) => {
             });
         }
 
-        const appointment = await Appointment.findOne({
-            _id: id,
-            isArchived: true,
-            status: { $in: ["Completed", "Cancelled"] }
-        });
+        const session = await mongoose.startSession();
 
-        if (!appointment) {
-            return res.status(404).json({
-                message: "Archived appointment not found."
+        try {
+            await session.withTransaction(async () => {
+
+        
+            const appointment = await Appointment.findOne({
+                _id: id,
+                isArchived: true,
+                status: { $in: ["Completed", "Cancelled"] }
+            }).session(session);
+
+            if (!appointment) {
+                throw new Error("Archived appointment not found.");
+            }
+
+
+            
+        
+            await Feedback.updateMany(
+                { appointment: appointment._id },
+                {
+                    $set: {
+                        customerName: appointment.customerName || "",
+                        service: appointment.service || "",
+                        appointmentDate: appointment.date || "",
+                        appointmentStatus: appointment.status || ""
+                    }
+                },
+                { session }
+            );
+
+
+
+                
+                const linkedFeedback = await Feedback.find({
+                    appointment: appointment._id
+                }).session(session);
+
+
+                
+                
+                if (
+                    appointment.status === "Completed" &&
+                    linkedFeedback.length === 0 &&
+                    appointment.reviewTokenExpiresAt &&
+                    new Date(appointment.reviewTokenExpiresAt) > new Date()
+                ) {
+                    throw new Error(
+                        "Cannot delete this appointment yet. The customer still has an active review invitation."
+                    );
+                }
+
+
+
+                
+                const missingSnapshot = linkedFeedback.some(feedback =>
+                    !feedback.customerName ||
+                    !feedback.service ||
+                    !feedback.appointmentDate ||
+                    feedback.appointmentStatus !== appointment.status
+                );
+
+
+            
+                if (missingSnapshot) {
+                    throw new Error(
+                        "Cannot delete appointment because feedback details are incomplete."
+                    );
+                }
+
+
+        
+              
+                const result = await Appointment.deleteOne(
+                    {
+                        _id: appointment._id,
+                        isArchived: true,
+                        status: appointment.status
+                    },
+                    { session }
+                );
+
+            
+                if (result.deletedCount !== 1) {
+                    throw new Error("Appointment changed. Please refresh and try again.");
+                }
+
             });
-        }
 
-        const hasFeedback = await Feedback.exists({
-            appointment: appointment._id
-        });
-
-        if (hasFeedback) {
-            return res.status(409).json({
-                message: "Cannot delete this appointment because it has linked feedback."
+            return res.json({
+                message: "Appointment permanently deleted from database."
             });
-        }
 
-        const result = await Appointment.deleteOne({
-            _id: id,
-            isArchived: true,
-            status: { $in: ["Completed", "Cancelled"] }
-        });
-
-        if (result.deletedCount !== 1) {
-            return res.status(409).json({
-                message: "Appointment changed. Please refresh and try again."
-            });
-        }
-
-        return res.json({
-            message: "Appointment permanently deleted from database."
-        });
-
+        
     } catch (error) {
         console.error("Permanent delete error:", error);
+
+        const message = error.message || "Unable to permanently delete appointment.";
+
+        if (message === "Archived appointment not found.") {
+            return res.status(404).json({ message });
+        }
+
+        if (
+            message === "Appointment changed. Please refresh and try again." ||
+            message === "Cannot delete this appointment yet. The customer still has an active review invitation." ||
+            message === "Cannot delete appointment because feedback details are incomplete."
+        ) {
+            return res.status(409).json({ message });
+        }
 
         return res.status(500).json({
             message: "Unable to permanently delete appointment."
         });
     }
-});
+            finally {
+                    await session.endSession();
+            }
+
+    });
 
 
 

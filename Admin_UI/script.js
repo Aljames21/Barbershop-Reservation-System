@@ -1188,16 +1188,25 @@ function renderArchivedAppointments() {
                 </td>
                 <td>${esc(archivedDate)}</td>
                 <td>
-                    <div class="archive-actions">
-                        <button
-                            type="button"
-                            class="archive-restore-btn"
-                            data-action="restore-appointment"
-                            data-id="${esc(id)}">
-                            Retrieve
-                        </button>
-                    </div>
-                </td>
+                    
+                <div class="archive-actions">
+                    <button
+                        type="button"
+                        class="archive-restore-btn"
+                        data-action="restore-appointment"
+                        data-id="${esc(id)}">
+                        Retrieve
+                    </button>
+
+                    <button
+                        type="button"
+                        class="archive-delete-btn"
+                        data-action="delete-archived-appointment"
+                        data-id="${esc(id)}">
+                        Delete Permanently
+                    </button>
+                </div>
+              </td>
             </tr>
         `;
     }).join("") || emptyRow(
@@ -1368,24 +1377,81 @@ async function restoreArchivedAppointment(id) {
     }
 }
 
+
+/* ===== DELETE ARCHIVED APPOINTMENT PERMANENTLY ===== */
+
+async function deleteArchivedAppointment(id) {
+    const appointment = archivedAppointments.find(
+        a => String(a._id || a.id) === String(id)
+    );
+
+    if (!appointment) {
+        alert("Archived appointment not found.");
+        return;
+    }
+
+    const confirmed = await showAppointmentConfirmation(
+        `Permanently delete the ${appointment.status} appointment of ` +
+        `${appointment.customerName || appointment.client || "this customer"}? ` +
+        `This will remove the record from the database and cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const result = await apiFetch(
+            `/appointments/archive/${encodeURIComponent(id)}/permanent`,
+            {
+                method: "DELETE"
+            }
+        );
+
+        if (!result) return;
+
+        await loadArchivedAppointments();
+
+        alert("Appointment permanently deleted!");
+
+    } catch (error) {
+        console.error("Permanent delete error:", error);
+
+        alert(
+            "Delete failed: " +
+            (error.message || "Unable to delete appointment.")
+        );
+    }
+}
+
+
+/* ===== ARCHIVE BUTTON EVENTS ===== */
+
+
 /* ===== ARCHIVE BUTTON EVENTS ===== */
 
 document.addEventListener("click", async (event) => {
     if (page !== "archives") return;
 
     const button = event.target.closest(
-        '[data-action="restore-appointment"]'
+        '[data-action="restore-appointment"], [data-action="delete-archived-appointment"]'
     );
 
     if (!button || button.disabled) return;
 
     const id = button.dataset.id;
+    const action = button.dataset.action;
+
     if (!id) return;
 
     button.disabled = true;
 
     try {
-        await restoreArchivedAppointment(id);
+        if (action === "restore-appointment") {
+            await restoreArchivedAppointment(id);
+        }
+
+        if (action === "delete-archived-appointment") {
+            await deleteArchivedAppointment(id);
+        }
     } finally {
         if (button.isConnected) {
             button.disabled = false;

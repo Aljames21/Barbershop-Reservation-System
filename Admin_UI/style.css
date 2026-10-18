@@ -1824,6 +1824,36 @@ body[data-page="archives"] .table-wrap tbody tr:last-child td {
     border-bottom: none;
 }
 
+/* ===== ARCHIVES ACTION BUTTONS ===== */
+
+body[data-page="archives"] .archive-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+body[data-page="archives"] .archive-delete-btn {
+    background-color: #a83232;
+    color: #ffffff;
+    border: 1px solid #c94a4a;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+body[data-page="archives"] .archive-delete-btn:hover {
+    background-color: #c03939;
+}
+
+body[data-page="archives"] .archive-delete-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 
 
 
