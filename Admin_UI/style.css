@@ -1448,5 +1448,382 @@ body[data-page="appointments"] .table-wrap td:first-child {
     text-align: center;
 }
 
+/* ==========================================
+   APPOINTMENTS & ARCHIVES UI IMPROVEMENTS
+========================================== */
+
+/* ===== SHARED TABLE DESIGN ===== */
+
+body[data-page="appointments"] .table-wrap,
+body[data-page="archives"] .table-wrap {
+    border: 1px solid #45403a;
+    border-radius: 12px;
+    background: rgba(15, 15, 15, 0.72);
+    overflow-x: auto;
+    overflow-y: visible;
+    max-height: none;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+body[data-page="appointments"] .table-wrap table,
+body[data-page="archives"] .table-wrap table {
+    width: 100%;
+    min-width: 1100px;
+    border-collapse: collapse;
+}
+
+body[data-page="appointments"] .table-wrap th,
+body[data-page="archives"] .table-wrap th {
+    padding: 17px 14px;
+    background: #211d19;
+    color: #d6c6aa;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+}
+
+body[data-page="appointments"] .table-wrap td,
+body[data-page="archives"] .table-wrap td {
+    padding: 15px 14px;
+    border-bottom: 1px solid #37332d;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+body[data-page="appointments"] .table-wrap tbody tr,
+body[data-page="archives"] .table-wrap tbody tr {
+    transition: background 0.2s ease;
+}
+
+body[data-page="appointments"] .table-wrap tbody tr:hover,
+body[data-page="archives"] .table-wrap tbody tr:hover {
+    background: rgba(169, 128, 61, 0.13);
+}
+
+body[data-page="appointments"] .table-wrap tbody tr:last-child td,
+body[data-page="archives"] .table-wrap tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ===== APPOINTMENTS SELECTION TOOLBAR ===== */
+
+body[data-page="appointments"] .appointment-bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 14px 20px;
+    margin: 18px 0;
+    min-height: 65px;
+    background: #211d19;
+    border: 1px solid #51432f;
+    border-radius: 10px;
+    color: #f2e9dc;
+}
+
+body[data-page="appointments"] .appointment-bulk-actions label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #f2e9dc;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+body[data-page="appointments"] .appointment-bulk-actions input[type="checkbox"],
+body[data-page="appointments"] .table-wrap input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    accent-color: #b78a45;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+body[data-page="appointments"] #selected-appointments-count {
+    padding: 7px 13px;
+    background: rgba(183, 138, 69, 0.15);
+    border: 1px solid rgba(183, 138, 69, 0.3);
+    border-radius: 20px;
+    color: #e2c18c;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body[data-page="appointments"] #archive-selected-appointments {
+    margin-left: auto;
+    padding: 11px 19px;
+    border: none;
+    border-radius: 7px;
+    background: #a9803d;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+body[data-page="appointments"] #archive-selected-appointments:hover:not(:disabled) {
+    background: #c19753;
+}
+
+body[data-page="appointments"] #archive-selected-appointments:disabled {
+    background: #403a32;
+    color: #918779;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+/* ===== APPOINTMENT ACTION BUTTONS ===== */
+
+body[data-page="appointments"] .table-wrap th:last-child,
+body[data-page="appointments"] .table-wrap td:last-child {
+    min-width: 245px;
+    width: 245px;
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
+body[data-page="appointments"] .table-wrap td:last-child button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 8px 11px;
+    margin: 2px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    vertical-align: middle;
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+body[data-page="appointments"] .table-wrap td:last-child button:hover:not(:disabled) {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+}
+
+/* ===== ARCHIVES HEADER & TABS ===== */
+
+body[data-page="archives"] .archive-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 22px 0 30px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #39332b;
+}
+
+body[data-page="archives"] .archive-tab {
+    padding: 12px 22px;
+    border-radius: 8px;
+    border: 1px solid #4a4034;
+    background: #211e1a;
+    color: #c7bbaa;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+body[data-page="archives"] .archive-tab.active {
+    background: #a9803d;
+    border-color: #a9803d;
+    color: white;
+    box-shadow: 0 3px 12px rgba(169, 128, 61, 0.2);
+}
+
+body[data-page="archives"] .archive-tab:disabled {
+    opacity: 0.5;
+}
+
+/* ===== ARCHIVES FILTERS ===== */
+
+body[data-page="archives"] .appointment-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 18px;
+    margin: 18px 0 14px;
+    background: #211d19;
+    border: 1px solid #453b30;
+    border-radius: 10px;
+}
+
+body[data-page="archives"] .appointment-filters input,
+body[data-page="archives"] .appointment-filters select {
+    min-height: 42px;
+    padding: 10px 13px;
+    border: 1px solid #50473c;
+    border-radius: 7px;
+    background: #141414;
+    color: #f0e8dd;
+    font-size: 13px;
+}
+
+body[data-page="archives"] #archive-search {
+    flex: 1 1 240px;
+    min-width: 190px;
+}
+
+body[data-page="archives"] .appointment-filters input:focus,
+body[data-page="archives"] .appointment-filters select:focus {
+    outline: none;
+    border-color: #bd9250;
+    box-shadow: 0 0 0 2px rgba(189, 146, 80, 0.16);
+}
+
+body[data-page="archives"] #reset-archive-filters {
+    min-height: 42px;
+    padding: 10px 17px;
+    border: 1px solid #a9803d;
+    border-radius: 7px;
+    background: transparent;
+    color: #e5c38d;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+body[data-page="archives"] #reset-archive-filters:hover {
+    background: rgba(169, 128, 61, 0.15);
+}
+
+body[data-page="archives"] #archived-appointments-count {
+    margin: 12px 0 16px;
+    color: #c7bbaa;
+    font-size: 13px;
+}
+
+/* ===== ARCHIVES RETRIEVE BUTTON ===== */
+
+body[data-page="archives"] .archive-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+body[data-page="archives"] .archive-restore-btn {
+    padding: 9px 16px;
+    border: 1px solid #c39a58;
+    border-radius: 7px;
+    background: #a9803d;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+body[data-page="archives"] .archive-restore-btn:hover:not(:disabled) {
+    background: #c19753;
+}
+
+/* ===== ARCHIVES PAGINATION ===== */
+
+body[data-page="archives"] #archives-pagination {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+body[data-page="archives"] #archives-pagination button {
+    min-width: 38px;
+    min-height: 36px;
+    padding: 8px 12px;
+    border: 1px solid #514638;
+    border-radius: 7px;
+    background: #241f19;
+    color: #e7dac6;
+    cursor: pointer;
+}
+
+body[data-page="archives"] #archives-pagination button.active {
+    background: #a9803d;
+    border-color: #a9803d;
+    color: white;
+}
+
+body[data-page="archives"] #archives-pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 768px) {
+    body[data-page="appointments"] .appointment-bulk-actions {
+        gap: 10px;
+        padding: 12px;
+    }
+
+    body[data-page="appointments"] #archive-selected-appointments {
+        margin-left: 0;
+    }
+
+    body[data-page="archives"] .appointment-filters {
+        padding: 12px;
+    }
+}
+
+
+/* ==========================================
+   APPOINTMENTS & ARCHIVES TABLE BOX BORDER
+========================================== */
+
+/* Main table box — visible gold outline */
+body[data-page="appointments"] .table-wrap,
+body[data-page="archives"] .table-wrap {
+    border: 2px solid #a9803d;
+    border-radius: 12px;
+    background: #171615;
+    overflow-x: auto;
+    overflow-y: visible;
+    max-height: none;
+    box-shadow: 0 0 0 1px rgba(169, 128, 61, 0.12),
+                0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+/* Clean header */
+body[data-page="appointments"] .table-wrap thead th,
+body[data-page="archives"] .table-wrap thead th {
+    background: #26211b;
+    color: #f0d4a3;
+    border-right: none;
+    border-bottom: 1px solid #6a5436;
+}
+
+/* Subtle row dividers */
+body[data-page="appointments"] .table-wrap tbody td,
+body[data-page="archives"] .table-wrap tbody td {
+    border-right: none;
+    border-bottom: 1px solid #37312a;
+    color: #f4f0e9;
+}
+
+/* No alternating row colors */
+body[data-page="appointments"] .table-wrap tbody tr,
+body[data-page="archives"] .table-wrap tbody tr {
+    background: transparent;
+}
+
+/* Soft hover */
+body[data-page="appointments"] .table-wrap tbody tr:hover,
+body[data-page="archives"] .table-wrap tbody tr:hover {
+    background: rgba(169, 128, 61, 0.10);
+}
+
+/* Keep the last row clean */
+body[data-page="appointments"] .table-wrap tbody tr:last-child td,
+body[data-page="archives"] .table-wrap tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
 
 

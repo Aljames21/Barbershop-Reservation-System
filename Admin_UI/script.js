@@ -1095,6 +1095,31 @@ async function loadArchivedAppointments() {
 }
 
 
+function formatArchiveDateTime(date, time) {
+    if (!date) return "-";
+
+    const datePart = String(date).slice(0, 10);
+    const timePart = String(time || "00:00").trim();
+
+    const formattedDate = new Date(
+        `${datePart}T${timePart}`
+    );
+
+    if (isNaN(formattedDate.getTime())) {
+        return `${datePart} ${timePart}`;
+    }
+
+    return formattedDate.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+    });
+}
+
+
+
 /* ===== RENDER ARCHIVED APPOINTMENTS ===== */
 
 function renderArchivedAppointments() {
@@ -1138,13 +1163,18 @@ function renderArchivedAppointments() {
     rows.innerHTML = paginatedAppointments.map(a => {
         const id = a._id || a.id;
 
+        
         const archivedDate = a.archivedAt
-            ? new Date(a.archivedAt).toLocaleDateString("en-PH")
+            ? new Date(a.archivedAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric"
+            })
             : "-";
 
         return `
             <tr>
-                <td>${esc(a.date || "-")} ${esc(a.time || "")}</td>
+                <td>${formatArchiveDateTime(a.date, a.time)}</td>
                 <td>${esc(a.customerName || a.client || "-")}</td>
                 <td>${esc(a.service || "-")}</td>
                 <td>${esc(a.barber || "No preference")}</td>
@@ -1453,7 +1483,10 @@ list.sort((a, b) => {
 
     if (resultsCount) {
         resultsCount.textContent =
-            `Showing ${list.length} of ${data.appointments.length} appointments`;
+            
+    `Showing ${list.length} of ${data.appointments.filter
+        (a => a.isArchived !== true).length} appointments`
+
     }
 
     // Existing pagination
