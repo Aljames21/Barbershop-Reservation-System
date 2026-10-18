@@ -326,6 +326,57 @@ function clientForm(c) {
   });
 }
 
+// ===== VIEW APPOINTMENT DETAILS =====
+function viewAppointmentDetails(a) {
+    const modal = document.createElement("div");
+    modal.className = "modal";
+
+    modal.innerHTML = `
+        <div class="card modal-box">
+            <h3>Appointment Details</h3>
+
+            <p><strong>Customer:</strong> ${esc(a.customerName || a.client || "-")}</p>
+
+            <p><strong>Service:</strong> ${esc(a.service || "-")}</p>
+
+            <p><strong>Barber:</strong> ${esc(a.barber || "No preference")}</p>
+
+            <p><strong>Date:</strong> ${esc(a.date || "-")}</p>
+
+            <p><strong>Time:</strong> ${esc(a.time || "-")}</p>
+
+            <p><strong>Price:</strong> ${money(a.price || 0)}</p>
+
+            <p><strong>Status:</strong> ${esc(a.status || "-")}</p>
+
+            <div class="dialog-buttons">
+                <button type="button" class="light" id="close-appointment-details">
+                    Close
+                </button>
+            </div>
+        </div>
+    `;
+
+    const close = () => {
+        document.removeEventListener("keydown", onKeyDown);
+        modal.remove();
+    };
+
+    const onKeyDown = (event) => {
+        if (event.key === "Escape") close();
+    };
+
+    modal.querySelector("#close-appointment-details")
+        .addEventListener("click", close);
+
+    modal.addEventListener("mousedown", (event) => {
+        if (event.target === modal) close();
+    });
+
+    document.addEventListener("keydown", onKeyDown);
+    document.body.appendChild(modal);
+}
+
 /* ===== Drawing the tables ===== */
 function apptRow(a) {
 
@@ -362,9 +413,12 @@ function apptRow(a) {
     </span>
   </td>
 
-  <td>
-    ${actions.join(" ")}
-  </td>
+ <td class="appointment-actions-cell">
+    <div class="appointment-actions">
+        ${btn("view-appointment", a._id || a.id, "View", "light")}
+        ${actions.join(" ")}
+    </div>
+</td>
 
   </tr>`;
 }
@@ -438,7 +492,8 @@ const appointmentFilters = {
     search: "",
     status: "all",
     date: "",
-    barber: "all"
+    barber: "all",
+    sort: "newest"
 };
 
 function getFilteredAppointments() {
@@ -806,9 +861,30 @@ function render() {
 if (page === "appointments" && rows) {
 
     // Filter all appointments before pagination
-    const list = getFilteredAppointments()
-        .sort(byDate)
-        .reverse();
+    const list = getFilteredAppointments();
+
+list.sort((a, b) => {
+    const dateA = `${a.date || ""}T${a.time || "00:00"}`;
+    const dateB = `${b.date || ""}T${b.time || "00:00"}`;
+
+    const nameA = String(a.customerName || a.client || "");
+    const nameB = String(b.customerName || b.client || "");
+
+    switch (appointmentFilters.sort) {
+        case "oldest":
+            return dateA.localeCompare(dateB);
+
+        case "name-asc":
+            return nameA.localeCompare(nameB);
+
+        case "name-desc":
+            return nameB.localeCompare(nameA);
+
+        case "newest":
+        default:
+            return dateB.localeCompare(dateA);
+    }
+});
 
     // Update results count
     const resultsCount = document.getElementById(
@@ -965,6 +1041,7 @@ if (page === "appointments") {
     const statusFilter = document.getElementById("appointment-status-filter");
     const dateFilter = document.getElementById("appointment-date-filter");
     const barberFilter = document.getElementById("appointment-barber-filter");
+    const sortFilter = document.getElementById("appointment-sort");
     const resetButton = document.getElementById("reset-appointment-filters");
 
    function applyFilters() {
@@ -1007,6 +1084,12 @@ resetButton.hidden = true;
     barberFilter.addEventListener("change", () => {
         appointmentFilters.barber = barberFilter.value;
         applyFilters();
+    });
+
+            // ===== APPOINTMENT SORTING =====
+    sortFilter.addEventListener("change", () => {
+         appointmentFilters.sort = sortFilter.value;
+         applyFilters();
     });
 
     resetButton.addEventListener("click", () => {
@@ -1054,6 +1137,17 @@ const a = data.appointments.find(
     x => String(x._id || x.id) === String(id)
 );
 
+// Open appointment details
+if (act === "view-appointment") {
+    if (!a) {
+        alert("Appointment not found.");
+        return;
+    }
+
+    viewAppointmentDetails(a);
+    return;
+}
+
 if (["accept", "decline", "cancel", "complete"].includes(act)) {
     if (!a) {
         alert("Appointment not found.");
@@ -1066,6 +1160,22 @@ if (["accept", "decline", "cancel", "complete"].includes(act)) {
         cancel: "Cancelled",
         complete: "Completed"
     }[act];
+
+    // ===== APPOINTMENT ACTION CONFIRMATION =====
+        const confirmationMessages = {
+            accept: "Accept this appointment?",
+            decline: "Decline this appointment?",
+            cancel: "Cancel this appointment?",
+            complete: "Mark this appointment as completed?"
+        };
+
+        const confirmed = await showAppointmentConfirmation(
+            confirmationMessages[act]
+        );
+
+        if (!confirmed) {
+            return;
+        }
 
     b.disabled = true;
 
@@ -1197,6 +1307,53 @@ else if (act === "remove-staff") {
   });
 
   render();
+}
+
+function showAppointmentConfirmation(message) {
+    return new Promise((resolve) => {
+        const modal = document.createElement("div");
+        modal.className = "modal appointment-confirm-modal";
+
+        modal.innerHTML = `
+            <div class="card modal-box">
+                <h3>Confirm Action</h3>
+                <p>${esc(message)}</p>
+
+                <div class="dialog-buttons">
+                    <button type="button" id="appointment-confirm-no">
+                        Go Back
+                    </button>
+
+                    <button type="button" id="appointment-confirm-yes">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const finish = (result) => {
+            document.removeEventListener("keydown", onKeyDown);
+            modal.remove();
+            resolve(result);
+        };
+
+        const onKeyDown = (event) => {
+            if (event.key === "Escape") finish(false);
+        };
+
+        modal.querySelector("#appointment-confirm-no")
+            .addEventListener("click", () => finish(false));
+
+        modal.querySelector("#appointment-confirm-yes")
+            .addEventListener("click", () => finish(true));
+
+        modal.addEventListener("click", (event) => {
+            if (event.target === modal) finish(false);
+        });
+
+        document.addEventListener("keydown", onKeyDown);
+        document.body.appendChild(modal);
+    });
 }
 
 /* ===== Login check (runs last) ===== */
