@@ -1248,3 +1248,205 @@ body[data-page="appointments"] .appointment-actions-cell {
     padding: 10px 18px 10px 10px !important;
 }
 
+
+body[data-page="appointments"] .appointment-bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 12px 0 18px;
+    padding: 12px 16px;
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+}
+
+body[data-page="appointments"] .appointment-bulk-actions label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+body[data-page="appointments"] .appointment-bulk-actions input[type="checkbox"],
+body[data-page="appointments"] .appointment-row-checkbox {
+    width: 16px;
+    height: 16px;
+    accent-color: #a67c39;
+    cursor: pointer;
+}
+
+body[data-page="appointments"] #selected-appointments-count {
+    font-size: 13px;
+    color: #666666;
+}
+
+body[data-page="appointments"] #archive-selected-appointments {
+    margin-left: auto;
+    padding: 9px 16px;
+    background: #a67c39;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+body[data-page="appointments"] #archive-selected-appointments:hover:not(:disabled) {
+    background: #87612a;
+}
+
+body[data-page="appointments"] #archive-selected-appointments:disabled {
+    background: #c9c9c9;
+    color: #666666;
+    cursor: not-allowed;
+}
+
+body[data-page="appointments"] .appointment-checkbox-cell {
+    width: 42px;
+    min-width: 42px;
+    text-align: center;
+}
+
+
+/* =========================================
+   ARCHIVES PAGE
+========================================= */
+
+.archive-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 20px 0 28px;
+}
+
+.archive-tab {
+    padding: 12px 22px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background: #1b1b1b;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.archive-tab:hover:not(:disabled) {
+    background: #333;
+}
+
+.archive-tab.active {
+    background: #a9803d;
+    border-color: #a9803d;
+    color: #fff;
+}
+
+.archive-tab:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+#archived-appointments-section h2 {
+    margin-bottom: 12px;
+    font-size: 21px;
+}
+
+#archived-appointments-count {
+    margin-bottom: 16px;
+    color: #aaa;
+    font-size: 14px;
+}
+
+/* Archived appointment action buttons */
+
+.archive-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.archive-actions button {
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.archive-restore-btn {
+    background: #a9803d;
+    color: #fff;
+    border: none;
+}
+
+.archive-delete-btn {
+    background: transparent;
+    color: #ff7777;
+    border: 1px solid #ff7777;
+}
+
+.archive-restore-btn:hover {
+    background: #906a30;
+}
+
+.archive-delete-btn:hover {
+    background: #402020;
+}
+
+/* Allow horizontal scrolling for wide tables */
+
+#archived-appointments-section .table-wrap {
+    overflow-x: auto;
+}
+
+#archived-appointments-section table {
+    min-width: 950px;
+}
+
+@media (max-width: 768px) {
+    .archive-tabs {
+        gap: 8px;
+    }
+
+    .archive-tab {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+}
+
+/* ===== APPOINTMENTS TABLE LAYOUT FIX ===== */
+
+body[data-page="appointments"] .table-wrap {
+    overflow-x: auto;
+}
+
+body[data-page="appointments"] .table-wrap table {
+    min-width: 1150px;
+    width: 100%;
+}
+
+body[data-page="appointments"] .table-wrap th,
+body[data-page="appointments"] .table-wrap td {
+    white-space: nowrap;
+}
+
+body[data-page="appointments"] .table-wrap th:last-child,
+body[data-page="appointments"] .table-wrap td:last-child {
+    min-width: 130px;
+    white-space: nowrap;
+}
+
+body[data-page="appointments"] .table-wrap th:first-child,
+body[data-page="appointments"] .table-wrap td:first-child {
+    min-width: 55px;
+    width: 55px;
+    text-align: center;
+}
+
+
+

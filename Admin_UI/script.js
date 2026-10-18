@@ -83,7 +83,66 @@ if (appointments) {
 
             appointmentFilters.barber = barberFilter.value;
         }
-    }
+        
+// ===== ARCHIVE SELECTED APPOINTMENTS =====
+
+const archiveSelectedButton = document.getElementById(
+    "archive-selected-appointments"
+);
+
+if (archiveSelectedButton) {
+    archiveSelectedButton.addEventListener("click", async () => {
+
+        const selectedIds = getVisibleAppointmentCheckboxes()
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.dataset.id);
+
+        if (selectedIds.length === 0) {
+            alert("Please select an appointment to archive.");
+            return;
+        }
+
+        const confirmed = await showAppointmentConfirmation(
+            `Archive ${selectedIds.length} selected appointment(s)?`
+        );
+
+        if (!confirmed) return;
+
+        archiveSelectedButton.disabled = true;
+
+        try {
+            const result = await apiFetch("/appointments/archive/bulk", {
+                method: "PATCH",
+                body: JSON.stringify({
+                    appointmentIds: selectedIds
+                })
+            });
+
+            if (result.archivedCount !== selectedIds.length) {
+                throw new Error(
+                    result.message || "Not all appointments were archived."
+                );
+            }
+
+            selectedAppointmentIds.clear();
+
+            await loadAppointments();
+
+            alert(`${result.archivedCount} appointment(s) archived successfully!`);
+
+        } catch (error) {
+            console.error("Archive appointments error:", error);
+            alert("Archive failed: " + error.message);
+
+            await loadAppointments();
+
+        } finally {
+            updateAppointmentSelection();
+        }
+    });
+  }
+
+}
 
     earnings();
     render();
@@ -378,50 +437,70 @@ function viewAppointmentDetails(a) {
 }
 
 /* ===== Drawing the tables ===== */
+
 function apptRow(a) {
+
+  const id = a._id || a.id;
+
+  const canArchive =
+    a.status === "Completed" ||
+    a.status === "Cancelled";
+
+  const checkbox = canArchive
+    ? `<input
+         type="checkbox"
+         class="appointment-row-checkbox"
+         data-id="${esc(id)}"
+         aria-label="Select appointment for ${esc(a.customerName || a.client || "customer")}"
+       >`
+    : "";
 
   const actions = {
     Pending: [
-      btn("accept", a._id || a.id, "Accept"),
-      btn("decline", a._id || a.id, "Decline", "light")
+      btn("accept", id, "Accept"),
+      btn("decline", id, "Decline", "light")
     ],
 
     Confirmed: [
-      btn("complete", a._id || a.id, "Mark done"),
-      btn("cancel", a._id || a.id, "Cancel", "light")
+      btn("complete", id, "Mark done"),
+      btn("cancel", id, "Cancel", "light")
     ]
 
   }[a.status] || [];
 
-
   return `
-  <tr>
+    <tr>
 
-  <td>${when(a.date + "T" + a.time)}</td>
+      <td class="appointment-checkbox-cell">
+        ${checkbox}
+      </td>
 
-  <td>${esc(a.customerName || a.client)}</td>
+      <td>${when(a.date + "T" + a.time)}</td>
 
-  <td>${esc(a.service)}</td>
+      <td>${esc(a.customerName || a.client)}</td>
 
-  <td>${esc(a.barber || "No preference")}</td>
+      <td>${esc(a.service)}</td>
 
-  <td>${money(a.price || 0)}</td>
+      <td>${esc(a.barber || "No preference")}</td>
 
-  <td>
-    <span class="tag ${a.status.toLowerCase()}">
-      ${a.status}
-    </span>
-  </td>
+      <td>${money(a.price || 0)}</td>
 
- <td class="appointment-actions-cell">
-    <div class="appointment-actions">
-        ${btn("view-appointment", a._id || a.id, "View", "light")}
-        ${actions.join(" ")}
-    </div>
-</td>
+      <td>
+        <span class="tag ${esc(a.status.toLowerCase())}">
+          ${esc(a.status)}
+        </span>
+      </td>
 
-  </tr>`;
+      <td class="appointment-actions-cell">
+        <div class="appointment-actions">
+          ${btn("view-appointment", id, "View", "light")}
+          ${actions.join(" ")}
+        </div>
+      </td>
+
+    </tr>`;
 }
+
 
 
 function earnings() {
@@ -807,6 +886,486 @@ function renderBookingTrendsChart() {
     });
 }
 
+
+/* ===== APPOINTMENT CHECKBOX SELECTION ===== */
+
+        const selectedAppointmentIds = new Set();
+
+        function getVisibleAppointmentCheckboxes() {
+            return [
+                ...document.querySelectorAll(
+                    "#rows .appointment-row-checkbox"
+                )
+            ];
+        }
+
+        function updateAppointmentSelection() {
+            const checkboxes = getVisibleAppointmentCheckboxes();
+
+            const selectAll = document.getElementById(
+                "select-all-appointments"
+            );
+
+            const selectedCount = document.getElementById(
+                "selected-appointments-count"
+            );
+
+            const archiveButton = document.getElementById(
+                "archive-selected-appointments"
+            );
+
+            // Count selected appointments on the current page
+            const count = checkboxes.filter(
+                checkbox => checkbox.checked
+            ).length;
+
+            if (selectedCount) {
+                selectedCount.textContent = `${count} selected`;
+            }
+
+            if (archiveButton) {
+                archiveButton.disabled = count === 0;
+            }
+
+            if (selectAll) {
+                selectAll.checked =
+                    checkboxes.length > 0 &&
+                    checkboxes.every(checkbox => checkbox.checked);
+
+                selectAll.indeterminate =
+                    count > 0 && count < checkboxes.length;
+            }
+        }
+
+        function syncAppointmentCheckboxes() {
+            const checkboxes = getVisibleAppointmentCheckboxes();
+
+            // Clear old selections when rendering a different page
+            selectedAppointmentIds.clear();
+
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            updateAppointmentSelection();
+        }
+
+        
+// ===== ARCHIVED APPOINTMENTS =====
+
+let archivedAppointments = [];
+
+/* ===== ARCHIVES PAGINATION ===== */
+
+let archiveCurrentPage = 1;
+
+const ARCHIVE_PAGE_SIZE = 10;
+
+
+
+
+
+/* ===== ARCHIVES SEARCH AND STATUS FILTER ===== */
+
+
+function getFilteredArchivedAppointments() {
+    const search = (
+        document.getElementById("archive-search")?.value || ""
+    ).trim().toLowerCase();
+
+    const status = document.getElementById(
+        "archive-status-filter"
+    )?.value || "all";
+
+    const selectedDate = document.getElementById(
+        "archive-date-filter"
+    )?.value || "";
+
+    const sortBy = document.getElementById(
+        "archive-sort"
+    )?.value || "newest";
+
+    // ===== FILTER ARCHIVED APPOINTMENTS =====
+
+    const filtered = archivedAppointments.filter(appointment => {
+
+        const searchableText = [
+            appointment.customerName,
+            appointment.client,
+            appointment.service,
+            appointment.barber
+        ]
+            .filter(Boolean)
+            .map(value => String(value).toLowerCase())
+            .join(" ");
+
+        const matchesSearch =
+            !search || searchableText.includes(search);
+
+        const matchesStatus =
+            status === "all" || appointment.status === status;
+
+        const appointmentDate = appointment.date
+            ? String(appointment.date).slice(0, 10)
+            : "";
+
+        const matchesDate =
+            !selectedDate || appointmentDate === selectedDate;
+
+        return matchesSearch && matchesStatus && matchesDate;
+    });
+
+    // ===== SORT ARCHIVED APPOINTMENTS =====
+
+    filtered.sort((a, b) => {
+
+        if (sortBy === "name-asc") {
+            return String(a.customerName || a.client || "")
+                .localeCompare(
+                    String(b.customerName || b.client || "")
+                );
+        }
+
+        if (sortBy === "name-desc") {
+            return String(b.customerName || b.client || "")
+                .localeCompare(
+                    String(a.customerName || a.client || "")
+                );
+        }
+
+        const dateA =
+            new Date(a.archivedAt || 0).getTime() || 0;
+
+        const dateB =
+            new Date(b.archivedAt || 0).getTime() || 0;
+
+        if (sortBy === "oldest") {
+            return dateA - dateB;
+        }
+
+        return dateB - dateA;
+    });
+
+    return filtered;
+}
+
+
+
+
+/* ===== LOAD ARCHIVED APPOINTMENTS ===== */
+
+async function loadArchivedAppointments() {
+    if (page !== "archives") return;
+
+    const rows = document.getElementById(
+        "archived-appointments-rows"
+    );
+
+    const count = document.getElementById(
+        "archived-appointments-count"
+    );
+
+    try {
+        const appointments = await apiFetch(
+            "/appointments/archive/list"
+        );
+
+        if (!Array.isArray(appointments)) {
+            throw new Error("Invalid archived appointments response.");
+        }
+
+        archivedAppointments = appointments;
+
+        renderArchivedAppointments();
+
+    } catch (error) {
+        console.error("Load archives error:", error);
+
+        if (count) {
+            count.textContent = "Unable to load archived appointments.";
+        }
+
+        if (rows) {
+            rows.innerHTML = emptyRow(
+                8,
+                "Failed to load archived appointments."
+            );
+        }
+    }
+}
+
+
+/* ===== RENDER ARCHIVED APPOINTMENTS ===== */
+
+function renderArchivedAppointments() {
+    const rows = document.getElementById(
+        "archived-appointments-rows"
+    );
+
+    const count = document.getElementById(
+        "archived-appointments-count"
+    );
+
+    if (!rows) return;
+
+    const filtered = getFilteredArchivedAppointments();
+
+    // ===== CALCULATE ARCHIVES PAGINATION =====
+
+        const totalPages = Math.max(
+            1,
+            Math.ceil(filtered.length / ARCHIVE_PAGE_SIZE)
+        );
+
+        archiveCurrentPage = Math.min(
+            Math.max(archiveCurrentPage, 1),
+            totalPages
+        );
+
+        const startIndex =
+            (archiveCurrentPage - 1) * ARCHIVE_PAGE_SIZE;
+
+        const paginatedAppointments = filtered.slice(
+            startIndex,
+            startIndex + ARCHIVE_PAGE_SIZE
+        );
+
+    if (count) {
+        count.textContent =
+            `${filtered.length} of ${archivedAppointments.length} archived appointment(s)`;
+    }
+
+    rows.innerHTML = paginatedAppointments.map(a => {
+        const id = a._id || a.id;
+
+        const archivedDate = a.archivedAt
+            ? new Date(a.archivedAt).toLocaleDateString("en-PH")
+            : "-";
+
+        return `
+            <tr>
+                <td>${esc(a.date || "-")} ${esc(a.time || "")}</td>
+                <td>${esc(a.customerName || a.client || "-")}</td>
+                <td>${esc(a.service || "-")}</td>
+                <td>${esc(a.barber || "No preference")}</td>
+                <td>${money(a.price || 0)}</td>
+                <td>
+                    <span class="tag ${esc(
+                        String(a.status || "").toLowerCase()
+                    )}">
+                        ${esc(a.status || "-")}
+                    </span>
+                </td>
+                <td>${esc(archivedDate)}</td>
+                <td>
+                    <div class="archive-actions">
+                        <button
+                            type="button"
+                            class="archive-restore-btn"
+                            data-action="restore-appointment"
+                            data-id="${esc(id)}">
+                            Retrieve
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join("") || emptyRow(
+        8,
+        "No archived appointments found."
+    );
+    
+/* ===== RENDER ARCHIVES PAGINATION ===== */
+
+const pagination = document.getElementById(
+    "archives-pagination"
+);
+
+if (pagination) {
+    if (totalPages <= 1) {
+        pagination.innerHTML = "";
+    } else {
+        let buttons = `
+            <button
+                type="button"
+                data-archive-page="${archiveCurrentPage - 1}"
+                ${archiveCurrentPage === 1 ? "disabled" : ""}>
+                Previous
+            </button>
+        `;
+
+        for (let i = 1; i <= totalPages; i++) {
+            buttons += `
+                <button
+                    type="button"
+                    data-archive-page="${i}"
+                    class="${i === archiveCurrentPage ? "active" : ""}">
+                    ${i}
+                </button>
+            `;
+        }
+
+        buttons += `
+            <button
+                type="button"
+                data-archive-page="${archiveCurrentPage + 1}"
+                ${archiveCurrentPage === totalPages ? "disabled" : ""}>
+                Next
+            </button>
+        `;
+
+        pagination.innerHTML = buttons;
+    }
+}
+
+}
+
+
+function resetArchivePagination() {
+    archiveCurrentPage = 1;
+    renderArchivedAppointments();
+}
+
+
+if (page === "archives") {
+    const archiveSearch = document.getElementById("archive-search");
+    const archiveStatus = document.getElementById("archive-status-filter");
+    const archiveDate = document.getElementById("archive-date-filter");
+    const archiveSort = document.getElementById("archive-sort");
+    const resetArchiveFilters = document.getElementById("reset-archive-filters");
+    const archivePagination = document.getElementById("archives-pagination");
+
+    if (archivePagination) {
+        archivePagination.addEventListener("click", (event) => {
+            const button = event.target.closest(
+                "[data-archive-page]"
+            );
+
+            if (!button || button.disabled) return;
+
+            const selectedPage = Number(
+                button.dataset.archivePage
+            );
+
+            if (!Number.isInteger(selectedPage)) return;
+
+            archiveCurrentPage = selectedPage;
+
+            renderArchivedAppointments();
+        });
+    }
+
+
+    if (resetArchiveFilters) {
+        resetArchiveFilters.addEventListener("click", () => {
+
+            document.getElementById("archive-search").value = "";
+
+            document.getElementById("archive-status-filter").value = "all";
+
+            document.getElementById("archive-date-filter").value = "";
+
+            document.getElementById("archive-sort").value = "newest";
+
+            resetArchivePagination();
+        });
+    }
+
+
+   
+/* ===== ARCHIVES FILTER EVENTS ===== */
+
+    if (archiveSearch) {
+        archiveSearch.addEventListener(
+            "input",
+            resetArchivePagination
+        );
+    }
+
+    if (archiveStatus) {
+        archiveStatus.addEventListener(
+            "change",
+            resetArchivePagination
+        );
+    }
+
+    if (archiveDate) {
+        archiveDate.addEventListener(
+            "change",
+            resetArchivePagination
+        );
+    }
+
+    if (archiveSort) {
+        archiveSort.addEventListener(
+            "change",
+            resetArchivePagination
+        );
+    }
+
+}
+
+
+
+
+/* ===== RESTORE ARCHIVED APPOINTMENT ===== */
+
+async function restoreArchivedAppointment(id) {
+    const confirmed = confirm(
+        "Retrieve this appointment? It will return to the Appointments page."
+    );
+
+    if (!confirmed) return;
+
+    try {
+        await apiFetch(
+            `/appointments/archive/${encodeURIComponent(id)}/restore`,
+            {
+                method: "PATCH"
+            }
+        );
+
+        alert("Appointment retrieved successfully!");
+
+        await loadArchivedAppointments();
+
+    } catch (error) {
+        console.error("Restore appointment error:", error);
+
+        alert(
+            error.message || "Unable to retrieve appointment."
+        );
+    }
+}
+
+/* ===== ARCHIVE BUTTON EVENTS ===== */
+
+document.addEventListener("click", async (event) => {
+    if (page !== "archives") return;
+
+    const button = event.target.closest(
+        '[data-action="restore-appointment"]'
+    );
+
+    if (!button || button.disabled) return;
+
+    const id = button.dataset.id;
+    if (!id) return;
+
+    button.disabled = true;
+
+    try {
+        await restoreArchivedAppointment(id);
+    } finally {
+        if (button.isConnected) {
+            button.disabled = false;
+        }
+    }
+});
+
+
+
+
 function render() {
     const rows = document.getElementById("rows");
 
@@ -857,11 +1416,12 @@ function render() {
     }
 
 // ===== APPOINTMENTS PAGE =====
-// ===== APPOINTMENTS PAGE =====
 if (page === "appointments" && rows) {
 
     // Filter all appointments before pagination
-    const list = getFilteredAppointments();
+   const list = getFilteredAppointments().filter(
+    appointment => appointment.isArchived !== true
+);
 
 list.sort((a, b) => {
     const dateA = `${a.date || ""}T${a.time || "00:00"}`;
@@ -916,16 +1476,20 @@ list.sort((a, b) => {
             startIndex + PAGE_SIZE
         );
 
-        rows.innerHTML = visibleRecords.map(apptRow).join("") ||
-            emptyRow(7, "No matching appointments found.");
+    rows.innerHTML = visibleRecords.map(apptRow).join("") ||
+        emptyRow(8, "No matching appointments found.");
+
+        syncAppointmentCheckboxes();
 
         return;
     }
 
     rows.innerHTML = list.map(apptRow).join("") ||
-        emptyRow(7, "No matching appointments found.");
+        emptyRow(8, "No matching appointments found.");
 
-    return;
+        syncAppointmentCheckboxes();
+
+        return;
 }
 
 // ===== STAFFS PAGE =====
@@ -1105,6 +1669,57 @@ resetButton.hidden = true;
 
         applyFilters();
     });
+
+    
+/* ===== APPOINTMENT SELECT ALL ===== */
+
+if (page === "appointments") {
+
+    const selectAll = document.getElementById(
+        "select-all-appointments"
+    );
+
+    if (selectAll) {
+        selectAll.addEventListener("change", function () {
+
+            const checkboxes = getVisibleAppointmentCheckboxes();
+
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+
+                if (this.checked) {
+                    selectedAppointmentIds.add(checkbox.dataset.id);
+                } else {
+                    selectedAppointmentIds.delete(checkbox.dataset.id);
+                }
+            });
+
+            updateAppointmentSelection();
+        });
+    }
+
+    const rows = document.getElementById("rows");
+
+    if (rows) {
+        rows.addEventListener("change", function (event) {
+
+            const checkbox = event.target.closest(
+                ".appointment-row-checkbox"
+            );
+
+            if (!checkbox) return;
+
+            if (checkbox.checked) {
+                selectedAppointmentIds.add(checkbox.dataset.id);
+            } else {
+                selectedAppointmentIds.delete(checkbox.dataset.id);
+            }
+
+            updateAppointmentSelection();
+        });
+    }
+}
+
 }
   document.querySelector(".logout").onclick = () => {
 
@@ -1403,6 +2018,9 @@ if (page === "login") {
     
 
     start();
+    if (page === "archives") {
+    loadArchivedAppointments();
+}
 
     loadAppointments();
 
