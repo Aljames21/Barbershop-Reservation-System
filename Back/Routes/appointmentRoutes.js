@@ -570,6 +570,78 @@ router.patch("/archive/bulk", verifyAdmin, async (req, res) => {
 });
 
 
+/* ===== RETRIEVE ARCHIVED APPOINTMENT ===== */
+
+router.patch("/archive/:id/restore", verifyAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                message: "Invalid appointment ID."
+            });
+        }
+
+        const appointment = await Appointment.findOneAndUpdate(
+            {
+                _id: id,
+                isArchived: true,
+                status: { $in: ["Completed", "Cancelled"] }
+            },
+            {
+                $set: {
+                    isArchived: false,
+                    archivedAt: null
+                }
+            },
+            { new: true }
+        );
+
+        if (!appointment) {
+            return res.status(404).json({
+                message: "Archived appointment not found."
+            });
+        }
+
+        return res.json({
+            message: "Appointment restored successfully.",
+            appointment
+        });
+
+    } catch (error) {
+        console.error("Restore appointment error:", error);
+
+        return res.status(500).json({
+            message: "Unable to restore appointment."
+        });
+    }
+});
+
+
+/* ===== GET ARCHIVED APPOINTMENTS ===== */
+
+router.get("/archive/list", verifyAdmin, async (req, res) => {
+    try {
+        const archivedAppointments = await Appointment.find({
+            isArchived: true
+        }).sort({
+            archivedAt: -1
+        });
+
+        return res.json(archivedAppointments);
+
+    } catch (error) {
+        console.error("Get archived appointments error:", error);
+
+        return res.status(500).json({
+            message: "Unable to load archived appointments."
+        });
+    }
+});
+
+
+
+
 // GET APPOINTMENTS
 
 router.get("/", verifyAdmin, async(req,res)=>{
