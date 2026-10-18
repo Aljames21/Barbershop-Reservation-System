@@ -641,6 +641,67 @@ router.get("/archive/list", verifyAdmin, async (req, res) => {
 
 
 
+/* ===== PERMANENTLY DELETE ARCHIVED APPOINTMENT ===== */
+
+router.delete("/archive/:id/permanent", verifyAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                message: "Invalid appointment ID."
+            });
+        }
+
+        const appointment = await Appointment.findOne({
+            _id: id,
+            isArchived: true,
+            status: { $in: ["Completed", "Cancelled"] }
+        });
+
+        if (!appointment) {
+            return res.status(404).json({
+                message: "Archived appointment not found."
+            });
+        }
+
+        const hasFeedback = await Feedback.exists({
+            appointment: appointment._id
+        });
+
+        if (hasFeedback) {
+            return res.status(409).json({
+                message: "Cannot delete this appointment because it has linked feedback."
+            });
+        }
+
+        const result = await Appointment.deleteOne({
+            _id: id,
+            isArchived: true,
+            status: { $in: ["Completed", "Cancelled"] }
+        });
+
+        if (result.deletedCount !== 1) {
+            return res.status(409).json({
+                message: "Appointment changed. Please refresh and try again."
+            });
+        }
+
+        return res.json({
+            message: "Appointment permanently deleted from database."
+        });
+
+    } catch (error) {
+        console.error("Permanent delete error:", error);
+
+        return res.status(500).json({
+            message: "Unable to permanently delete appointment."
+        });
+    }
+});
+
+
+
 
 // GET APPOINTMENTS
 
