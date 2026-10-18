@@ -664,12 +664,101 @@ function createPageController(containerId) {
     return state;
 }
 
+// ===== MONTHLY BOOKING TRENDS CHART =====
+let bookingTrendsChart = null;
+
+function renderBookingTrendsChart() {
+    const canvas = document.getElementById("booking-trends-chart");
+
+    if (!canvas || typeof Chart === "undefined") return;
+
+    const monthlyCounts = {};
+
+    // Count appointments by scheduled month
+    data.appointments.forEach(appointment => {
+        const date = String(appointment.date || "").slice(0, 10);
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+
+        const month = date.slice(0, 7);
+
+        monthlyCounts[month] = (monthlyCounts[month] || 0) + 1;
+    });
+
+            // Display all 12 months of the current year
+        const currentYear = new Date().getFullYear();
+
+        const labels = [
+            "Jan", "Feb", "Mar", "Apr",
+            "May", "Jun", "Jul", "Aug",
+            "Sep", "Oct", "Nov", "Dec"
+        ];
+
+        const counts = labels.map((_, index) => {
+            const monthNumber = String(index + 1).padStart(2, "0");
+            const monthKey = `${currentYear}-${monthNumber}`;
+
+            return monthlyCounts[monthKey] || 0;
+        });
+
+    // Prevent duplicate charts when dashboard updates
+    if (bookingTrendsChart) {
+        bookingTrendsChart.destroy();
+    }
+
+    bookingTrendsChart = new Chart(canvas, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Total Appointments",
+                data: counts,
+                backgroundColor: "#aa803c",
+                borderRadius: 6,
+                maxBarThickness: 65
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: "#ffffff"
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: "#cccccc"
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: "#cccccc",
+                        precision: 0
+                    },
+                    grid: {
+                        color: "rgba(255,255,255,0.1)"
+                    }
+                }
+            }
+        }
+    });
+}
+
 function render() {
     const rows = document.getElementById("rows");
 
     // ===== DASHBOARD =====
     if (page === "dashboard") {
             earnings();
+            renderBookingTrendsChart();
 
             const totalAppointments = data.appointments.length;
 
@@ -677,16 +766,35 @@ function render() {
                 a => a.status === "Pending"
             ).length;
 
+            // Count appointments by status
+                const confirmedAppointments = data.appointments.filter(
+                    a => a.status === "Confirmed"
+                ).length;
+
+                const completedAppointments = data.appointments.filter(
+                    a => a.status === "Completed"
+                ).length;
+
+                const cancelledAppointments = data.appointments.filter(
+                    a => a.status === "Cancelled"
+                ).length;
+
             const totalBarbers = data.staffs.length;
             const totalServices = data.services.length;
 
             const totalEl = document.getElementById("total-appointments");
             const pendingEl = document.getElementById("pending-appointments");
+            const confirmedEl = document.getElementById("confirmed-appointments");
+            const completedEl = document.getElementById("completed-appointments");
+            const cancelledEl = document.getElementById("cancelled-appointments");
             const barbersEl = document.getElementById("active-barbers");
             const servicesEl = document.getElementById("total-services");
 
             if (totalEl) totalEl.textContent = totalAppointments;
             if (pendingEl) pendingEl.textContent = pendingAppointments;
+            if (confirmedEl) confirmedEl.textContent = confirmedAppointments;
+            if (completedEl) completedEl.textContent = completedAppointments;
+            if (cancelledEl) cancelledEl.textContent = cancelledAppointments;
             if (barbersEl) barbersEl.textContent = totalBarbers;
             if (servicesEl) servicesEl.textContent = totalServices;
 

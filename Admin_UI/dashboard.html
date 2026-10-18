@@ -68,7 +68,8 @@
       </div>
 
       <!-- Business Overview -->
-      <div class="stats">
+     
+        <div class="stats dashboard-overview">
         <div class="card stat">
           <p>Total Appointments</p>
           <strong id="total-appointments">0</strong>
@@ -78,23 +79,51 @@
           <p>Pending Requests</p>
           <strong id="pending-appointments">0</strong>
         </div>
+<!-- Confirmed Appointments -->
+<div class="card stat">
+  <p>Confirmed Appointments</p>
+  <strong id="confirmed-appointments">0</strong>
+</div>
 
-        <div class="card stat">
-          <p>Active Barbers</p>
-          <strong id="active-barbers">0</strong>
-        </div>
+<!-- Completed Appointments -->
+<div class="card stat">
+  <p>Completed Appointments</p>
+  <strong id="completed-appointments">0</strong>
+</div>
 
-     
-      <div class="card stat">
-        <p>Total Services</p>
-        <strong id="total-services">0</strong>
+<!-- Cancelled Appointments -->
+<div class="card stat">
+  <p>Cancelled Appointments</p>
+  <strong id="cancelled-appointments">0</strong>
+</div>
+
+<!-- Active Barbers -->
+<div class="card stat">
+  <p>Active Barbers</p>
+  <strong id="active-barbers">0</strong>
+</div>
+
+<!-- Total Services -->
+<div class="card stat">
+  <p>Total Services</p>
+  <strong id="total-services">0</strong>
+</div>
+
       </div>
 
+
+      <!-- Monthly Booking Trends -->
+    <div class="card booking-chart-card">
+      <h3>Monthly Booking Trends</h3>
+      <p>Number of appointments per month</p>
+
+      <div class="booking-chart-container">
+        <canvas id="booking-trends-chart"></canvas>
       </div>
-
-    </main>
-  </div>
-
+    </div>
+        </main>
+      </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
   <script src="script.js"></script>
   <script src="auth.js"></script>
   <script src="logout.js"></script>

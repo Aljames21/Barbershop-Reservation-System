@@ -853,3 +853,66 @@ body[data-page="staffs"] .tag.on.leave {
 #reset-appointment-filters[hidden] {
     display: none !important;
 }
+
+/* ===== MONTHLY BOOKING TRENDS ===== */
+
+.booking-chart-card {
+    margin-top: 24px;
+    padding: 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.booking-chart-card h3 {
+    margin: 0 0 8px;
+    font-size: 20px;
+    color: #ffffff;
+}
+
+.booking-chart-card p {
+    margin: 0 0 20px;
+    font-size: 14px;
+    color: #aaaaaa;
+}
+
+.booking-chart-container {
+    position: relative;
+    width: 100%;
+    height: 320px;
+}
+
+@media (max-width: 768px) {
+    .booking-chart-card {
+        padding: 16px;
+    }
+
+    .booking-chart-container {
+        height: 250px;
+    }
+}
+
+/* ===== DASHBOARD OVERVIEW GRID ===== */
+
+.dashboard-overview {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.dashboard-overview .stat {
+    min-width: 0;
+    width: auto;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1100px) {
+    .dashboard-overview {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .dashboard-overview {
+        grid-template-columns: 1fr;
+    }
+}
