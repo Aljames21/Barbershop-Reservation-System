@@ -365,6 +365,11 @@ async function staffForm(s) {
         { name: "name", label: "Barber name" },
         { name: "role", label: "Specialization" },
         {
+            name: "image",
+            label: "Barber Picture",
+            type: "file"
+        },
+        {
             name: "status",
             label: "Status",
             options: ["Available", "Unavailable", "On Leave"]
@@ -381,6 +386,55 @@ async function staffForm(s) {
         },
         async (v) => {
             try {
+                // Keep the existing picture when editing.
+                let imageUrl = s?.imageUrl || "";
+
+                // Upload only when a new picture is selected.
+                if (v.image instanceof File && v.image.size > 0) {
+                    const allowedTypes = [
+                        "image/jpeg",
+                        "image/png",
+                        "image/webp"
+                    ];
+
+                    if (!allowedTypes.includes(v.image.type)) {
+                        alert("Only JPG, PNG, and WebP images are allowed.");
+                        return false;
+                    }
+
+                    if (v.image.size > 5 * 1024 * 1024) {
+                        alert("Image must be 5MB or smaller.");
+                        return false;
+                    }
+
+                    const formData = new FormData();
+                    formData.append("image", v.image);
+
+                    const uploadResponse = await fetch(
+                        API + "/uploads/barber-image",
+                        {
+                            method: "POST",
+                            headers: {
+                                Authorization:
+                                    "Bearer " +
+                                    sessionStorage.getItem("adminToken")
+                            },
+                            body: formData
+                        }
+                    );
+
+                    const uploadResult = await uploadResponse.json();
+
+                    if (!uploadResponse.ok || !uploadResult.imageUrl) {
+                        throw new Error(
+                            uploadResult.message ||
+                            "Barber image upload failed."
+                        );
+                    }
+
+                    imageUrl = uploadResult.imageUrl;
+                }
+
                 const result = await apiFetch(
                     s
                         ? `/barbers/${encodeURIComponent(s._id || s.id)}`
@@ -391,13 +445,18 @@ async function staffForm(s) {
                             name: v.name,
                             role: v.role,
                             specialization: v.role,
-                            status: v.status
+                            status: v.status,
+                            imageUrl: imageUrl
                         })
                     }
                 );
 
-                if (!result || result.error || result.message === "Staff not found.") {
-                    alert(result?.message || result?.error || "Failed to save staff.");
+                if (!result || !result._id) {
+                    alert(
+                        result?.message ||
+                        result?.error ||
+                        "Failed to save staff."
+                    );
                     return false;
                 }
 
@@ -406,7 +465,7 @@ async function staffForm(s) {
 
             } catch (error) {
                 console.error("SAVE STAFF ERROR:", error);
-                alert("Save failed: " + error.message);
+                alert("Staff save failed: " + error.message);
                 return false;
             }
         },
@@ -1747,15 +1806,34 @@ if (page === "staffs" && rows) {
     rows.innerHTML = data.staffs.map(s => {
         const status = s.status || "Available";
 
+        const barberImage = s.imageUrl
+            ? `<img
+                src="${esc(s.imageUrl)}"
+                alt="${esc(s.name)}"
+                class="staff-avatar"
+                loading="lazy"
+              >`
+            : `<div class="staff-avatar staff-avatar-placeholder">
+                <span>✂</span>
+              </div>`;
+
         return `
             <tr>
-                <td>${esc(s.name)}</td>
+                <td>
+                    <div class="staff-name-cell">
+                        ${barberImage}
+                        <span>${esc(s.name)}</span>
+                    </div>
+                </td>
+
                 <td>${esc(s.specialization || s.role || "Barber")}</td>
+
                 <td>
                     <span class="tag ${status.toLowerCase()}">
                         ${esc(status)}
                     </span>
                 </td>
+
                 <td>
                     ${btn("edit-staff", s.id || s._id, "Edit", "light")}
                     ${btn("remove-staff", s.id || s._id, "Remove", "light")}
