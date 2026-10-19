@@ -6,6 +6,7 @@ const cors = require("cors");
 require("dotenv").config();
 const app = express();
 
+
 const trustProxyHops = Number(process.env.TRUST_PROXY_HOPS ?? 1);
 if (!Number.isSafeInteger(trustProxyHops) || trustProxyHops < 0) {
     throw new Error("TRUST_PROXY_HOPS must be a non-negative integer.");
@@ -52,6 +53,7 @@ const appointmentRoutes = require("./Routes/appointmentRoutes");
 const adminRoutes = require("./Routes/adminRoutes");
 const feedbackRoutes = require("./Routes/feedbackRoutes");
 const otpRoutes = require("./Routes/otpRoutes");
+const chatbotRoutes = require("./Routes/chatbotRoutes");
 
 app.use("/api/services", serviceRoutes);
 app.use("/api/barbers", barberRoutes);  
@@ -59,6 +61,7 @@ app.use("/api/appointments", appointmentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/otp", otpRoutes);
+app.use("/api/chatbot", chatbotRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
