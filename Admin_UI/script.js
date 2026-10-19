@@ -191,67 +191,200 @@ const btn = (act, id, label, cls = "") => `<button class="${cls}" data-action="$
 const emptyRow = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${msg}</td></tr>`;
 
 /* ===== Pop-up form used for add / edit ===== */
+
 function openForm(title, fields, values, onSave, modalClass = "") {
- 
-  const dlg = document.createElement("div");
- 
-  dlg.className = `modal ${modalClass}`.trim();
-  dlg.innerHTML = `<div class="card modal-box"><h3 style="margin-top:0">${title}</h3><form>` +
-    fields.map(f => {
-      const v = values[f.name] ?? "";
-      const input = f.options
-        ? `<select name="${f.name}">${f.options.map(o => `<option${o == v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`
-        : `<input name="${f.name}" type="${f.type || "text"}" value="${esc(v)}" required>`;
-      return `<label>${f.label}${input}</label>`;
-    }).join("") +
-    `<div class="dialog-buttons"><button type="button" class="light">Cancel</button><button type="submit">Save</button></div></form></div>`;
-  
-  const close = () => { document.removeEventListener("keydown", onKey); dlg.remove(); };
-  const onKey = e => { if (e.key === "Escape") close(); };
-  const form = dlg.querySelector("form");
-  dlg.querySelector("button.light").onclick = close;
-  dlg.addEventListener("mousedown", e => { if (e.target === dlg) close(); });
- 
- 
-form.onsubmit = async e => {
-    e.preventDefault();
 
-    const v = Object.fromEntries(
-        [...new FormData(form)].map(([k, x]) => [
-            k,
-            String(x).trim()
-        ])
-    );
+    const dlg = document.createElement("div");
 
-    const saveButton = form.querySelector('button[type="submit"]');
-    saveButton.disabled = true;
-    saveButton.textContent = "Saving...";
+    dlg.className = `modal ${modalClass}`.trim();
 
-    try {
-        const saved = await onSave(v);
+    dlg.innerHTML =
+        `<div class="card modal-box">
+            <h3 style="margin-top:0">${esc(title)}</h3>
+            <form>` +
 
-        if (saved === false) {
+        fields.map(f => {
+            const v = values[f.name] ?? "";
+
+            let input;
+
+            if (f.type === "file") {
+                input = `
+                    <input
+                        name="${f.name}"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                    >
+
+                    <img
+                        class="service-image-preview"
+                        alt="Service image preview"
+                        style="
+                            display:none;
+                            width:160px;
+                            height:160px;
+                            object-fit:cover;
+                            margin-top:10px;
+                            border-radius:8px;
+                        "
+                    >
+                `;
+
+            } else if (f.options) {
+                input = `
+                    <select name="${f.name}">
+                        ${f.options.map(o =>
+                            `<option${o == v ? " selected" : ""}>
+                                ${esc(o)}
+                            </option>`
+                        ).join("")}
+                    </select>
+                `;
+
+            } else {
+                input = `
+                    <input
+                        name="${f.name}"
+                        type="${f.type || "text"}"
+                        value="${esc(v)}"
+                        required
+                    >
+                `;
+            }
+
+            return `<label>${esc(f.label)}${input}</label>`;
+
+        }).join("") +
+
+        `<div class="dialog-buttons">
+            <button type="button" class="light">Cancel</button>
+            <button type="submit">Save</button>
+        </div>
+        </form>
+        </div>`;
+
+    const close = () => {
+        document.removeEventListener("keydown", onKey);
+        dlg.remove();
+    };
+
+    const onKey = e => {
+        if (e.key === "Escape") close();
+    };
+
+    const form = dlg.querySelector("form");
+
+    // IMAGE PREVIEW
+    const imageInput = form.querySelector('input[type="file"]');
+    const imagePreview = form.querySelector(".service-image-preview");
+
+    if (imageInput && imagePreview) {
+        let previewUrl = null;
+
+        imageInput.addEventListener("change", () => {
+            const file = imageInput.files[0];
+
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+
+            imagePreview.style.display = "none";
+            imagePreview.removeAttribute("src");
+
+            if (!file) return;
+
+            const allowedTypes = [
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+                alert("Only JPG, PNG, and WebP images are allowed.");
+                imageInput.value = "";
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert("Image must be 5MB or smaller.");
+                imageInput.value = "";
+                return;
+            }
+
+            previewUrl = URL.createObjectURL(file);
+            imagePreview.src = previewUrl;
+            imagePreview.style.display = "block";
+        });
+
+        // Release the temporary preview URL when closing.
+        const originalClose = close;
+
+        dlg.addEventListener("modal-close-cleanup", () => {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+        });
+    }
+
+    dlg.querySelector("button.light").onclick = () => {
+        dlg.dispatchEvent(new Event("modal-close-cleanup"));
+        close();
+    };
+
+    dlg.addEventListener("mousedown", e => {
+        if (e.target === dlg) {
+            dlg.dispatchEvent(new Event("modal-close-cleanup"));
+            close();
+        }
+    });
+
+    form.onsubmit = async e => {
+        e.preventDefault();
+
+        const v = Object.fromEntries(
+            [...new FormData(form)].map(([k, x]) => [
+                k,
+                x instanceof File ? x : String(x).trim()
+            ])
+        );
+
+        const saveButton = form.querySelector('button[type="submit"]');
+
+        saveButton.disabled = true;
+        saveButton.textContent = "Saving...";
+
+        try {
+            const saved = await onSave(v);
+
+            if (saved === false) {
+                saveButton.disabled = false;
+                saveButton.textContent = "Save";
+                return;
+            }
+
+            dlg.dispatchEvent(new Event("modal-close-cleanup"));
+            close();
+
+        } catch (error) {
+            console.error("Form save error:", error);
+            alert("Unable to save. Please try again.");
+
             saveButton.disabled = false;
             saveButton.textContent = "Save";
-            return;
         }
+    };
 
-        close();
-    } catch (error) {
-        console.error("Form save error:", error);
-        alert("Unable to save. Please try again.");
-        saveButton.disabled = false;
-        saveButton.textContent = "Save";
-    }
-};
+    document.addEventListener("keydown", onKey);
+    document.body.append(dlg);
 
+    const first = dlg.querySelector("input, select");
+    if (first) first.focus();
 
-  document.addEventListener("keydown", onKey);
-  document.body.append(dlg);
-  const first = dlg.querySelector("input, select");
-  if (first) first.focus();
-  return dlg;
+    return dlg;
 }
+
 
 
 async function staffForm(s) {
@@ -306,13 +439,29 @@ async function staffForm(s) {
         },
         "accent-form-modal"
     );
-}
 
+    // Show the currently saved service image when editing.
+    if (service?.imageUrl) {
+        const preview = serviceDialog.querySelector(
+            ".service-image-preview"
+        );
+
+        if (preview) {
+            preview.src = service.imageUrl;
+            preview.style.display = "block";
+        }
+    }
+}
 
 async function serviceForm(service) {
     const fields = [
         { name: "name", label: "Service name" },
         { name: "description", label: "Description" },
+        {
+            name: "image",
+            label: "Service Image",
+            type: "file"
+        },
         { name: "price", label: "Price (₱)", type: "number" },
         { name: "duration", label: "Duration (minutes)", type: "number" },
         {
@@ -322,7 +471,7 @@ async function serviceForm(service) {
         }
     ];
 
-    openForm(
+    const serviceDialog = openForm(
         service ? "Edit service" : "Add service",
         fields,
         {
@@ -334,6 +483,54 @@ async function serviceForm(service) {
         },
         async (v) => {
             try {
+                let imageUrl = service?.imageUrl || "";
+
+                // Upload a new image only when one is selected.
+                if (v.image instanceof File && v.image.size > 0) {
+                    const allowedTypes = [
+                        "image/jpeg",
+                        "image/png",
+                        "image/webp"
+                    ];
+
+                    if (!allowedTypes.includes(v.image.type)) {
+                        alert("Only JPG, PNG, and WebP images are allowed.");
+                        return false;
+                    }
+
+                    if (v.image.size > 5 * 1024 * 1024) {
+                        alert("Image must be 5MB or smaller.");
+                        return false;
+                    }
+
+                    const formData = new FormData();
+                    formData.append("image", v.image);
+
+                    const uploadResponse = await fetch(
+                        API + "/uploads/service-image",
+                        {
+                            method: "POST",
+                            headers: {
+                                Authorization:
+                                    "Bearer " +
+                                    sessionStorage.getItem("adminToken")
+                            },
+                            body: formData
+                        }
+                    );
+
+                    const uploadResult = await uploadResponse.json();
+
+                    if (!uploadResponse.ok || !uploadResult.imageUrl) {
+                        throw new Error(
+                            uploadResult.message ||
+                            "Image upload failed."
+                        );
+                    }
+
+                    imageUrl = uploadResult.imageUrl;
+                }
+
                 const result = await apiFetch(
                     service
                         ? `/services/${encodeURIComponent(service._id)}`
@@ -343,6 +540,7 @@ async function serviceForm(service) {
                         body: JSON.stringify({
                             name: v.name,
                             description: v.description,
+                            imageUrl: imageUrl,
                             price: Number(v.price),
                             duration: Number(v.duration),
                             status: v.status
@@ -357,6 +555,7 @@ async function serviceForm(service) {
 
                 await loadServices();
                 return true;
+
             } catch (error) {
                 alert("Service save failed: " + error.message);
                 return false;
@@ -365,6 +564,7 @@ async function serviceForm(service) {
         "accent-form-modal"
     );
 }
+
 
 
 function clientForm(c) {

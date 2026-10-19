@@ -332,3 +332,52 @@ if (feedbackTrack && prevButton && nextButton) {
 }
 
 loadFeedback();
+
+
+/* AUTOMATIC SERVICE IMAGE GALLERY */
+
+async function loadServiceGallery() {
+    const gallery = document.querySelector(".gallery");
+
+    if (!gallery) return;
+
+    try {
+        const response = await fetch(`${API_URL}/services`);
+
+        if (!response.ok) {
+            throw new Error("Unable to load gallery services.");
+        }
+
+        const services = await response.json();
+
+        // Remove previously generated cards only.
+        gallery.querySelectorAll(".dynamic-gallery-card")
+            .forEach(card => card.remove());
+
+        services
+            .filter(service =>
+                typeof service.imageUrl === "string" &&
+                /^https:\/\//i.test(service.imageUrl) &&
+                service.name
+            )
+            .forEach(service => {
+                const card = document.createElement("div");
+                card.className = "dynamic-gallery-card";
+
+                const imageUrl = service.imageUrl;
+
+                // Use the uploaded image as the card background.
+                card.style.backgroundImage = `url("${imageUrl}")`;
+
+                const title = document.createElement("h4");
+                title.textContent = service.name;
+
+                card.appendChild(title);
+                gallery.appendChild(card);
+            });
+
+    } catch (error) {
+        console.error("Gallery loading error:", error);
+    }
+}
+document.addEventListener("DOMContentLoaded", loadServiceGallery);

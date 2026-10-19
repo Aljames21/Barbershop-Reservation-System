@@ -2864,3 +2864,63 @@ summary {
     opacity: 1;
   }
 }
+
+/* DYNAMIC SERVICE GALLERY */
+
+.gallery .dynamic-gallery-card {
+    min-height: 300px;
+    margin: 20px;
+    padding: 20px;
+    border-radius: 15px;
+
+    background-color: #171717;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+
+    position: relative;
+    overflow: hidden;
+
+    transition: transform 0.3s ease,
+                box-shadow 0.3s ease,
+                border-color 0.3s ease;
+
+    border: 2px solid transparent;
+}
+
+.gallery .dynamic-gallery-card:hover {
+    border-color: orange;
+    box-shadow: 0 10px 80px #a67c3b;
+    transform: scale(1.04);
+}
+
+.gallery .dynamic-gallery-card h4 {
+    position: relative;
+    z-index: 1;
+    color: white;
+    font-size: 20px;
+    font-family: Georgia, serif;
+    text-align: center;
+}
+
+.gallery .dynamic-gallery-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        rgba(30, 30, 30, 0.1),
+        rgba(0, 0, 0, 0.65)
+    );
+}
+
+@media (max-width: 600px) {
+    .gallery .dynamic-gallery-card {
+        min-height: 260px;
+        margin: 10px 0;
+        width: 90%;
+    }
+}
