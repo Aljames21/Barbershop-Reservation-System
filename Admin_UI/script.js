@@ -2,6 +2,12 @@
 // Demo login. Change these. This is NOT real security: anyone can read this file.
 
 // Services and their default prices
+console.log("DEBUG: script.js is executing");
+window.addEventListener("error", function (event) {
+    console.error("GLOBAL ERROR:", event.message);
+    console.error("FILE:", event.filename);
+    console.error("LINE:", event.lineno);
+});
 const SERVICES = { "Haircut": 250, "Haircut + beard": 400, "Shave": 200, "Hair color": 900 };
 const STORAGE_KEY = "barber-data";
 
@@ -51,102 +57,69 @@ let data = {
     services: []
 };
 
-
 async function loadAppointments() {
-    const appointments = await apiFetch("/appointments");
-if (appointments) {
-    data.appointments = appointments;
+    console.log("DEBUG: loadAppointments called");
 
-    // Populate barber filter using appointment records
-    if (page === "appointments") {
-        const barberFilter = document.getElementById(
-            "appointment-barber-filter"
+    try {
+        console.log("Loading appointments...");
+
+        const appointments = await apiFetch("/appointments");
+
+        console.log(
+            "Appointments API result:",
+            Array.isArray(appointments)
+                ? `${appointments.length} records`
+                : appointments
         );
 
-        if (barberFilter) {
-            const barbers = [
-                ...new Set(
-                    data.appointments
-                        .map(a => String(a.barber || "").trim())
-                        .filter(Boolean)
-                )
-            ].sort((a, b) => a.localeCompare(b));
-
-            barberFilter.replaceChildren(
-                new Option("All Barbers", "all"),
-                ...barbers.map(name => new Option(name, name))
+        if (!Array.isArray(appointments)) {
+            console.error(
+                "Invalid appointments response:",
+                appointments
             );
-
-            barberFilter.value = barbers.includes(appointmentFilters.barber)
-                ? appointmentFilters.barber
-                : "all";
-
-            appointmentFilters.barber = barberFilter.value;
-        }
-        
-// ===== ARCHIVE SELECTED APPOINTMENTS =====
-
-const archiveSelectedButton = document.getElementById(
-    "archive-selected-appointments"
-);
-
-if (archiveSelectedButton) {
-    archiveSelectedButton.addEventListener("click", async () => {
-
-        const selectedIds = getVisibleAppointmentCheckboxes()
-            .filter(checkbox => checkbox.checked)
-            .map(checkbox => checkbox.dataset.id);
-
-        if (selectedIds.length === 0) {
-            alert("Please select an appointment to archive.");
             return;
         }
 
-        const confirmed = await showAppointmentConfirmation(
-            `Archive ${selectedIds.length} selected appointment(s)?`
-        );
+        data.appointments = appointments;
 
-        if (!confirmed) return;
+        if (page === "appointments") {
+            const barberFilter = document.getElementById(
+                "appointment-barber-filter"
+            );
 
-        archiveSelectedButton.disabled = true;
+            if (barberFilter) {
+                const barbers = [
+                    ...new Set(
+                        appointments
+                            .map(a => String(a.barber || "").trim())
+                            .filter(Boolean)
+                    )
+                ].sort((a, b) => a.localeCompare(b));
 
-        try {
-            const result = await apiFetch("/appointments/archive/bulk", {
-                method: "PATCH",
-                body: JSON.stringify({
-                    appointmentIds: selectedIds
-                })
-            });
-
-            if (result.archivedCount !== selectedIds.length) {
-                throw new Error(
-                    result.message || "Not all appointments were archived."
+                barberFilter.replaceChildren(
+                    new Option("All Barbers", "all"),
+                    ...barbers.map(name => new Option(name, name))
                 );
+
+                barberFilter.value = barbers.includes(
+                    appointmentFilters.barber
+                )
+                    ? appointmentFilters.barber
+                    : "all";
+
+                appointmentFilters.barber = barberFilter.value;
             }
-
-            selectedAppointmentIds.clear();
-
-            await loadAppointments();
-
-            alert(`${result.archivedCount} appointment(s) archived successfully!`);
-
-        } catch (error) {
-            console.error("Archive appointments error:", error);
-            alert("Archive failed: " + error.message);
-
-            await loadAppointments();
-
-        } finally {
-            updateAppointmentSelection();
         }
-    });
-  }
 
-}
+        earnings();
+        render();
 
-    earnings();
-    render();
-}
+    } catch (error) {
+        console.error(
+            "LOAD APPOINTMENTS ERROR:",
+            error
+        );
+    }
 }
 
 
@@ -439,18 +412,6 @@ async function staffForm(s) {
         },
         "accent-form-modal"
     );
-
-    // Show the currently saved service image when editing.
-    if (service?.imageUrl) {
-        const preview = serviceDialog.querySelector(
-            ".service-image-preview"
-        );
-
-        if (preview) {
-            preview.src = service.imageUrl;
-            preview.style.display = "block";
-        }
-    }
 }
 
 async function serviceForm(service) {
@@ -1887,6 +1848,7 @@ function commit() { save(); render(); }
 
 /* ===== Button clicks ===== */
 function start() {
+    console.log("DEBUG: start() called");
 
 if (page === "appointments") {
 
@@ -2269,6 +2231,11 @@ function showAppointmentConfirmation(message) {
 
 /* ===== Login check (runs last) ===== */
 
+console.log("DEBUG: reached login condition");
+console.log("DEBUG: current page =", page);
+console.log("DEBUG: admin session =", sessionStorage.getItem("admin"));
+
+
 if (page === "login") {
     document.getElementById("login-form").onsubmit = async (e) => {
         e.preventDefault();
@@ -2311,8 +2278,7 @@ if (page === "login") {
 } else if (sessionStorage.getItem("admin") !== "yes") {
     window.location.href = "index.html";
 } else {
-    
-
+    console.log("DEBUG: admin initialization reached");
     start();
     if (page === "archives") {
     loadArchivedAppointments();
