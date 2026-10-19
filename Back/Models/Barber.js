@@ -21,10 +21,20 @@ const barberSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    
     time: {
         type: String,
         default: ""
+    },
+    isArchived: {
+        type: Boolean,
+        default: false
+    },
+    archivedAt: {
+        type: Date,
+        default: null
     }
+
 });
 
 module.exports = mongoose.model("Barber", barberSchema);

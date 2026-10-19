@@ -1854,6 +1854,187 @@ body[data-page="archives"] .archive-delete-btn:disabled {
     cursor: not-allowed;
 }
 
+/* ===== ARCHIVES BULK ACTION TOOLBAR ===== */
+
+.archive-bulk-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+    margin-bottom: 20px;
+}
+
+.archive-bulk-toolbar #archive-selected-count,
+.archive-bulk-toolbar #feedback-selected-count {
+    margin-right: 4px;
+}
+
+.archive-bulk-toolbar button {
+    margin: 0;
+}
+
+.archive-bulk-toolbar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===== ARCHIVES TABLE STYLE ===== */
+
+/* Archived Appointments and Archived Feedback */
+#archived-appointments-section table,
+#archived-feedback-section table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Column headers */
+#archived-appointments-section table th,
+#archived-feedback-section table th {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 14px 12px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+/* Table content */
+#archived-appointments-section table td,
+#archived-feedback-section table td {
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.35;
+    padding: 13px 12px;
+    vertical-align: middle;
+}
+
+/* Archived feedback comments */
+#feedback-rows .feedback-comment-cell {
+    font-size: 15px;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Customer names */
+#feedback-rows td:nth-child(2) {
+    font-size: 15px;
+    white-space: normal;
+}
+
+/* Status badges */
+#archived-appointments-section table .tag,
+#archived-feedback-section table .tag {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Checkbox */
+#archived-appointments-section table input[type="checkbox"],
+#archived-feedback-section table input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #b58a43;
+}
+
+/* Consistent row spacing */
+#archived-appointments-section tbody tr,
+#archived-feedback-section tbody tr {
+    height: 56px;
+}
+
+
+/* ===== FINAL TABLE READABILITY ===== */
+
+/* Main Appointments and Archives tables */
+body[data-page="appointments"] .table-wrap table th,
+body[data-page="archives"] table th {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    line-height: 1.5 !important;
+    padding: 16px 14px !important;
+}
+
+body[data-page="appointments"] .table-wrap table td,
+body[data-page="archives"] table td {
+    font-size: 16px !important;
+    font-weight: 400 !important;
+    line-height: 1.5 !important;
+    padding: 15px 14px !important;
+    vertical-align: middle !important;
+}
+
+/* Customer names and feedback comments */
+body[data-page="archives"] #feedback-rows td,
+body[data-page="archives"] #feedback-rows .feedback-comment-cell {
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+}
+
+/* Status badges */
+body[data-page="appointments"] table .tag,
+body[data-page="archives"] table .tag {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+}
+
+/* Action buttons */
+body[data-page="appointments"] table button {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+}
+
+/* ===== PAGINATION READABILITY ===== */
+
+body[data-page="appointments"] .pagination-container button,
+body[data-page="archives"] .pagination-container button {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    padding: 10px 16px !important;
+    border: 1px solid #c79b53 !important;
+    border-radius: 6px !important;
+    background-color: #a9803e !important;
+    color: #ffffff !important;
+}
+
+/* Disabled Previous and Next */
+body[data-page="appointments"] .pagination-container button:disabled,
+body[data-page="archives"] .pagination-container button:disabled {
+    background-color: #40372c !important;
+    color: #e0d4c1 !important;
+    border-color: #8a7351 !important;
+    opacity: 1 !important;
+    cursor: not-allowed !important;
+}
+
+/* Page number */
+body[data-page="appointments"] .pagination-container span,
+body[data-page="archives"] .pagination-container span {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+}
+
+/* ===== TABLE CHECKBOXES ===== */
+
+body[data-page="appointments"] table input[type="checkbox"],
+body[data-page="archives"] table input[type="checkbox"] {
+    width: 17px !important;
+    height: 17px !important;
+    accent-color: #b58a43;
+}
+
+/* Ensure inactive archive sections are hidden */
+body[data-page="archives"] section[hidden] {
+    display: none !important;
+}
+
+/* Ensure active archive sections are visible */
+body[data-page="archives"] #archived-barbers-section:not([hidden]),
+body[data-page="archives"] #archived-services-section:not([hidden]) {
+    display: block;
+}
+
 
 
 

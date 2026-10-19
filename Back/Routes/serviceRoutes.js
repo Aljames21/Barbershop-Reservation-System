@@ -9,15 +9,18 @@ const verifyAdmin = require("../Middleware/authMiddleware");
 // Customers see active services; admins can see all services.
 router.get("/", async (req, res) => {
     try {
+        
         const filter = req.query.admin === "true"
-            ? {}
+            ? { isArchived: { $ne: true } }
             : {
+                isArchived: { $ne: true },
                 $or: [
                     { status: "Active" },
                     { status: { $exists: false } },
                     { status: null }
                 ]
             };
+
 
         const services = await Service.find(filter).sort({ name: 1 });
         res.json(services);
@@ -66,6 +69,72 @@ router.post("/", verifyAdmin, async (req, res) => {
     }
 });
 
+
+// ADMIN: List archived services
+router.get("/archive/list", verifyAdmin, async (req, res) => {
+    try {
+        const services = await Service.find({
+            isArchived: true
+        }).sort({ archivedAt: -1 });
+
+        res.json(services);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ADMIN: Retrieve archived service
+router.patch("/archive/:id/restore", verifyAdmin, async (req, res) => {
+    try {
+        const service = await Service.findOneAndUpdate(
+            { _id: req.params.id, isArchived: true },
+            {
+                $set: {
+                    isArchived: false,
+                    archivedAt: null
+                }
+            },
+            { new: true, runValidators: true }
+        );
+
+        if (!service) {
+            return res.status(404).json({
+                message: "Archived service not found."
+            });
+        }
+
+        res.json({
+            message: "Service retrieved successfully.",
+            service
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ADMIN: Permanently delete archived service
+router.delete("/archive/:id/permanent", verifyAdmin, async (req, res) => {
+    try {
+        const service = await Service.findOneAndDelete({
+            _id: req.params.id,
+            isArchived: true
+        });
+
+        if (!service) {
+            return res.status(404).json({
+                message: "Archived service not found."
+            });
+        }
+
+        res.json({
+            message: "Service permanently deleted."
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+
 // EDIT SERVICE
 router.put("/:id", verifyAdmin, async (req, res) => {
     try {
@@ -111,17 +180,38 @@ router.put("/:id", verifyAdmin, async (req, res) => {
 });
 
 // DELETE SERVICE
+
+// DELETE SERVICE: Move to Archives
 router.delete("/:id", verifyAdmin, async (req, res) => {
     try {
-        const service = await Service.findByIdAndDelete(req.params.id);
+        const service = await Service.findOneAndUpdate(
+            {
+                _id: req.params.id,
+                isArchived: { $ne: true }
+            },
+            {
+                $set: {
+                    isArchived: true,
+                    archivedAt: new Date()
+                }
+            },
+            { new: true }
+        );
 
         if (!service) {
-            return res.status(404).json({ message: "Service not found." });
+            return res.status(404).json({
+                message: "Active service not found."
+            });
         }
 
-        res.json({ message: "Service deleted successfully." });
+        res.json({
+            message: "Service moved to Archives.",
+            service
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({
+            message: "Unable to archive service."
+        });
     }
 });
 

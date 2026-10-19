@@ -1172,9 +1172,19 @@ function renderArchivedAppointments() {
             })
             : "-";
 
-        return `
-            <tr>
-                <td>${formatArchiveDateTime(a.date, a.time)}</td>
+            return `
+                <tr>
+                    <td>
+                        <input
+                            type="checkbox"
+                            class="archived-appointment-checkbox"
+                            data-id="${esc(id)}"
+                            aria-label="Select archived appointment"
+                        >
+                    </td>
+
+                   <td>${formatArchiveDateTime(a.date, a.time)}</td>
+
                 <td>${esc(a.customerName || a.client || "-")}</td>
                 <td>${esc(a.service || "-")}</td>
                 <td>${esc(a.barber || "No preference")}</td>
@@ -1187,26 +1197,6 @@ function renderArchivedAppointments() {
                     </span>
                 </td>
                 <td>${esc(archivedDate)}</td>
-                <td>
-                    
-                <div class="archive-actions">
-                    <button
-                        type="button"
-                        class="archive-restore-btn"
-                        data-action="restore-appointment"
-                        data-id="${esc(id)}">
-                        Retrieve
-                    </button>
-
-                    <button
-                        type="button"
-                        class="archive-delete-btn"
-                        data-action="delete-archived-appointment"
-                        data-id="${esc(id)}">
-                        Delete Permanently
-                    </button>
-                </div>
-              </td>
             </tr>
         `;
     }).join("") || emptyRow(
@@ -1847,6 +1837,13 @@ if (page === "appointments") {
 const id = b.dataset.id;
 const act = b.dataset.action;
 
+if (
+    page === "archives" &&
+    ["restore-appointment", "delete-archived-appointment"].includes(act)
+) {
+    return;
+}   
+
 const a = data.appointments.find(
     x => String(x._id || x.id) === String(id)
 );
@@ -2135,3 +2132,164 @@ if (page === "login") {
 
 
 }
+
+/* ===== ARCHIVED APPOINTMENTS BULK ACTIONS ===== */
+
+if (page === "archives") {
+    const archiveRows = document.getElementById(
+        "archived-appointments-rows"
+    );
+
+    const selectAll = document.getElementById(
+        "select-all-archives"
+    );
+
+    const selectedCount = document.getElementById(
+        "archive-selected-count"
+    );
+
+    const retrieveButton = document.getElementById(
+        "retrieve-selected-archives"
+    );
+
+    const deleteButton = document.getElementById(
+        "delete-selected-archives"
+    );
+
+    let processing = false;
+
+    function getArchiveCheckboxes() {
+        return [...archiveRows.querySelectorAll(
+            ".archived-appointment-checkbox"
+        )];
+    }
+
+    function getSelectedArchiveIds() {
+        return getArchiveCheckboxes()
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.dataset.id);
+    }
+
+    function updateArchiveSelection() {
+        const checkboxes = getArchiveCheckboxes();
+        const selected = getSelectedArchiveIds().length;
+
+        selectedCount.textContent = `${selected} selected`;
+
+        retrieveButton.disabled = processing || selected === 0;
+        deleteButton.disabled = processing || selected === 0;
+        selectAll.disabled = processing || checkboxes.length === 0;
+
+        selectAll.checked =
+            checkboxes.length > 0 &&
+            selected === checkboxes.length;
+
+        selectAll.indeterminate =
+            selected > 0 && selected < checkboxes.length;
+    }
+
+    selectAll.addEventListener("change", () => {
+        getArchiveCheckboxes().forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+        });
+
+        updateArchiveSelection();
+    });
+
+    archiveRows.addEventListener("change", event => {
+        if (event.target.matches(
+            ".archived-appointment-checkbox"
+        )) {
+            updateArchiveSelection();
+        }
+    });
+
+    new MutationObserver(updateArchiveSelection).observe(
+        archiveRows,
+        { childList: true }
+    );
+
+    async function processSelectedArchives(action) {
+        if (processing) return;
+
+        const ids = getSelectedArchiveIds();
+        if (!ids.length) return;
+
+        const deleting = action === "delete";
+
+        const confirmed = await showAppointmentConfirmation(
+            deleting
+                ? `Permanently delete ${ids.length} selected appointment(s)? This cannot be undone.`
+                : `Retrieve ${ids.length} selected appointment(s)?`
+        );
+
+        if (!confirmed || processing) return;
+
+        processing = true;
+        updateArchiveSelection();
+
+        const checkboxes = getArchiveCheckboxes();
+        checkboxes.forEach(checkbox => {
+            checkbox.disabled = true;
+        });
+
+        let successful = 0;
+        const failures = [];
+
+        try {
+            for (const id of ids) {
+                try {
+                    const endpoint = deleting
+                        ? `/appointments/archive/${encodeURIComponent(id)}/permanent`
+                        : `/appointments/archive/${encodeURIComponent(id)}/restore`;
+
+                    const result = await apiFetch(endpoint, {
+                        method: deleting ? "DELETE" : "PATCH"
+                    });
+
+                    if (!result) {
+                        throw new Error("Request did not complete.");
+                    }
+
+                    successful++;
+                } catch (error) {
+                    failures.push(`${id}: ${error.message}`);
+                }
+            }
+
+            await loadArchivedAppointments();
+
+            alert(
+                `${successful} appointment(s) ${
+                    deleting ? "deleted" : "retrieved"
+                } successfully.` +
+                (failures.length
+                    ? `\n${failures.length} failed:\n${failures.join("\n")}`
+                    : "")
+            );
+
+        } catch (error) {
+            alert("Bulk action error: " + error.message);
+
+        } finally {
+            processing = false;
+
+            getArchiveCheckboxes().forEach(checkbox => {
+                checkbox.disabled = false;
+            });
+
+            updateArchiveSelection();
+        }
+    }
+
+    retrieveButton.addEventListener("click", () => {
+        processSelectedArchives("restore");
+    });
+
+    deleteButton.addEventListener("click", () => {
+        processSelectedArchives("delete");
+    });
+
+    updateArchiveSelection();
+}
+
