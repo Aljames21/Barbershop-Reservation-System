@@ -1145,6 +1145,14 @@ a {
   width: 140%;
 }
 
+.day-h3 {
+  color: grey;
+}
+
+.oras {
+  color: #ffc165;
+}
+
 .book-your-chair {
   background-color: black;
   border-top: 1px solid #a67c3b;
