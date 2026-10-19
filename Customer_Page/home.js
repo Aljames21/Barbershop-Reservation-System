@@ -91,13 +91,24 @@ async function loadBarbers() {
 
     if (!container) return;
 
-    // Map each barber name to the correct existing photo.
-    // Make sure each filename matches the actual photo.
+    // Existing photos used only as fallbacks.
     const barberImageMap = {
         "ian dizon": "images/staff3.jpg",
         "leo ramos cruz": "images/staff2.jpg",
         "mia jose silva": "images/staff1.jpg"
     };
+
+    const fallbackImage = "images/staff1.jpg";
+
+    // Escape text inserted into HTML.
+    const escapeHTML = (value) =>
+        String(value ?? "").replace(/[&<>"']/g, (char) => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        }[char]));
 
     try {
         const response = await fetch(`${API_URL}/barbers`);
@@ -109,13 +120,10 @@ async function loadBarbers() {
         const barbers = await response.json();
 
         if (!Array.isArray(barbers) || barbers.length === 0) {
-            container.innerHTML =
-                "<p>No barbers available right now.</p>";
+            container.textContent = "No barbers available right now.";
             return;
         }
 
-        // Show only barbers who can currently be selected.
-        // "Active" is retained for compatibility with older records.
         const visibleBarbers = barbers.filter((barber) => {
             const status = String(barber.status || "Active")
                 .trim()
@@ -125,8 +133,7 @@ async function loadBarbers() {
         });
 
         if (visibleBarbers.length === 0) {
-            container.innerHTML =
-                "<p>No barbers available right now.</p>";
+            container.textContent = "No barbers available right now.";
             return;
         }
 
@@ -134,10 +141,9 @@ async function loadBarbers() {
             const barberName =
                 barber.name ||
                 barber.fullName ||
-                [
-                    barber.firstName,
-                    barber.lastName
-                ].filter(Boolean).join(" ") ||
+                [barber.firstName, barber.lastName]
+                    .filter(Boolean)
+                    .join(" ") ||
                 "Barber";
 
             const normalizedName = barberName
@@ -153,10 +159,16 @@ async function loadBarbers() {
                 barber.specialty ||
                 "Professional haircut services.";
 
-            // Match photos by barber name, not database order.
-            const image =
+            // Cloudinary picture takes priority.
+            // Existing local photos remain as fallbacks.
+            const candidateImage =
+                barber.imageUrl ||
                 barberImageMap[normalizedName] ||
-                "images/staff1.jpg";
+                fallbackImage;
+
+            const image = /^(https:\/\/|images\/)[^\s"'<>]+$/i.test(candidateImage)
+                ? candidateImage
+                : fallbackImage;
 
             const cardClass = `barber-${(index % 3) + 1}`;
 
@@ -164,16 +176,16 @@ async function loadBarbers() {
                 <div class="${cardClass}">
                     <div class="barber-pic">
                         <img
-                            src="${image}"
-                            alt="${barberName}"
-                            onerror="this.onerror=null;this.src='images/staff1.jpg';"
+                            src="${escapeHTML(image)}"
+                            alt="${escapeHTML(barberName)}"
+                            loading="lazy"
                         >
                     </div>
 
                     <div class="barber-info">
-                        <h3>${barberName}</h3>
-                        <p class="position">${position}</p>
-                        <p class="details">${description}</p>
+                        <h3>${escapeHTML(barberName)}</h3>
+                        <p class="position">${escapeHTML(position)}</p>
+                        <p class="details">${escapeHTML(description)}</p>
                     </div>
 
                     <a
@@ -186,13 +198,22 @@ async function loadBarbers() {
             `;
         }).join("");
 
+        // Use a fallback if an uploaded picture cannot load.
+        container.querySelectorAll(".barber-pic img").forEach((img) => {
+            img.addEventListener("error", () => {
+                if (!img.src.endsWith(fallbackImage)) {
+                    img.src = fallbackImage;
+                }
+            });
+        });
+
     } catch (error) {
         console.error("Error loading barbers:", error);
 
-        container.innerHTML =
-            "<p>Unable to load barbers. Please refresh the page.</p>";
+        container.textContent =
+            "Unable to load barbers. Please refresh the page.";
     }
-}
+}   
 
 
 // ==================================================
@@ -336,10 +357,33 @@ loadFeedback();
 
 /* AUTOMATIC SERVICE IMAGE GALLERY */
 
+/* AUTOMATIC SERVICE IMAGE GALLERY — NO DUPLICATES */
+
+
+/* AUTOMATIC GALLERY — ACTIVE SERVICES ONLY */
+
 async function loadServiceGallery() {
     const gallery = document.querySelector(".gallery");
-
     if (!gallery) return;
+
+    // Match the original HTML cards with their service names.
+    const originalHaircuts = [
+        { name: "Mullet", className: "card-1" },
+        { name: "Classic Haircut", className: "card-2" },
+        { name: "Fade", className: "card-3" },
+        { name: "Mid Fade", className: "card-4" },
+        { name: "Low Fade", className: "card-5" },
+        { name: "High Fade", className: "card-6" },
+        { name: "Burst Fade", className: "card-7" },
+        { name: "Semi-Kalbo", className: "card-8" },
+        { name: "Buzz Cut", className: "card-9" }
+    ];
+
+    const normalizeName = name =>
+        String(name || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ");
 
     try {
         const response = await fetch(`${API_URL}/services`);
@@ -350,34 +394,75 @@ async function loadServiceGallery() {
 
         const services = await response.json();
 
-        // Remove previously generated cards only.
+        if (!Array.isArray(services)) {
+            throw new Error("Invalid services data.");
+        }
+
+        // The public API returns only active,
+        // non-archived services.
+        const activeNames = new Set(
+            services.map(service => normalizeName(service.name))
+        );
+
+        // Show or hide original gallery cards.
+        originalHaircuts.forEach(haircut => {
+            const card = gallery.querySelector(
+                "." + haircut.className
+            );
+
+            if (!card) return;
+
+            const isActive = activeNames.has(
+                normalizeName(haircut.name)
+            );
+
+            card.style.display = isActive ? "flex" : "none";
+        });
+
+        // Remove previously generated dynamic cards.
         gallery.querySelectorAll(".dynamic-gallery-card")
             .forEach(card => card.remove());
 
-        services
-            .filter(service =>
-                typeof service.imageUrl === "string" &&
-                /^https:\/\//i.test(service.imageUrl) &&
-                service.name
+        // Avoid duplicate haircut names.
+        const originalNames = new Set(
+            originalHaircuts.map(haircut =>
+                normalizeName(haircut.name)
             )
-            .forEach(service => {
-                const card = document.createElement("div");
-                card.className = "dynamic-gallery-card";
+        );
 
-                const imageUrl = service.imageUrl;
+        const addedNames = new Set(originalNames);
 
-                // Use the uploaded image as the card background.
-                card.style.backgroundImage = `url("${imageUrl}")`;
+        services.forEach(service => {
+            if (!service.name || !service.imageUrl) return;
 
-                const title = document.createElement("h4");
-                title.textContent = service.name;
+            if (
+                typeof service.imageUrl !== "string" ||
+                !/^https:\/\//i.test(service.imageUrl)
+            ) return;
 
-                card.appendChild(title);
-                gallery.appendChild(card);
-            });
+            const normalized = normalizeName(service.name);
+
+            if (addedNames.has(normalized)) return;
+
+            const card = document.createElement("div");
+            card.className = "dynamic-gallery-card";
+
+            card.style.backgroundImage =
+                `url("${service.imageUrl}")`;
+
+            const title = document.createElement("h4");
+            title.textContent = service.name;
+
+            card.appendChild(title);
+            gallery.appendChild(card);
+
+            addedNames.add(normalized);
+        });
 
     } catch (error) {
         console.error("Gallery loading error:", error);
     }
 }
+
+
 document.addEventListener("DOMContentLoaded", loadServiceGallery);

@@ -11,7 +11,7 @@ router.get("/", async (req, res) => {
         const barbers = await Barber.find({
             isArchived: { $ne: true },
             status: { $in: ["Available", "Active"] }
-        }).select("name specialization status");
+        }).select("name specialization status imageUrl");
                 res.json(barbers);
 
     } catch (error) {
@@ -36,7 +36,7 @@ router.get("/admin", verifyAdmin, async (req, res) => {
 // ADMIN: add staff
 router.post("/", verifyAdmin, async (req, res) => {
     try {
-        const { name, role, specialization, status } = req.body;
+        const { name, role, specialization, status, imageUrl } = req.body;
 
         const barberName = String(name || "").trim();
         const barberSpecialization = String(
@@ -61,12 +61,12 @@ router.post("/", verifyAdmin, async (req, res) => {
             });
         }
 
-        const barber = await Barber.create({
+            const barber = await Barber.create({
             name: barberName,
             specialization: barberSpecialization,
-            status: status || "Available"
+            status: status || "Available",
+            imageUrl: imageUrl || ""
         });
-
         res.status(201).json(barber);
     } catch (error) {
         console.error("Add staff error:", error.message);
@@ -146,7 +146,7 @@ router.delete("/archive/:id/permanent", verifyAdmin, async (req, res) => {
 // ADMIN: update staff
 router.put("/:id", verifyAdmin, async (req, res) => {
     try {
-        const { name, role, specialization, status } = req.body;
+        const { name, role, specialization, status, imageUrl } = req.body;
         const update = {};
 
         if (name !== undefined) {
@@ -185,6 +185,10 @@ router.put("/:id", verifyAdmin, async (req, res) => {
             }
 
             update.status = status;
+        }
+
+                if (imageUrl !== undefined) {
+            update.imageUrl = imageUrl;
         }
 
         const updated = await Barber.findByIdAndUpdate(
