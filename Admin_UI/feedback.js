@@ -205,6 +205,7 @@ const feedbackPageController = (() => {
 })();
 
 function renderFeedback(feedback) {
+  renderFeedbackRatingSummary(feedback);
   const controller = feedbackPageController;
   const startIndex = controller && controller.totalPages > 0 ? (controller.currentPage - 1) * FEEDBACK_PAGE_SIZE : 0;
   const pageStart = controller ? Math.max(0, startIndex) : 0;
@@ -248,6 +249,33 @@ function renderFeedback(feedback) {
 
   feedbackRows.innerHTML = rows.join("") ||
     '<tr><td colspan="7" class="empty">No feedback has been submitted yet.</td></tr>';
+}
+
+function renderFeedbackRatingSummary(feedback) {
+  const summary = summarizeFeedbackRatings(feedback);
+  const average = document.getElementById("feedback-average-rating");
+  const reviewCount = document.getElementById("feedback-approved-count");
+  const distribution = document.getElementById("feedback-rating-distribution");
+
+  average.textContent = summary.average === null
+    ? "—"
+    : `${summary.average.toFixed(1)} / 5`;
+  reviewCount.textContent = String(summary.count);
+  distribution.innerHTML = summary.distribution.map(({ stars, count }) => {
+    const percentage = summary.count
+      ? (count / summary.count) * 100
+      : 0;
+
+    return `
+      <div class="feedback-rating-row">
+        <span>${stars} ${stars === 1 ? "star" : "stars"}</span>
+        <div class="feedback-rating-track" aria-hidden="true">
+          <span style="width: ${percentage}%"></span>
+        </div>
+        <span>${count}</span>
+      </div>
+    `;
+  }).join("");
 }
 
 async function loadFeedback() {

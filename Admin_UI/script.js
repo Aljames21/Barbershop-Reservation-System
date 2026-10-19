@@ -43,6 +43,33 @@ async function apiFetch(url, options = {}) {
     return result;
 }
 
+async function loadDashboardRatingSummary() {
+    const errorElement = document.getElementById("dashboard-feedback-error");
+
+    try {
+        const feedback = await apiFetch("/feedback/admin");
+
+        if (!Array.isArray(feedback)) {
+            return;
+        }
+
+        const summary = summarizeFeedbackRatings(feedback);
+        const averageElement = document.getElementById("dashboard-average-rating");
+        const countElement = document.getElementById("dashboard-review-count");
+        const fiveStarElement = document.getElementById("dashboard-five-star-count");
+
+        averageElement.textContent = summary.average === null
+            ? "—"
+            : `${summary.average.toFixed(1)} / 5`;
+        countElement.textContent = String(summary.count);
+        fiveStarElement.textContent = String(summary.fiveStarCount);
+    } catch (error) {
+        console.error("Dashboard feedback rating load error:", error);
+        errorElement.textContent = `Unable to load feedback ratings: ${error.message}`;
+        errorElement.hidden = false;
+    }
+}
+
 
 let data = {
     staffs: [],
@@ -2318,6 +2345,10 @@ if (page === "login") {
     loadArchivedAppointments();
 }
 
+    if (page === "dashboard") {
+        loadDashboardRatingSummary();
+    }
+
     loadAppointments();
 
     
@@ -2492,4 +2523,3 @@ if (page === "archives") {
 
     updateArchiveSelection();
 }
-
