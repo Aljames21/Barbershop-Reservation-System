@@ -332,3 +332,116 @@ if (feedbackTrack && prevButton && nextButton) {
 }
 
 loadFeedback();
+
+
+/* AUTOMATIC SERVICE IMAGE GALLERY */
+
+/* AUTOMATIC SERVICE IMAGE GALLERY — NO DUPLICATES */
+
+
+/* AUTOMATIC GALLERY — ACTIVE SERVICES ONLY */
+
+async function loadServiceGallery() {
+    const gallery = document.querySelector(".gallery");
+    if (!gallery) return;
+
+    // Match the original HTML cards with their service names.
+    const originalHaircuts = [
+        { name: "Mullet", className: "card-1" },
+        { name: "Classic Haircut", className: "card-2" },
+        { name: "Fade", className: "card-3" },
+        { name: "Mid Fade", className: "card-4" },
+        { name: "Low Fade", className: "card-5" },
+        { name: "High Fade", className: "card-6" },
+        { name: "Burst Fade", className: "card-7" },
+        { name: "Semi-Kalbo", className: "card-8" },
+        { name: "Buzz Cut", className: "card-9" }
+    ];
+
+    const normalizeName = name =>
+        String(name || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ");
+
+    try {
+        const response = await fetch(`${API_URL}/services`);
+
+        if (!response.ok) {
+            throw new Error("Unable to load gallery services.");
+        }
+
+        const services = await response.json();
+
+        if (!Array.isArray(services)) {
+            throw new Error("Invalid services data.");
+        }
+
+        // The public API returns only active,
+        // non-archived services.
+        const activeNames = new Set(
+            services.map(service => normalizeName(service.name))
+        );
+
+        // Show or hide original gallery cards.
+        originalHaircuts.forEach(haircut => {
+            const card = gallery.querySelector(
+                "." + haircut.className
+            );
+
+            if (!card) return;
+
+            const isActive = activeNames.has(
+                normalizeName(haircut.name)
+            );
+
+            card.style.display = isActive ? "flex" : "none";
+        });
+
+        // Remove previously generated dynamic cards.
+        gallery.querySelectorAll(".dynamic-gallery-card")
+            .forEach(card => card.remove());
+
+        // Avoid duplicate haircut names.
+        const originalNames = new Set(
+            originalHaircuts.map(haircut =>
+                normalizeName(haircut.name)
+            )
+        );
+
+        const addedNames = new Set(originalNames);
+
+        services.forEach(service => {
+            if (!service.name || !service.imageUrl) return;
+
+            if (
+                typeof service.imageUrl !== "string" ||
+                !/^https:\/\//i.test(service.imageUrl)
+            ) return;
+
+            const normalized = normalizeName(service.name);
+
+            if (addedNames.has(normalized)) return;
+
+            const card = document.createElement("div");
+            card.className = "dynamic-gallery-card";
+
+            card.style.backgroundImage =
+                `url("${service.imageUrl}")`;
+
+            const title = document.createElement("h4");
+            title.textContent = service.name;
+
+            card.appendChild(title);
+            gallery.appendChild(card);
+
+            addedNames.add(normalized);
+        });
+
+    } catch (error) {
+        console.error("Gallery loading error:", error);
+    }
+}
+
+
+document.addEventListener("DOMContentLoaded", loadServiceGallery);

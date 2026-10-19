@@ -1,6 +1,28 @@
 const mongoose = require("mongoose");
 
 const feedbackSchema = new mongoose.Schema({
+
+    
+    // Preserve appointment details after permanent deletion
+    customerName: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+    service: {
+        type: String,
+        trim: true,
+        default: ""
+    },
+    appointmentDate: {
+        type: String,
+        default: ""
+    },
+    appointmentStatus: {
+        type: String,
+        default: ""
+    },
+
     appointment: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Appointment",

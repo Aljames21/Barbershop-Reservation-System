@@ -301,6 +301,10 @@ router.post("/review/:token", feedbackRateLimit, async (req, res) => {
         const status = moderation === "flagged" ? "Flagged" : "Approved";
         const feedback = await Feedback.create({
             appointment: appointment._id,
+            customerName: appointment.customerName || "",
+            service: appointment.service || "",
+            appointmentDate: appointment.date || "",
+            appointmentStatus: appointment.status || "",
             rating,
             comment,
             status
@@ -405,10 +409,15 @@ router.post("/:id/feedback", feedbackRateLimit, async (req, res) => {
         const status = moderation === "flagged" ? "Flagged" : "Approved";
         const feedback = await Feedback.create({
             appointment: appointment._id,
+            customerName: appointment.customerName || "",
+            service: appointment.service || "",
+            appointmentDate: appointment.date || "",
+            appointmentStatus: appointment.status || "",
             rating,
             comment,
             status
         });
+
 
         return res.status(status === "Flagged" ? 202 : 201).json({
             message: status === "Flagged"
@@ -485,6 +494,296 @@ router.get("/availability/:date", async (req, res) => {
         });
     }
 });
+
+
+/* ===== BULK ARCHIVE APPOINTMENTS ===== */
+
+router.patch("/archive/bulk", verifyAdmin, async (req, res) => {
+    try {
+        const { appointmentIds } = req.body || {};
+
+        if (
+            !Array.isArray(appointmentIds) ||
+            appointmentIds.length === 0 ||
+            appointmentIds.length > 100 ||
+            !appointmentIds.every(id =>
+                typeof id === "string" &&
+                mongoose.isValidObjectId(id)
+            )
+        ) {
+            return res.status(400).json({
+                message: "Please select 1 to 100 valid appointments."
+            });
+        }
+
+        const uniqueIds = [...new Set(appointmentIds)];
+
+        // Check every selected appointment first.
+        const appointments = await Appointment.find({
+            _id: { $in: uniqueIds }
+        });
+
+        if (appointments.length !== uniqueIds.length) {
+            return res.status(404).json({
+                message: "One or more appointments were not found."
+            });
+        }
+
+        const invalidAppointment = appointments.some(
+            appointment =>
+                !["Completed", "Cancelled"].includes(appointment.status) ||
+                appointment.isArchived === true
+        );
+
+        if (invalidAppointment) {
+            return res.status(409).json({
+                message:
+                    "Only non-archived Completed or Cancelled appointments can be archived."
+            });
+        }
+
+        const result = await Appointment.updateMany(
+            {
+                _id: { $in: uniqueIds },
+                status: { $in: ["Completed", "Cancelled"] },
+                isArchived: { $ne: true }
+            },
+            {
+                $set: {
+                    isArchived: true,
+                    archivedAt: new Date()
+                }
+            }
+        );
+
+        if (result.modifiedCount !== uniqueIds.length) {
+            return res.status(409).json({
+                message:
+                    "Some appointments changed during archiving. Please refresh the list.",
+                archivedCount: result.modifiedCount
+            });
+        }
+
+        return res.json({
+            message: "Appointments archived successfully.",
+            archivedCount: result.modifiedCount
+        });
+
+    } catch (error) {
+        console.error("Bulk archive error:", error);
+
+        return res.status(500).json({
+            message: "Unable to archive appointments."
+        });
+    }
+});
+
+
+/* ===== RETRIEVE ARCHIVED APPOINTMENT ===== */
+
+router.patch("/archive/:id/restore", verifyAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                message: "Invalid appointment ID."
+            });
+        }
+
+        const appointment = await Appointment.findOneAndUpdate(
+            {
+                _id: id,
+                isArchived: true,
+                status: { $in: ["Completed", "Cancelled"] }
+            },
+            {
+                $set: {
+                    isArchived: false,
+                    archivedAt: null
+                }
+            },
+            { new: true }
+        );
+
+        if (!appointment) {
+            throw new Error("Archived appointment not found.");
+        }
+
+        return res.json({
+            message: "Appointment restored successfully.",
+            appointment
+        });
+
+    } catch (error) {
+        console.error("Restore appointment error:", error);
+
+        return res.status(500).json({
+            message: "Unable to restore appointment."
+        });
+    }
+});
+
+
+/* ===== GET ARCHIVED APPOINTMENTS ===== */
+
+    router.get("/archive/list", verifyAdmin, async (req, res) => {
+        try {
+            const archivedAppointments = await Appointment.find({
+                isArchived: true
+            }).sort({
+                archivedAt: -1
+            });
+
+            return res.json(archivedAppointments);
+
+        } catch (error) {
+            console.error("Get archived appointments error:", error);
+
+            return res.status(500).json({
+                message: "Unable to load archived appointments."
+            });
+        }
+    });
+
+
+
+    /* ===== PERMANENTLY DELETE ARCHIVED APPOINTMENT ===== */
+
+
+    router.delete("/archive/:id/permanent", verifyAdmin, async (req, res) => {
+        const { id } = req.params;
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                message: "Invalid appointment ID."
+            });
+        }
+
+        const session = await mongoose.startSession();
+
+        try {
+            await session.withTransaction(async () => {
+
+        
+            const appointment = await Appointment.findOne({
+                _id: id,
+                isArchived: true,
+                status: { $in: ["Completed", "Cancelled"] }
+            }).session(session);
+
+            if (!appointment) {
+                throw new Error("Archived appointment not found.");
+            }
+
+
+            
+        
+            await Feedback.updateMany(
+                { appointment: appointment._id },
+                {
+                    $set: {
+                        customerName: appointment.customerName || "",
+                        service: appointment.service || "",
+                        appointmentDate: appointment.date || "",
+                        appointmentStatus: appointment.status || ""
+                    }
+                },
+                { session }
+            );
+
+
+
+                
+                const linkedFeedback = await Feedback.find({
+                    appointment: appointment._id
+                }).session(session);
+
+
+                
+                
+                if (
+                    appointment.status === "Completed" &&
+                    linkedFeedback.length === 0 &&
+                    appointment.reviewTokenExpiresAt &&
+                    new Date(appointment.reviewTokenExpiresAt) > new Date()
+                ) {
+                    throw new Error(
+                        "Cannot delete this appointment yet. The customer still has an active review invitation."
+                    );
+                }
+
+
+
+                
+                const missingSnapshot = linkedFeedback.some(feedback =>
+                    !feedback.customerName ||
+                    !feedback.service ||
+                    !feedback.appointmentDate ||
+                    feedback.appointmentStatus !== appointment.status
+                );
+
+
+            
+                if (missingSnapshot) {
+                    throw new Error(
+                        "Cannot delete appointment because feedback details are incomplete."
+                    );
+                }
+
+
+        
+              
+                const result = await Appointment.deleteOne(
+                    {
+                        _id: appointment._id,
+                        isArchived: true,
+                        status: appointment.status
+                    },
+                    { session }
+                );
+
+            
+                if (result.deletedCount !== 1) {
+                    throw new Error("Appointment changed. Please refresh and try again.");
+                }
+
+            });
+
+            return res.json({
+                message: "Appointment permanently deleted from database."
+            });
+
+        
+    } catch (error) {
+        console.error("Permanent delete error:", error);
+
+        const message = error.message || "Unable to permanently delete appointment.";
+
+        if (message === "Archived appointment not found.") {
+            return res.status(404).json({ message });
+        }
+
+        if (
+            message === "Appointment changed. Please refresh and try again." ||
+            message === "Cannot delete this appointment yet. The customer still has an active review invitation." ||
+            message === "Cannot delete appointment because feedback details are incomplete."
+        ) {
+            return res.status(409).json({ message });
+        }
+
+        return res.status(500).json({
+            message: "Unable to permanently delete appointment."
+        });
+    }
+            finally {
+                    await session.endSession();
+            }
+
+    });
+
+
+
 
 // GET APPOINTMENTS
 

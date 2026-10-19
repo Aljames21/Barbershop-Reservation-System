@@ -21,6 +21,7 @@
           <a href="services.html"><img src="icons/Scissors_Icon.png" alt="service"> Services</a>
           <a href="appointments.html" class="active"><img src="icons/appointmentwhite.png" alt="appointment"> Appointments</a>
           <a href="feedback.html"><img src="icons/customerwhite.png" alt="Feedback"> Feedback</a>
+          <a href="archives.html"><img src="icons/appointmentwhite.png" alt="Archives">Archives</a>
           <a href="login.html" class="logout"><img src="icons/logout (2).png" alt="logout"> Log out</a>
         </nav>
 
@@ -69,11 +70,41 @@
 
       <p id="appointment-results-count" aria-live="polite"></p>
 
+            <!-- APPOINTMENT ARCHIVE SELECTION -->
+      <div class="appointment-bulk-actions">
+
+        <label for="select-all-appointments">
+          <input type="checkbox" id="select-all-appointments">
+          Select All
+        </label>
+
+        <span id="selected-appointments-count">
+          0 selected
+        </span>
+
+        <button
+          type="button"
+          id="archive-selected-appointments"
+          disabled>
+          Archive Selected
+        </button>
+
+      </div>
+
           <!-- Rows are filled in by script.js -->
           <div class="card table-wrap">
             <table>
               <thead>
-                <tr><th>Date &amp; time</th><th>Client</th><th>Service</th><th>Preferred staff</th><th>Price</th><th>Status</th><th></th></tr>
+               <tr>
+                <th></th>
+                <th>Date &amp; time</th>
+                <th>Client</th>
+                <th>Service</th>
+                <th>Preferred staff</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
               </thead>
               <tbody id="rows"></tbody>
             </table>

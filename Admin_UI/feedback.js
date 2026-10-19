@@ -220,7 +220,7 @@ function renderFeedback(feedback) {
 
   const rows = pagedFeedback.map((item) => {
     const appointment = item.appointment || {};
-    const name = appointment.customerName || "Appointment unavailable";
+    const name = appointment.customerName || item.customerName || "Customer";
     const statusClass = String(item.status || "Pending").toLowerCase();
     const approveAction = item.status === "Approved"
       ? ""

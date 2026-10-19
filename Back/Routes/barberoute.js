@@ -9,10 +9,10 @@ const verifyAdmin = require("../Middleware/authMiddleware");
 router.get("/", async (req, res) => {
     try {
         const barbers = await Barber.find({
+            isArchived: { $ne: true },
             status: { $in: ["Available", "Active"] }
         }).select("name specialization status");
-
-        res.json(barbers);
+                res.json(barbers);
 
     } catch (error) {
         console.error("Error loading barbers:", error.message);
@@ -24,7 +24,7 @@ router.get("/", async (req, res) => {
 
 router.get("/admin", verifyAdmin, async (req, res) => {
     try {
-        const barbers = await Barber.find().sort({ name: 1 });
+        const barbers = await Barber.find({isArchived: { $ne: true }}).sort({ name: 1 });
         res.json(barbers);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -75,6 +75,72 @@ router.post("/", verifyAdmin, async (req, res) => {
         });
     }
 });
+
+
+// ADMIN: List archived barbers
+router.get("/archive/list", verifyAdmin, async (req, res) => {
+    try {
+        const barbers = await Barber.find({
+            isArchived: true
+        }).sort({ archivedAt: -1 });
+
+        res.json(barbers);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ADMIN: Retrieve archived barber
+router.patch("/archive/:id/restore", verifyAdmin, async (req, res) => {
+    try {
+        const barber = await Barber.findOneAndUpdate(
+            { _id: req.params.id, isArchived: true },
+            {
+                $set: {
+                    isArchived: false,
+                    archivedAt: null
+                }
+            },
+            { new: true }
+        );
+
+        if (!barber) {
+            return res.status(404).json({
+                message: "Archived staff not found."
+            });
+        }
+
+        res.json({
+            message: "Staff retrieved successfully.",
+            barber
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// ADMIN: Permanently delete archived barber
+router.delete("/archive/:id/permanent", verifyAdmin, async (req, res) => {
+    try {
+        const barber = await Barber.findOneAndDelete({
+            _id: req.params.id,
+            isArchived: true
+        });
+
+        if (!barber) {
+            return res.status(404).json({
+                message: "Archived staff not found."
+            });
+        }
+
+        res.json({
+            message: "Staff permanently deleted."
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 
 
 // ADMIN: update staff
@@ -144,33 +210,39 @@ router.put("/:id", verifyAdmin, async (req, res) => {
 
 
 // ADMIN: delete staff
+
 router.delete("/:id", verifyAdmin, async (req, res) => {
+    try {
+        const barber = await Barber.findOneAndUpdate(
+            {
+                _id: req.params.id,
+                isArchived: { $ne: true }
+            },
+            {
+                $set: {
+                    isArchived: true,
+                    archivedAt: new Date()
+                }
+            },
+            { new: true }
+        );
 
-try {
-    console.log("Deleting barber ID:", req.params.id);
+        if (!barber) {
+            return res.status(404).json({
+                message: "Active staff not found."
+            });
+        }
 
-    const deleted = await Barber.findByIdAndDelete(req.params.id);
-
-    if (!deleted) {
-        console.log("Barber not found in database.");
-        return res.status(404).json({
-            message: "Staff not found."
+        res.json({
+            message: "Staff moved to Archives.",
+            barber
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Unable to archive staff."
         });
     }
-
-    console.log("Deleted barber:", deleted.name);
-
-    res.json({
-        message: "Staff removed successfully."
-    });
-} catch (error) {
-    console.error("Delete staff error:", error.message);
-
-    res.status(500).json({
-        message: "Unable to remove staff."
-    });
-}
-
 });
+
 
 module.exports = router;

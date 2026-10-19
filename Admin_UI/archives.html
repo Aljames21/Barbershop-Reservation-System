@@ -1,0 +1,503 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Archives</title>
+
+    <link rel="icon" type="image/png" href="icons/favicon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body data-page="archives">
+
+<div class="layout">
+
+    
+    <nav class="sidebar">
+
+        <img class="logo" src="logo.jpg" alt="Sañado's Barbershop">
+        <br>
+
+        <a href="dashboard.html">
+            <img src="icons/dashboardwhite.png" alt="">
+            Dashboard
+        </a>
+
+        <a href="staffs.html">
+            <img src="icons/barberwhite.png" alt="">
+            Staffs
+        </a>
+
+        <a href="services.html">
+            <img src="icons/Scissors_Icon.png" alt="">
+            Services
+        </a>
+
+        <a href="appointments.html">
+            <img src="icons/appointmentwhite.png" alt="">
+            Appointments
+        </a>
+
+        <a href="feedback.html">
+            <img src="icons/customerwhite.png" alt="">
+            Feedback
+        </a>
+
+        <a href="archives.html" class="active">
+            <img src="icons/appointmentwhite.png" alt="">
+            Archives
+        </a>
+
+        <a href="login.html" class="logout">
+            <img src="icons/logout (2).png" alt="">
+            Log out
+        </a>
+
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <div class="toolbar">
+            <h1>Archives</h1>
+        </div>
+
+        <!-- ARCHIVE CATEGORIES -->
+        <div class="archive-tabs">
+
+            <button type="button"
+                    class="archive-tab active"
+                    data-archive-tab="appointments">
+                Appointments
+            </button>
+
+            <button type="button"
+                    class="archive-tab"
+                    data-archive-tab="feedback">
+                Feedback
+            </button>
+
+            <button type="button"
+                    class="archive-tab"
+                    data-archive-tab="barbers">
+                Barbers
+            </button>
+
+            <button type="button"
+                    class="archive-tab"
+                    data-archive-tab="services">
+                Services
+            </button>
+
+        </div>
+
+        <!-- ARCHIVED APPOINTMENTS -->
+        <section id="archived-appointments-section">
+
+            <h2>Archived Appointments</h2>
+
+
+<div class="appointment-filters">
+
+    <input
+        type="search"
+        id="archive-search"
+        placeholder="Search customer, service, or barber..."
+    >
+
+    <select id="archive-status-filter">
+        <option value="all">All Status</option>
+        <option value="Completed">Completed</option>
+        <option value="Cancelled">Cancelled</option>
+    </select>
+
+    <input
+        type="date"
+        id="archive-date-filter"
+        title="Filter by appointment date"
+    >
+
+    <select id="archive-sort">
+        <option value="newest">Recently Archived</option>
+        <option value="oldest">Oldest Archived</option>
+        <option value="name-asc">Customer Name: A–Z</option>
+        <option value="name-desc">Customer Name: Z–A</option>
+    </select>
+
+    <button type="button" id="reset-archive-filters">
+        Reset Filters
+    </button>
+
+</div>
+
+
+            <p id="archived-appointments-count"
+               aria-live="polite">
+                Loading archived appointments...
+            </p>
+
+                        
+            <div class="archive-bulk-toolbar">
+                
+                <label class="archive-select-all-label">
+                    <input type="checkbox" id="select-all-archives">
+                    Select All
+                </label>
+
+                <span id="archive-selected-count">0 selected</span>
+
+                <button type="button"
+                        id="retrieve-selected-archives"
+                        disabled>
+                    Retrieve Selected
+                </button>
+
+                <button type="button"
+                        id="delete-selected-archives"
+                        class="archive-delete-btn"
+                        disabled>
+                    Delete Selected Permanently
+                </button>
+            </div>
+
+
+            <div class="card table-wrap">
+
+                <table>
+                <thead>
+                    <tr>
+                        <th>Select</th>
+                        <th>Date &amp; time</th>
+                        <th>Client</th>
+                        <th>Service</th>
+                        <th>Preferred staff</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Archived on</th>
+                    </tr>
+                </thead>
+
+                    <tbody id="archived-appointments-rows">
+                        <tr>
+                            <td colspan="8" class="empty">
+                                Loading archived appointments...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+
+            <div id="archives-pagination"
+                 class="pagination-container"
+                 aria-live="polite">
+            </div>
+
+        </section>
+
+        
+<!-- ARCHIVED FEEDBACK -->
+        <section id="archived-feedback-section" hidden>
+            <h2>Archived Feedback</h2>
+
+            <p id="feedback-status" class="error"
+            role="status" aria-live="polite"></p>
+
+            
+            <div class="archive-bulk-toolbar">
+                
+                <label class="archive-select-all-label">
+                    <input type="checkbox" id="select-all-feedback">
+                    Select All
+                </label>
+
+                <span id="feedback-selected-count">0 selected</span>
+
+
+                <button type="button"
+                        id="retrieve-selected-feedback"
+                        disabled>
+                    Retrieve Selected
+                </button>
+
+                <button type="button"
+                        id="delete-selected-feedback"
+                        class="archive-delete-btn"
+                        disabled>
+                    Delete Selected Permanently
+                </button>
+            </div>
+
+
+            <div class="card table-wrap feedback-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            <th>Customer</th>
+                            <th>Rating</th>
+                            <th>Comment</th>
+                            <th>Service</th>
+                            <th>Submitted</th>
+                            <th>Previous Status</th>
+
+                        </tr>
+                    </thead>
+
+                    <tbody id="feedback-rows">
+                        <tr>
+                            <td colspan="8" class="empty">
+                                Loading archived feedback...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="feedback-archive-pagination"
+                class="pagination-container"
+                aria-live="polite">
+            </div>
+        </section>
+
+        
+<!-- ARCHIVED BARBERS -->
+<section id="archived-barbers-section" hidden>
+    <h2>Archived Barbers</h2>
+
+    <p id="barbers-archive-status"
+       role="status"
+       aria-live="polite"></p>
+
+    <div class="archive-bulk-toolbar">
+        <label class="archive-select-all-label">
+            <input type="checkbox" id="select-all-barbers">
+            Select All
+        </label>
+
+        <span id="barbers-selected-count">0 selected</span>
+
+        <button type="button"
+                id="retrieve-selected-barbers"
+                disabled>
+            Retrieve Selected
+        </button>
+
+        <button type="button"
+                id="delete-selected-barbers"
+                class="archive-delete-btn"
+                disabled>
+            Delete Selected Permanently
+        </button>
+    </div>
+
+    <div class="card table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Select</th>
+                    <th>Barber Name</th>
+                    <th>Specialization</th>
+                    <th>Status</th>
+                    <th>Archived On</th>
+                </tr>
+            </thead>
+
+            <tbody id="archived-barbers-rows">
+                <tr>
+                    <td colspan="5" class="empty">
+                        Loading archived barbers...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="barbers-archive-pagination"
+         class="pagination-container"
+         aria-live="polite"></div>
+</section>
+
+
+<!-- ARCHIVED SERVICES -->
+<section id="archived-services-section" hidden>
+    <h2>Archived Services</h2>
+
+    <p id="services-archive-status"
+       role="status"
+       aria-live="polite"></p>
+
+    <div class="archive-bulk-toolbar">
+        <label class="archive-select-all-label">
+            <input type="checkbox" id="select-all-services">
+            Select All
+        </label>
+
+        <span id="services-selected-count">0 selected</span>
+
+        <button type="button"
+                id="retrieve-selected-services"
+                disabled>
+            Retrieve Selected
+        </button>
+
+        <button type="button"
+                id="delete-selected-services"
+                class="archive-delete-btn"
+                disabled>
+            Delete Selected Permanently
+        </button>
+    </div>
+
+    <div class="card table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Select</th>
+                    <th>Service Name</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Archived On</th>
+                </tr>
+            </thead>
+
+            <tbody id="archived-services-rows">
+                <tr>
+                    <td colspan="7" class="empty">
+                        Loading archived services...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="services-archive-pagination"
+         class="pagination-container"
+         aria-live="polite"></div>
+</section>
+
+
+<!-- ARCHIVED BARBERS -->
+<section id="archived-barbers-section" hidden>
+    <h2>Archived Barbers</h2>
+
+    <p id="barbers-archive-status"
+       role="status" aria-live="polite"></p>
+
+    <div class="archive-bulk-toolbar">
+        <label class="archive-select-all-label">
+            <input type="checkbox" id="select-all-barbers">
+            Select All
+        </label>
+
+        <span id="barbers-selected-count">0 selected</span>
+
+        <button type="button"
+                id="retrieve-selected-barbers" disabled>
+            Retrieve Selected
+        </button>
+
+        <button type="button"
+                id="delete-selected-barbers"
+                class="archive-delete-btn" disabled>
+            Delete Selected Permanently
+        </button>
+    </div>
+
+    <div class="card table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Select</th>
+                    <th>Barber Name</th>
+                    <th>Specialization</th>
+                    <th>Status</th>
+                    <th>Archived On</th>
+                </tr>
+            </thead>
+            <tbody id="archived-barbers-rows">
+                <tr>
+                    <td colspan="5" class="empty">
+                        Loading archived barbers...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="barbers-archive-pagination"
+         class="pagination-container"></div>
+</section>
+
+
+<!-- ARCHIVED SERVICES -->
+<section id="archived-services-section" hidden>
+    <h2>Archived Services</h2>
+
+    <p id="services-archive-status"
+       role="status" aria-live="polite"></p>
+
+    <div class="archive-bulk-toolbar">
+        <label class="archive-select-all-label">
+            <input type="checkbox" id="select-all-services">
+            Select All
+        </label>
+
+        <span id="services-selected-count">0 selected</span>
+
+        <button type="button"
+                id="retrieve-selected-services" disabled>
+            Retrieve Selected
+        </button>
+
+        <button type="button"
+                id="delete-selected-services"
+                class="archive-delete-btn" disabled>
+            Delete Selected Permanently
+        </button>
+    </div>
+
+    <div class="card table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Select</th>
+                    <th>Service Name</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Archived On</th>
+                </tr>
+            </thead>
+            <tbody id="archived-services-rows">
+                <tr>
+                    <td colspan="7" class="empty">
+                        Loading archived services...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="services-archive-pagination"
+         class="pagination-container"></div>
+</section>
+
+
+    </main>
+
+</div>
+
+<script src="script.js"></script>
+<script src="auth.js"></script>
+<script src="archives-feedback.js"></script>
+<script src="archives-resources.js"></script>
+
+</body>
+</html>

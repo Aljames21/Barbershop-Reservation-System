@@ -83,7 +83,66 @@ if (appointments) {
 
             appointmentFilters.barber = barberFilter.value;
         }
-    }
+        
+// ===== ARCHIVE SELECTED APPOINTMENTS =====
+
+const archiveSelectedButton = document.getElementById(
+    "archive-selected-appointments"
+);
+
+if (archiveSelectedButton) {
+    archiveSelectedButton.addEventListener("click", async () => {
+
+        const selectedIds = getVisibleAppointmentCheckboxes()
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.dataset.id);
+
+        if (selectedIds.length === 0) {
+            alert("Please select an appointment to archive.");
+            return;
+        }
+
+        const confirmed = await showAppointmentConfirmation(
+            `Archive ${selectedIds.length} selected appointment(s)?`
+        );
+
+        if (!confirmed) return;
+
+        archiveSelectedButton.disabled = true;
+
+        try {
+            const result = await apiFetch("/appointments/archive/bulk", {
+                method: "PATCH",
+                body: JSON.stringify({
+                    appointmentIds: selectedIds
+                })
+            });
+
+            if (result.archivedCount !== selectedIds.length) {
+                throw new Error(
+                    result.message || "Not all appointments were archived."
+                );
+            }
+
+            selectedAppointmentIds.clear();
+
+            await loadAppointments();
+
+            alert(`${result.archivedCount} appointment(s) archived successfully!`);
+
+        } catch (error) {
+            console.error("Archive appointments error:", error);
+            alert("Archive failed: " + error.message);
+
+            await loadAppointments();
+
+        } finally {
+            updateAppointmentSelection();
+        }
+    });
+  }
+
+}
 
     earnings();
     render();
@@ -132,67 +191,200 @@ const btn = (act, id, label, cls = "") => `<button class="${cls}" data-action="$
 const emptyRow = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${msg}</td></tr>`;
 
 /* ===== Pop-up form used for add / edit ===== */
+
 function openForm(title, fields, values, onSave, modalClass = "") {
- 
-  const dlg = document.createElement("div");
- 
-  dlg.className = `modal ${modalClass}`.trim();
-  dlg.innerHTML = `<div class="card modal-box"><h3 style="margin-top:0">${title}</h3><form>` +
-    fields.map(f => {
-      const v = values[f.name] ?? "";
-      const input = f.options
-        ? `<select name="${f.name}">${f.options.map(o => `<option${o == v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>`
-        : `<input name="${f.name}" type="${f.type || "text"}" value="${esc(v)}" required>`;
-      return `<label>${f.label}${input}</label>`;
-    }).join("") +
-    `<div class="dialog-buttons"><button type="button" class="light">Cancel</button><button type="submit">Save</button></div></form></div>`;
-  
-  const close = () => { document.removeEventListener("keydown", onKey); dlg.remove(); };
-  const onKey = e => { if (e.key === "Escape") close(); };
-  const form = dlg.querySelector("form");
-  dlg.querySelector("button.light").onclick = close;
-  dlg.addEventListener("mousedown", e => { if (e.target === dlg) close(); });
- 
- 
-form.onsubmit = async e => {
-    e.preventDefault();
 
-    const v = Object.fromEntries(
-        [...new FormData(form)].map(([k, x]) => [
-            k,
-            String(x).trim()
-        ])
-    );
+    const dlg = document.createElement("div");
 
-    const saveButton = form.querySelector('button[type="submit"]');
-    saveButton.disabled = true;
-    saveButton.textContent = "Saving...";
+    dlg.className = `modal ${modalClass}`.trim();
 
-    try {
-        const saved = await onSave(v);
+    dlg.innerHTML =
+        `<div class="card modal-box">
+            <h3 style="margin-top:0">${esc(title)}</h3>
+            <form>` +
 
-        if (saved === false) {
+        fields.map(f => {
+            const v = values[f.name] ?? "";
+
+            let input;
+
+            if (f.type === "file") {
+                input = `
+                    <input
+                        name="${f.name}"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                    >
+
+                    <img
+                        class="service-image-preview"
+                        alt="Service image preview"
+                        style="
+                            display:none;
+                            width:160px;
+                            height:160px;
+                            object-fit:cover;
+                            margin-top:10px;
+                            border-radius:8px;
+                        "
+                    >
+                `;
+
+            } else if (f.options) {
+                input = `
+                    <select name="${f.name}">
+                        ${f.options.map(o =>
+                            `<option${o == v ? " selected" : ""}>
+                                ${esc(o)}
+                            </option>`
+                        ).join("")}
+                    </select>
+                `;
+
+            } else {
+                input = `
+                    <input
+                        name="${f.name}"
+                        type="${f.type || "text"}"
+                        value="${esc(v)}"
+                        required
+                    >
+                `;
+            }
+
+            return `<label>${esc(f.label)}${input}</label>`;
+
+        }).join("") +
+
+        `<div class="dialog-buttons">
+            <button type="button" class="light">Cancel</button>
+            <button type="submit">Save</button>
+        </div>
+        </form>
+        </div>`;
+
+    const close = () => {
+        document.removeEventListener("keydown", onKey);
+        dlg.remove();
+    };
+
+    const onKey = e => {
+        if (e.key === "Escape") close();
+    };
+
+    const form = dlg.querySelector("form");
+
+    // IMAGE PREVIEW
+    const imageInput = form.querySelector('input[type="file"]');
+    const imagePreview = form.querySelector(".service-image-preview");
+
+    if (imageInput && imagePreview) {
+        let previewUrl = null;
+
+        imageInput.addEventListener("change", () => {
+            const file = imageInput.files[0];
+
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+
+            imagePreview.style.display = "none";
+            imagePreview.removeAttribute("src");
+
+            if (!file) return;
+
+            const allowedTypes = [
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+                alert("Only JPG, PNG, and WebP images are allowed.");
+                imageInput.value = "";
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert("Image must be 5MB or smaller.");
+                imageInput.value = "";
+                return;
+            }
+
+            previewUrl = URL.createObjectURL(file);
+            imagePreview.src = previewUrl;
+            imagePreview.style.display = "block";
+        });
+
+        // Release the temporary preview URL when closing.
+        const originalClose = close;
+
+        dlg.addEventListener("modal-close-cleanup", () => {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+        });
+    }
+
+    dlg.querySelector("button.light").onclick = () => {
+        dlg.dispatchEvent(new Event("modal-close-cleanup"));
+        close();
+    };
+
+    dlg.addEventListener("mousedown", e => {
+        if (e.target === dlg) {
+            dlg.dispatchEvent(new Event("modal-close-cleanup"));
+            close();
+        }
+    });
+
+    form.onsubmit = async e => {
+        e.preventDefault();
+
+        const v = Object.fromEntries(
+            [...new FormData(form)].map(([k, x]) => [
+                k,
+                x instanceof File ? x : String(x).trim()
+            ])
+        );
+
+        const saveButton = form.querySelector('button[type="submit"]');
+
+        saveButton.disabled = true;
+        saveButton.textContent = "Saving...";
+
+        try {
+            const saved = await onSave(v);
+
+            if (saved === false) {
+                saveButton.disabled = false;
+                saveButton.textContent = "Save";
+                return;
+            }
+
+            dlg.dispatchEvent(new Event("modal-close-cleanup"));
+            close();
+
+        } catch (error) {
+            console.error("Form save error:", error);
+            alert("Unable to save. Please try again.");
+
             saveButton.disabled = false;
             saveButton.textContent = "Save";
-            return;
         }
+    };
 
-        close();
-    } catch (error) {
-        console.error("Form save error:", error);
-        alert("Unable to save. Please try again.");
-        saveButton.disabled = false;
-        saveButton.textContent = "Save";
-    }
-};
+    document.addEventListener("keydown", onKey);
+    document.body.append(dlg);
 
+    const first = dlg.querySelector("input, select");
+    if (first) first.focus();
 
-  document.addEventListener("keydown", onKey);
-  document.body.append(dlg);
-  const first = dlg.querySelector("input, select");
-  if (first) first.focus();
-  return dlg;
+    return dlg;
 }
+
 
 
 async function staffForm(s) {
@@ -247,13 +439,29 @@ async function staffForm(s) {
         },
         "accent-form-modal"
     );
-}
 
+    // Show the currently saved service image when editing.
+    if (service?.imageUrl) {
+        const preview = serviceDialog.querySelector(
+            ".service-image-preview"
+        );
+
+        if (preview) {
+            preview.src = service.imageUrl;
+            preview.style.display = "block";
+        }
+    }
+}
 
 async function serviceForm(service) {
     const fields = [
         { name: "name", label: "Service name" },
         { name: "description", label: "Description" },
+        {
+            name: "image",
+            label: "Service Image",
+            type: "file"
+        },
         { name: "price", label: "Price (₱)", type: "number" },
         { name: "duration", label: "Duration (minutes)", type: "number" },
         {
@@ -263,7 +471,7 @@ async function serviceForm(service) {
         }
     ];
 
-    openForm(
+    const serviceDialog = openForm(
         service ? "Edit service" : "Add service",
         fields,
         {
@@ -275,6 +483,54 @@ async function serviceForm(service) {
         },
         async (v) => {
             try {
+                let imageUrl = service?.imageUrl || "";
+
+                // Upload a new image only when one is selected.
+                if (v.image instanceof File && v.image.size > 0) {
+                    const allowedTypes = [
+                        "image/jpeg",
+                        "image/png",
+                        "image/webp"
+                    ];
+
+                    if (!allowedTypes.includes(v.image.type)) {
+                        alert("Only JPG, PNG, and WebP images are allowed.");
+                        return false;
+                    }
+
+                    if (v.image.size > 5 * 1024 * 1024) {
+                        alert("Image must be 5MB or smaller.");
+                        return false;
+                    }
+
+                    const formData = new FormData();
+                    formData.append("image", v.image);
+
+                    const uploadResponse = await fetch(
+                        API + "/uploads/service-image",
+                        {
+                            method: "POST",
+                            headers: {
+                                Authorization:
+                                    "Bearer " +
+                                    sessionStorage.getItem("adminToken")
+                            },
+                            body: formData
+                        }
+                    );
+
+                    const uploadResult = await uploadResponse.json();
+
+                    if (!uploadResponse.ok || !uploadResult.imageUrl) {
+                        throw new Error(
+                            uploadResult.message ||
+                            "Image upload failed."
+                        );
+                    }
+
+                    imageUrl = uploadResult.imageUrl;
+                }
+
                 const result = await apiFetch(
                     service
                         ? `/services/${encodeURIComponent(service._id)}`
@@ -284,6 +540,7 @@ async function serviceForm(service) {
                         body: JSON.stringify({
                             name: v.name,
                             description: v.description,
+                            imageUrl: imageUrl,
                             price: Number(v.price),
                             duration: Number(v.duration),
                             status: v.status
@@ -298,6 +555,7 @@ async function serviceForm(service) {
 
                 await loadServices();
                 return true;
+
             } catch (error) {
                 alert("Service save failed: " + error.message);
                 return false;
@@ -306,6 +564,7 @@ async function serviceForm(service) {
         "accent-form-modal"
     );
 }
+
 
 
 function clientForm(c) {
@@ -378,50 +637,70 @@ function viewAppointmentDetails(a) {
 }
 
 /* ===== Drawing the tables ===== */
+
 function apptRow(a) {
+
+  const id = a._id || a.id;
+
+  const canArchive =
+    a.status === "Completed" ||
+    a.status === "Cancelled";
+
+  const checkbox = canArchive
+    ? `<input
+         type="checkbox"
+         class="appointment-row-checkbox"
+         data-id="${esc(id)}"
+         aria-label="Select appointment for ${esc(a.customerName || a.client || "customer")}"
+       >`
+    : "";
 
   const actions = {
     Pending: [
-      btn("accept", a._id || a.id, "Accept"),
-      btn("decline", a._id || a.id, "Decline", "light")
+      btn("accept", id, "Accept"),
+      btn("decline", id, "Decline", "light")
     ],
 
     Confirmed: [
-      btn("complete", a._id || a.id, "Mark done"),
-      btn("cancel", a._id || a.id, "Cancel", "light")
+      btn("complete", id, "Mark done"),
+      btn("cancel", id, "Cancel", "light")
     ]
 
   }[a.status] || [];
 
-
   return `
-  <tr>
+    <tr>
 
-  <td>${when(a.date + "T" + a.time)}</td>
+      <td class="appointment-checkbox-cell">
+        ${checkbox}
+      </td>
 
-  <td>${esc(a.customerName || a.client)}</td>
+      <td>${when(a.date + "T" + a.time)}</td>
 
-  <td>${esc(a.service)}</td>
+      <td>${esc(a.customerName || a.client)}</td>
 
-  <td>${esc(a.barber || "No preference")}</td>
+      <td>${esc(a.service)}</td>
 
-  <td>${money(a.price || 0)}</td>
+      <td>${esc(a.barber || "No preference")}</td>
 
-  <td>
-    <span class="tag ${a.status.toLowerCase()}">
-      ${a.status}
-    </span>
-  </td>
+      <td>${money(a.price || 0)}</td>
 
- <td class="appointment-actions-cell">
-    <div class="appointment-actions">
-        ${btn("view-appointment", a._id || a.id, "View", "light")}
-        ${actions.join(" ")}
-    </div>
-</td>
+      <td>
+        <span class="tag ${esc(a.status.toLowerCase())}">
+          ${esc(a.status)}
+        </span>
+      </td>
 
-  </tr>`;
+      <td class="appointment-actions-cell">
+        <div class="appointment-actions">
+          ${btn("view-appointment", id, "View", "light")}
+          ${actions.join(" ")}
+        </div>
+      </td>
+
+    </tr>`;
 }
+
 
 
 function earnings() {
@@ -807,6 +1086,572 @@ function renderBookingTrendsChart() {
     });
 }
 
+
+/* ===== APPOINTMENT CHECKBOX SELECTION ===== */
+
+        const selectedAppointmentIds = new Set();
+
+        function getVisibleAppointmentCheckboxes() {
+            return [
+                ...document.querySelectorAll(
+                    "#rows .appointment-row-checkbox"
+                )
+            ];
+        }
+
+        function updateAppointmentSelection() {
+            const checkboxes = getVisibleAppointmentCheckboxes();
+
+            const selectAll = document.getElementById(
+                "select-all-appointments"
+            );
+
+            const selectedCount = document.getElementById(
+                "selected-appointments-count"
+            );
+
+            const archiveButton = document.getElementById(
+                "archive-selected-appointments"
+            );
+
+            // Count selected appointments on the current page
+            const count = checkboxes.filter(
+                checkbox => checkbox.checked
+            ).length;
+
+            if (selectedCount) {
+                selectedCount.textContent = `${count} selected`;
+            }
+
+            if (archiveButton) {
+                archiveButton.disabled = count === 0;
+            }
+
+            if (selectAll) {
+                selectAll.checked =
+                    checkboxes.length > 0 &&
+                    checkboxes.every(checkbox => checkbox.checked);
+
+                selectAll.indeterminate =
+                    count > 0 && count < checkboxes.length;
+            }
+        }
+
+        function syncAppointmentCheckboxes() {
+            const checkboxes = getVisibleAppointmentCheckboxes();
+
+            // Clear old selections when rendering a different page
+            selectedAppointmentIds.clear();
+
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            updateAppointmentSelection();
+        }
+
+        
+// ===== ARCHIVED APPOINTMENTS =====
+
+let archivedAppointments = [];
+
+/* ===== ARCHIVES PAGINATION ===== */
+
+let archiveCurrentPage = 1;
+
+const ARCHIVE_PAGE_SIZE = 10;
+
+
+
+
+
+/* ===== ARCHIVES SEARCH AND STATUS FILTER ===== */
+
+
+function getFilteredArchivedAppointments() {
+    const search = (
+        document.getElementById("archive-search")?.value || ""
+    ).trim().toLowerCase();
+
+    const status = document.getElementById(
+        "archive-status-filter"
+    )?.value || "all";
+
+    const selectedDate = document.getElementById(
+        "archive-date-filter"
+    )?.value || "";
+
+    const sortBy = document.getElementById(
+        "archive-sort"
+    )?.value || "newest";
+
+    // ===== FILTER ARCHIVED APPOINTMENTS =====
+
+    const filtered = archivedAppointments.filter(appointment => {
+
+        const searchableText = [
+            appointment.customerName,
+            appointment.client,
+            appointment.service,
+            appointment.barber
+        ]
+            .filter(Boolean)
+            .map(value => String(value).toLowerCase())
+            .join(" ");
+
+        const matchesSearch =
+            !search || searchableText.includes(search);
+
+        const matchesStatus =
+            status === "all" || appointment.status === status;
+
+        const appointmentDate = appointment.date
+            ? String(appointment.date).slice(0, 10)
+            : "";
+
+        const matchesDate =
+            !selectedDate || appointmentDate === selectedDate;
+
+        return matchesSearch && matchesStatus && matchesDate;
+    });
+
+    // ===== SORT ARCHIVED APPOINTMENTS =====
+
+    filtered.sort((a, b) => {
+
+        if (sortBy === "name-asc") {
+            return String(a.customerName || a.client || "")
+                .localeCompare(
+                    String(b.customerName || b.client || "")
+                );
+        }
+
+        if (sortBy === "name-desc") {
+            return String(b.customerName || b.client || "")
+                .localeCompare(
+                    String(a.customerName || a.client || "")
+                );
+        }
+
+        const dateA =
+            new Date(a.archivedAt || 0).getTime() || 0;
+
+        const dateB =
+            new Date(b.archivedAt || 0).getTime() || 0;
+
+        if (sortBy === "oldest") {
+            return dateA - dateB;
+        }
+
+        return dateB - dateA;
+    });
+
+    return filtered;
+}
+
+
+
+
+/* ===== LOAD ARCHIVED APPOINTMENTS ===== */
+
+async function loadArchivedAppointments() {
+    if (page !== "archives") return;
+
+    const rows = document.getElementById(
+        "archived-appointments-rows"
+    );
+
+    const count = document.getElementById(
+        "archived-appointments-count"
+    );
+
+    try {
+        const appointments = await apiFetch(
+            "/appointments/archive/list"
+        );
+
+        if (!Array.isArray(appointments)) {
+            throw new Error("Invalid archived appointments response.");
+        }
+
+        archivedAppointments = appointments;
+
+        renderArchivedAppointments();
+
+    } catch (error) {
+        console.error("Load archives error:", error);
+
+        if (count) {
+            count.textContent = "Unable to load archived appointments.";
+        }
+
+        if (rows) {
+            rows.innerHTML = emptyRow(
+                8,
+                "Failed to load archived appointments."
+            );
+        }
+    }
+}
+
+
+function formatArchiveDateTime(date, time) {
+    if (!date) return "-";
+
+    const datePart = String(date).slice(0, 10);
+    const timePart = String(time || "00:00").trim();
+
+    const formattedDate = new Date(
+        `${datePart}T${timePart}`
+    );
+
+    if (isNaN(formattedDate.getTime())) {
+        return `${datePart} ${timePart}`;
+    }
+
+    return formattedDate.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+    });
+}
+
+
+
+/* ===== RENDER ARCHIVED APPOINTMENTS ===== */
+
+function renderArchivedAppointments() {
+    const rows = document.getElementById(
+        "archived-appointments-rows"
+    );
+
+    const count = document.getElementById(
+        "archived-appointments-count"
+    );
+
+    if (!rows) return;
+
+    const filtered = getFilteredArchivedAppointments();
+
+    // ===== CALCULATE ARCHIVES PAGINATION =====
+
+        const totalPages = Math.max(
+            1,
+            Math.ceil(filtered.length / ARCHIVE_PAGE_SIZE)
+        );
+
+        archiveCurrentPage = Math.min(
+            Math.max(archiveCurrentPage, 1),
+            totalPages
+        );
+
+        const startIndex =
+            (archiveCurrentPage - 1) * ARCHIVE_PAGE_SIZE;
+
+        const paginatedAppointments = filtered.slice(
+            startIndex,
+            startIndex + ARCHIVE_PAGE_SIZE
+        );
+
+    if (count) {
+        count.textContent =
+            `${filtered.length} of ${archivedAppointments.length} archived appointment(s)`;
+    }
+
+    rows.innerHTML = paginatedAppointments.map(a => {
+        const id = a._id || a.id;
+
+        
+        const archivedDate = a.archivedAt
+            ? new Date(a.archivedAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric"
+            })
+            : "-";
+
+            return `
+                <tr>
+                    <td>
+                        <input
+                            type="checkbox"
+                            class="archived-appointment-checkbox"
+                            data-id="${esc(id)}"
+                            aria-label="Select archived appointment"
+                        >
+                    </td>
+
+                   <td>${formatArchiveDateTime(a.date, a.time)}</td>
+
+                <td>${esc(a.customerName || a.client || "-")}</td>
+                <td>${esc(a.service || "-")}</td>
+                <td>${esc(a.barber || "No preference")}</td>
+                <td>${money(a.price || 0)}</td>
+                <td>
+                    <span class="tag ${esc(
+                        String(a.status || "").toLowerCase()
+                    )}">
+                        ${esc(a.status || "-")}
+                    </span>
+                </td>
+                <td>${esc(archivedDate)}</td>
+            </tr>
+        `;
+    }).join("") || emptyRow(
+        8,
+        "No archived appointments found."
+    );
+    
+/* ===== RENDER ARCHIVES PAGINATION ===== */
+
+const pagination = document.getElementById(
+    "archives-pagination"
+);
+
+if (pagination) {
+    if (totalPages <= 1) {
+        pagination.innerHTML = "";
+    } else {
+        let buttons = `
+            <button
+                type="button"
+                data-archive-page="${archiveCurrentPage - 1}"
+                ${archiveCurrentPage === 1 ? "disabled" : ""}>
+                Previous
+            </button>
+        `;
+
+        for (let i = 1; i <= totalPages; i++) {
+            buttons += `
+                <button
+                    type="button"
+                    data-archive-page="${i}"
+                    class="${i === archiveCurrentPage ? "active" : ""}">
+                    ${i}
+                </button>
+            `;
+        }
+
+        buttons += `
+            <button
+                type="button"
+                data-archive-page="${archiveCurrentPage + 1}"
+                ${archiveCurrentPage === totalPages ? "disabled" : ""}>
+                Next
+            </button>
+        `;
+
+        pagination.innerHTML = buttons;
+    }
+}
+
+}
+
+
+function resetArchivePagination() {
+    archiveCurrentPage = 1;
+    renderArchivedAppointments();
+}
+
+
+if (page === "archives") {
+    const archiveSearch = document.getElementById("archive-search");
+    const archiveStatus = document.getElementById("archive-status-filter");
+    const archiveDate = document.getElementById("archive-date-filter");
+    const archiveSort = document.getElementById("archive-sort");
+    const resetArchiveFilters = document.getElementById("reset-archive-filters");
+    const archivePagination = document.getElementById("archives-pagination");
+
+    if (archivePagination) {
+        archivePagination.addEventListener("click", (event) => {
+            const button = event.target.closest(
+                "[data-archive-page]"
+            );
+
+            if (!button || button.disabled) return;
+
+            const selectedPage = Number(
+                button.dataset.archivePage
+            );
+
+            if (!Number.isInteger(selectedPage)) return;
+
+            archiveCurrentPage = selectedPage;
+
+            renderArchivedAppointments();
+        });
+    }
+
+
+    if (resetArchiveFilters) {
+        resetArchiveFilters.addEventListener("click", () => {
+
+            document.getElementById("archive-search").value = "";
+
+            document.getElementById("archive-status-filter").value = "all";
+
+            document.getElementById("archive-date-filter").value = "";
+
+            document.getElementById("archive-sort").value = "newest";
+
+            resetArchivePagination();
+        });
+    }
+
+
+   
+/* ===== ARCHIVES FILTER EVENTS ===== */
+
+    if (archiveSearch) {
+        archiveSearch.addEventListener(
+            "input",
+            resetArchivePagination
+        );
+    }
+
+    if (archiveStatus) {
+        archiveStatus.addEventListener(
+            "change",
+            resetArchivePagination
+        );
+    }
+
+    if (archiveDate) {
+        archiveDate.addEventListener(
+            "change",
+            resetArchivePagination
+        );
+    }
+
+    if (archiveSort) {
+        archiveSort.addEventListener(
+            "change",
+            resetArchivePagination
+        );
+    }
+
+}
+
+
+
+
+/* ===== RESTORE ARCHIVED APPOINTMENT ===== */
+
+async function restoreArchivedAppointment(id) {
+    const confirmed = confirm(
+        "Retrieve this appointment? It will return to the Appointments page."
+    );
+
+    if (!confirmed) return;
+
+    try {
+        await apiFetch(
+            `/appointments/archive/${encodeURIComponent(id)}/restore`,
+            {
+                method: "PATCH"
+            }
+        );
+
+        alert("Appointment retrieved successfully!");
+
+        await loadArchivedAppointments();
+
+    } catch (error) {
+        console.error("Restore appointment error:", error);
+
+        alert(
+            error.message || "Unable to retrieve appointment."
+        );
+    }
+}
+
+
+/* ===== DELETE ARCHIVED APPOINTMENT PERMANENTLY ===== */
+
+async function deleteArchivedAppointment(id) {
+    const appointment = archivedAppointments.find(
+        a => String(a._id || a.id) === String(id)
+    );
+
+    if (!appointment) {
+        alert("Archived appointment not found.");
+        return;
+    }
+
+    const confirmed = await showAppointmentConfirmation(
+        `Permanently delete the ${appointment.status} appointment of ` +
+        `${appointment.customerName || appointment.client || "this customer"}? ` +
+        `This will remove the record from the database and cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const result = await apiFetch(
+            `/appointments/archive/${encodeURIComponent(id)}/permanent`,
+            {
+                method: "DELETE"
+            }
+        );
+
+        if (!result) return;
+
+        await loadArchivedAppointments();
+
+        alert("Appointment permanently deleted!");
+
+    } catch (error) {
+        console.error("Permanent delete error:", error);
+
+        alert(
+            "Delete failed: " +
+            (error.message || "Unable to delete appointment.")
+        );
+    }
+}
+
+
+/* ===== ARCHIVE BUTTON EVENTS ===== */
+
+
+/* ===== ARCHIVE BUTTON EVENTS ===== */
+
+document.addEventListener("click", async (event) => {
+    if (page !== "archives") return;
+
+    const button = event.target.closest(
+        '[data-action="restore-appointment"], [data-action="delete-archived-appointment"]'
+    );
+
+    if (!button || button.disabled) return;
+
+    const id = button.dataset.id;
+    const action = button.dataset.action;
+
+    if (!id) return;
+
+    button.disabled = true;
+
+    try {
+        if (action === "restore-appointment") {
+            await restoreArchivedAppointment(id);
+        }
+
+        if (action === "delete-archived-appointment") {
+            await deleteArchivedAppointment(id);
+        }
+    } finally {
+        if (button.isConnected) {
+            button.disabled = false;
+        }
+    }
+});
+
+
+
+
 function render() {
     const rows = document.getElementById("rows");
 
@@ -857,11 +1702,12 @@ function render() {
     }
 
 // ===== APPOINTMENTS PAGE =====
-// ===== APPOINTMENTS PAGE =====
 if (page === "appointments" && rows) {
 
     // Filter all appointments before pagination
-    const list = getFilteredAppointments();
+   const list = getFilteredAppointments().filter(
+    appointment => appointment.isArchived !== true
+);
 
 list.sort((a, b) => {
     const dateA = `${a.date || ""}T${a.time || "00:00"}`;
@@ -893,7 +1739,10 @@ list.sort((a, b) => {
 
     if (resultsCount) {
         resultsCount.textContent =
-            `Showing ${list.length} of ${data.appointments.length} appointments`;
+            
+    `Showing ${list.length} of ${data.appointments.filter
+        (a => a.isArchived !== true).length} appointments`
+
     }
 
     // Existing pagination
@@ -916,16 +1765,20 @@ list.sort((a, b) => {
             startIndex + PAGE_SIZE
         );
 
-        rows.innerHTML = visibleRecords.map(apptRow).join("") ||
-            emptyRow(7, "No matching appointments found.");
+    rows.innerHTML = visibleRecords.map(apptRow).join("") ||
+        emptyRow(8, "No matching appointments found.");
+
+        syncAppointmentCheckboxes();
 
         return;
     }
 
     rows.innerHTML = list.map(apptRow).join("") ||
-        emptyRow(7, "No matching appointments found.");
+        emptyRow(8, "No matching appointments found.");
 
-    return;
+        syncAppointmentCheckboxes();
+
+        return;
 }
 
 // ===== STAFFS PAGE =====
@@ -1105,6 +1958,57 @@ resetButton.hidden = true;
 
         applyFilters();
     });
+
+    
+/* ===== APPOINTMENT SELECT ALL ===== */
+
+if (page === "appointments") {
+
+    const selectAll = document.getElementById(
+        "select-all-appointments"
+    );
+
+    if (selectAll) {
+        selectAll.addEventListener("change", function () {
+
+            const checkboxes = getVisibleAppointmentCheckboxes();
+
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+
+                if (this.checked) {
+                    selectedAppointmentIds.add(checkbox.dataset.id);
+                } else {
+                    selectedAppointmentIds.delete(checkbox.dataset.id);
+                }
+            });
+
+            updateAppointmentSelection();
+        });
+    }
+
+    const rows = document.getElementById("rows");
+
+    if (rows) {
+        rows.addEventListener("change", function (event) {
+
+            const checkbox = event.target.closest(
+                ".appointment-row-checkbox"
+            );
+
+            if (!checkbox) return;
+
+            if (checkbox.checked) {
+                selectedAppointmentIds.add(checkbox.dataset.id);
+            } else {
+                selectedAppointmentIds.delete(checkbox.dataset.id);
+            }
+
+            updateAppointmentSelection();
+        });
+    }
+}
+
 }
   document.querySelector(".logout").onclick = () => {
 
@@ -1132,6 +2036,13 @@ resetButton.hidden = true;
 
 const id = b.dataset.id;
 const act = b.dataset.action;
+
+if (
+    page === "archives" &&
+    ["restore-appointment", "delete-archived-appointment"].includes(act)
+) {
+    return;
+}   
 
 const a = data.appointments.find(
     x => String(x._id || x.id) === String(id)
@@ -1403,6 +2314,9 @@ if (page === "login") {
     
 
     start();
+    if (page === "archives") {
+    loadArchivedAppointments();
+}
 
     loadAppointments();
 
@@ -1418,3 +2332,164 @@ if (page === "login") {
 
 
 }
+
+/* ===== ARCHIVED APPOINTMENTS BULK ACTIONS ===== */
+
+if (page === "archives") {
+    const archiveRows = document.getElementById(
+        "archived-appointments-rows"
+    );
+
+    const selectAll = document.getElementById(
+        "select-all-archives"
+    );
+
+    const selectedCount = document.getElementById(
+        "archive-selected-count"
+    );
+
+    const retrieveButton = document.getElementById(
+        "retrieve-selected-archives"
+    );
+
+    const deleteButton = document.getElementById(
+        "delete-selected-archives"
+    );
+
+    let processing = false;
+
+    function getArchiveCheckboxes() {
+        return [...archiveRows.querySelectorAll(
+            ".archived-appointment-checkbox"
+        )];
+    }
+
+    function getSelectedArchiveIds() {
+        return getArchiveCheckboxes()
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.dataset.id);
+    }
+
+    function updateArchiveSelection() {
+        const checkboxes = getArchiveCheckboxes();
+        const selected = getSelectedArchiveIds().length;
+
+        selectedCount.textContent = `${selected} selected`;
+
+        retrieveButton.disabled = processing || selected === 0;
+        deleteButton.disabled = processing || selected === 0;
+        selectAll.disabled = processing || checkboxes.length === 0;
+
+        selectAll.checked =
+            checkboxes.length > 0 &&
+            selected === checkboxes.length;
+
+        selectAll.indeterminate =
+            selected > 0 && selected < checkboxes.length;
+    }
+
+    selectAll.addEventListener("change", () => {
+        getArchiveCheckboxes().forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+        });
+
+        updateArchiveSelection();
+    });
+
+    archiveRows.addEventListener("change", event => {
+        if (event.target.matches(
+            ".archived-appointment-checkbox"
+        )) {
+            updateArchiveSelection();
+        }
+    });
+
+    new MutationObserver(updateArchiveSelection).observe(
+        archiveRows,
+        { childList: true }
+    );
+
+    async function processSelectedArchives(action) {
+        if (processing) return;
+
+        const ids = getSelectedArchiveIds();
+        if (!ids.length) return;
+
+        const deleting = action === "delete";
+
+        const confirmed = await showAppointmentConfirmation(
+            deleting
+                ? `Permanently delete ${ids.length} selected appointment(s)? This cannot be undone.`
+                : `Retrieve ${ids.length} selected appointment(s)?`
+        );
+
+        if (!confirmed || processing) return;
+
+        processing = true;
+        updateArchiveSelection();
+
+        const checkboxes = getArchiveCheckboxes();
+        checkboxes.forEach(checkbox => {
+            checkbox.disabled = true;
+        });
+
+        let successful = 0;
+        const failures = [];
+
+        try {
+            for (const id of ids) {
+                try {
+                    const endpoint = deleting
+                        ? `/appointments/archive/${encodeURIComponent(id)}/permanent`
+                        : `/appointments/archive/${encodeURIComponent(id)}/restore`;
+
+                    const result = await apiFetch(endpoint, {
+                        method: deleting ? "DELETE" : "PATCH"
+                    });
+
+                    if (!result) {
+                        throw new Error("Request did not complete.");
+                    }
+
+                    successful++;
+                } catch (error) {
+                    failures.push(`${id}: ${error.message}`);
+                }
+            }
+
+            await loadArchivedAppointments();
+
+            alert(
+                `${successful} appointment(s) ${
+                    deleting ? "deleted" : "retrieved"
+                } successfully.` +
+                (failures.length
+                    ? `\n${failures.length} failed:\n${failures.join("\n")}`
+                    : "")
+            );
+
+        } catch (error) {
+            alert("Bulk action error: " + error.message);
+
+        } finally {
+            processing = false;
+
+            getArchiveCheckboxes().forEach(checkbox => {
+                checkbox.disabled = false;
+            });
+
+            updateArchiveSelection();
+        }
+    }
+
+    retrieveButton.addEventListener("click", () => {
+        processSelectedArchives("restore");
+    });
+
+    deleteButton.addEventListener("click", () => {
+        processSelectedArchives("delete");
+    });
+
+    updateArchiveSelection();
+}
+

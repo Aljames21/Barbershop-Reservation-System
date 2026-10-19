@@ -12,6 +12,11 @@ const serviceSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+
+        imageUrl: {
+        type: String,
+        default: ""
+    },
     price: {
         type: Number,
         required: true,
@@ -22,11 +27,21 @@ const serviceSchema = new mongoose.Schema({
         required: true,
         min: 1
     },
-    status: {
-        type: String,
-        enum: ["Active", "Inactive"],
-        default: "Active"
-    }
+    
+        status: {
+            type: String,
+            enum: ["Active", "Inactive"],
+            default: "Active"
+        },
+        isArchived: {
+            type: Boolean,
+            default: false
+        },
+        archivedAt: {
+            type: Date,
+            default: null
+        }
+
 });
 
 module.exports = mongoose.model("Service", serviceSchema);

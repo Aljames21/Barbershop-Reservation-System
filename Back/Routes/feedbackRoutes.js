@@ -7,6 +7,24 @@ const { PROHIBITED_TERMS } = require("../Utils/feedbackModeration");
 const router = express.Router();
 const appointmentDisplayFields = "customerName service date status";
 
+
+function formatFeedback(feedback) {
+    const appointment = feedback.appointment;
+
+    return {
+        ...feedback,
+        appointment: appointment && appointment._id
+            ? appointment
+            : {
+                customerName: feedback.customerName || "Customer",
+                service: feedback.service || "-",
+                date: feedback.appointmentDate || "",
+                status: feedback.appointmentStatus || ""
+            }
+    };
+}
+
+
 router.get("/moderation-rules", (req, res) => {
     return res.json({ prohibitedTerms: PROHIBITED_TERMS });
 });
@@ -18,9 +36,15 @@ router.get("/", async (req, res) => {
             .sort({ createdAt: -1 })
             .lean();
 
+       
         return res.json(
-            feedback.filter((item) => item.appointment?.status === "Completed")
+            feedback
+                .map(formatFeedback)
+                .filter(
+                    item => item.appointment?.status === "Completed"
+                )
         );
+
     } catch (error) {
         console.error("Public feedback fetch error:", error);
         return res.status(500).json({
@@ -36,7 +60,7 @@ router.get("/admin", verifyAdmin, async (req, res) => {
             .sort({ createdAt: -1 })
             .lean();
 
-        return res.json(feedback);
+        return res.json(feedback.map(formatFeedback));
     } catch (error) {
         console.error("Admin feedback fetch error:", error);
         return res.status(500).json({
@@ -52,7 +76,9 @@ router.get("/admin/archived", verifyAdmin, async (req, res) => {
             .sort({ createdAt: -1 })
             .lean();
 
-        return res.json(feedback);
+      
+            return res.json(feedback.map(formatFeedback));
+
     } catch (error) {
         console.error("Archived feedback fetch error:", error);
         return res.status(500).json({
