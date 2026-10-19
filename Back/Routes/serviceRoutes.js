@@ -32,7 +32,7 @@ router.get("/", async (req, res) => {
 // ADD SERVICE
 router.post("/", verifyAdmin, async (req, res) => {
     try {
-        const { name, description, price, duration, status } = req.body;
+       const {name,description,price,duration,status,imageUrl} = req.body;
 
         if (!name || price === undefined || duration === undefined) {
             return res.status(400).json({
@@ -51,9 +51,11 @@ router.post("/", verifyAdmin, async (req, res) => {
             });
         }
 
+       
         const service = await Service.create({
             name: name.trim(),
             description: description || "",
+            imageUrl: imageUrl || "",
             price: Number(price),
             duration: Number(duration),
             status: status === "Inactive" ? "Inactive" : "Active"
@@ -136,9 +138,18 @@ router.delete("/archive/:id/permanent", verifyAdmin, async (req, res) => {
 
 
 // EDIT SERVICE
+
+ // EDIT SERVICE
 router.put("/:id", verifyAdmin, async (req, res) => {
     try {
-        const { name, description, price, duration, status } = req.body;
+        const {
+            name,
+            description,
+            price,
+            duration,
+            status,
+            imageUrl
+        } = req.body;
 
         if (
             !name?.trim() ||
@@ -153,23 +164,32 @@ router.put("/:id", verifyAdmin, async (req, res) => {
             });
         }
 
-        const service = await Service.findByIdAndUpdate(
-            req.params.id,
+        const service = await Service.findOneAndUpdate(
             {
-                name: name.trim(),
-                description: description || "",
-                price: Number(price),
-                duration: Number(duration),
-                status
+                _id: req.params.id,
+                isArchived: { $ne: true }
+            },
+            {
+                $set: {
+                    name: name.trim(),
+                    description: description || "",
+                    ...(imageUrl !== undefined ? { imageUrl } : {}),
+                    price: Number(price),
+                    duration: Number(duration),
+                    status
+                }
             },
             { new: true, runValidators: true }
         );
 
         if (!service) {
-            return res.status(404).json({ message: "Service not found." });
+            return res.status(404).json({
+                message: "Service not found."
+            });
         }
 
         res.json(service);
+
     } catch (error) {
         res.status(error.code === 11000 ? 409 : 500).json({
             message: error.code === 11000
@@ -178,6 +198,7 @@ router.put("/:id", verifyAdmin, async (req, res) => {
         });
     }
 });
+
 
 // DELETE SERVICE
 

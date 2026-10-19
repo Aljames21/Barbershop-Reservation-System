@@ -12,6 +12,11 @@ const serviceSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+
+        imageUrl: {
+        type: String,
+        default: ""
+    },
     price: {
         type: Number,
         required: true,
