@@ -91,13 +91,24 @@ async function loadBarbers() {
 
     if (!container) return;
 
-    // Map each barber name to the correct existing photo.
-    // Make sure each filename matches the actual photo.
+    // Existing photos used only as fallbacks.
     const barberImageMap = {
         "ian dizon": "images/staff3.jpg",
         "leo ramos cruz": "images/staff2.jpg",
         "mia jose silva": "images/staff1.jpg"
     };
+
+    const fallbackImage = "images/staff1.jpg";
+
+    // Escape text inserted into HTML.
+    const escapeHTML = (value) =>
+        String(value ?? "").replace(/[&<>"']/g, (char) => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        }[char]));
 
     try {
         const response = await fetch(`${API_URL}/barbers`);
@@ -109,13 +120,10 @@ async function loadBarbers() {
         const barbers = await response.json();
 
         if (!Array.isArray(barbers) || barbers.length === 0) {
-            container.innerHTML =
-                "<p>No barbers available right now.</p>";
+            container.textContent = "No barbers available right now.";
             return;
         }
 
-        // Show only barbers who can currently be selected.
-        // "Active" is retained for compatibility with older records.
         const visibleBarbers = barbers.filter((barber) => {
             const status = String(barber.status || "Active")
                 .trim()
@@ -125,8 +133,7 @@ async function loadBarbers() {
         });
 
         if (visibleBarbers.length === 0) {
-            container.innerHTML =
-                "<p>No barbers available right now.</p>";
+            container.textContent = "No barbers available right now.";
             return;
         }
 
@@ -134,10 +141,9 @@ async function loadBarbers() {
             const barberName =
                 barber.name ||
                 barber.fullName ||
-                [
-                    barber.firstName,
-                    barber.lastName
-                ].filter(Boolean).join(" ") ||
+                [barber.firstName, barber.lastName]
+                    .filter(Boolean)
+                    .join(" ") ||
                 "Barber";
 
             const normalizedName = barberName
@@ -153,10 +159,16 @@ async function loadBarbers() {
                 barber.specialty ||
                 "Professional haircut services.";
 
-            // Match photos by barber name, not database order.
-            const image =
+            // Cloudinary picture takes priority.
+            // Existing local photos remain as fallbacks.
+            const candidateImage =
+                barber.imageUrl ||
                 barberImageMap[normalizedName] ||
-                "images/staff1.jpg";
+                fallbackImage;
+
+            const image = /^(https:\/\/|images\/)[^\s"'<>]+$/i.test(candidateImage)
+                ? candidateImage
+                : fallbackImage;
 
             const cardClass = `barber-${(index % 3) + 1}`;
 
@@ -164,16 +176,16 @@ async function loadBarbers() {
                 <div class="${cardClass}">
                     <div class="barber-pic">
                         <img
-                            src="${image}"
-                            alt="${barberName}"
-                            onerror="this.onerror=null;this.src='images/staff1.jpg';"
+                            src="${escapeHTML(image)}"
+                            alt="${escapeHTML(barberName)}"
+                            loading="lazy"
                         >
                     </div>
 
                     <div class="barber-info">
-                        <h3>${barberName}</h3>
-                        <p class="position">${position}</p>
-                        <p class="details">${description}</p>
+                        <h3>${escapeHTML(barberName)}</h3>
+                        <p class="position">${escapeHTML(position)}</p>
+                        <p class="details">${escapeHTML(description)}</p>
                     </div>
 
                     <a
@@ -186,13 +198,22 @@ async function loadBarbers() {
             `;
         }).join("");
 
+        // Use a fallback if an uploaded picture cannot load.
+        container.querySelectorAll(".barber-pic img").forEach((img) => {
+            img.addEventListener("error", () => {
+                if (!img.src.endsWith(fallbackImage)) {
+                    img.src = fallbackImage;
+                }
+            });
+        });
+
     } catch (error) {
         console.error("Error loading barbers:", error);
 
-        container.innerHTML =
-            "<p>Unable to load barbers. Please refresh the page.</p>";
+        container.textContent =
+            "Unable to load barbers. Please refresh the page.";
     }
-}
+}   
 
 
 // ==================================================

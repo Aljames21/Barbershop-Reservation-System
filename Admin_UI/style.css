@@ -2072,3 +2072,34 @@ body[data-page="staffs"] .table-wrap {
   border: 1px solid #a9803d;
   border-radius: 12px;
 }
+
+/* STAFF PICTURES */
+
+.staff-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.staff-avatar {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    background: #f1f1f1;
+}
+
+.staff-avatar-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777;
+    font-size: 20px;
+    border: 1px solid #e5e5e5;
+}
+
+.staff-name-cell span {
+    font-weight: 500;
+}

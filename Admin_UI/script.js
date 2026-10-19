@@ -2,6 +2,12 @@
 // Demo login. Change these. This is NOT real security: anyone can read this file.
 
 // Services and their default prices
+console.log("DEBUG: script.js is executing");
+window.addEventListener("error", function (event) {
+    console.error("GLOBAL ERROR:", event.message);
+    console.error("FILE:", event.filename);
+    console.error("LINE:", event.lineno);
+});
 const SERVICES = { "Haircut": 250, "Haircut + beard": 400, "Shave": 200, "Hair color": 900 };
 const STORAGE_KEY = "barber-data";
 
@@ -51,102 +57,69 @@ let data = {
     services: []
 };
 
-
 async function loadAppointments() {
-    const appointments = await apiFetch("/appointments");
-if (appointments) {
-    data.appointments = appointments;
+    console.log("DEBUG: loadAppointments called");
 
-    // Populate barber filter using appointment records
-    if (page === "appointments") {
-        const barberFilter = document.getElementById(
-            "appointment-barber-filter"
+    try {
+        console.log("Loading appointments...");
+
+        const appointments = await apiFetch("/appointments");
+
+        console.log(
+            "Appointments API result:",
+            Array.isArray(appointments)
+                ? `${appointments.length} records`
+                : appointments
         );
 
-        if (barberFilter) {
-            const barbers = [
-                ...new Set(
-                    data.appointments
-                        .map(a => String(a.barber || "").trim())
-                        .filter(Boolean)
-                )
-            ].sort((a, b) => a.localeCompare(b));
-
-            barberFilter.replaceChildren(
-                new Option("All Barbers", "all"),
-                ...barbers.map(name => new Option(name, name))
+        if (!Array.isArray(appointments)) {
+            console.error(
+                "Invalid appointments response:",
+                appointments
             );
-
-            barberFilter.value = barbers.includes(appointmentFilters.barber)
-                ? appointmentFilters.barber
-                : "all";
-
-            appointmentFilters.barber = barberFilter.value;
-        }
-        
-// ===== ARCHIVE SELECTED APPOINTMENTS =====
-
-const archiveSelectedButton = document.getElementById(
-    "archive-selected-appointments"
-);
-
-if (archiveSelectedButton) {
-    archiveSelectedButton.addEventListener("click", async () => {
-
-        const selectedIds = getVisibleAppointmentCheckboxes()
-            .filter(checkbox => checkbox.checked)
-            .map(checkbox => checkbox.dataset.id);
-
-        if (selectedIds.length === 0) {
-            alert("Please select an appointment to archive.");
             return;
         }
 
-        const confirmed = await showAppointmentConfirmation(
-            `Archive ${selectedIds.length} selected appointment(s)?`
-        );
+        data.appointments = appointments;
 
-        if (!confirmed) return;
+        if (page === "appointments") {
+            const barberFilter = document.getElementById(
+                "appointment-barber-filter"
+            );
 
-        archiveSelectedButton.disabled = true;
+            if (barberFilter) {
+                const barbers = [
+                    ...new Set(
+                        appointments
+                            .map(a => String(a.barber || "").trim())
+                            .filter(Boolean)
+                    )
+                ].sort((a, b) => a.localeCompare(b));
 
-        try {
-            const result = await apiFetch("/appointments/archive/bulk", {
-                method: "PATCH",
-                body: JSON.stringify({
-                    appointmentIds: selectedIds
-                })
-            });
-
-            if (result.archivedCount !== selectedIds.length) {
-                throw new Error(
-                    result.message || "Not all appointments were archived."
+                barberFilter.replaceChildren(
+                    new Option("All Barbers", "all"),
+                    ...barbers.map(name => new Option(name, name))
                 );
+
+                barberFilter.value = barbers.includes(
+                    appointmentFilters.barber
+                )
+                    ? appointmentFilters.barber
+                    : "all";
+
+                appointmentFilters.barber = barberFilter.value;
             }
-
-            selectedAppointmentIds.clear();
-
-            await loadAppointments();
-
-            alert(`${result.archivedCount} appointment(s) archived successfully!`);
-
-        } catch (error) {
-            console.error("Archive appointments error:", error);
-            alert("Archive failed: " + error.message);
-
-            await loadAppointments();
-
-        } finally {
-            updateAppointmentSelection();
         }
-    });
-  }
 
-}
+        earnings();
+        render();
 
-    earnings();
-    render();
-}
+    } catch (error) {
+        console.error(
+            "LOAD APPOINTMENTS ERROR:",
+            error
+        );
+    }
 }
 
 
@@ -392,6 +365,11 @@ async function staffForm(s) {
         { name: "name", label: "Barber name" },
         { name: "role", label: "Specialization" },
         {
+            name: "image",
+            label: "Barber Picture",
+            type: "file"
+        },
+        {
             name: "status",
             label: "Status",
             options: ["Available", "Unavailable", "On Leave"]
@@ -408,6 +386,55 @@ async function staffForm(s) {
         },
         async (v) => {
             try {
+                // Keep the existing picture when editing.
+                let imageUrl = s?.imageUrl || "";
+
+                // Upload only when a new picture is selected.
+                if (v.image instanceof File && v.image.size > 0) {
+                    const allowedTypes = [
+                        "image/jpeg",
+                        "image/png",
+                        "image/webp"
+                    ];
+
+                    if (!allowedTypes.includes(v.image.type)) {
+                        alert("Only JPG, PNG, and WebP images are allowed.");
+                        return false;
+                    }
+
+                    if (v.image.size > 5 * 1024 * 1024) {
+                        alert("Image must be 5MB or smaller.");
+                        return false;
+                    }
+
+                    const formData = new FormData();
+                    formData.append("image", v.image);
+
+                    const uploadResponse = await fetch(
+                        API + "/uploads/barber-image",
+                        {
+                            method: "POST",
+                            headers: {
+                                Authorization:
+                                    "Bearer " +
+                                    sessionStorage.getItem("adminToken")
+                            },
+                            body: formData
+                        }
+                    );
+
+                    const uploadResult = await uploadResponse.json();
+
+                    if (!uploadResponse.ok || !uploadResult.imageUrl) {
+                        throw new Error(
+                            uploadResult.message ||
+                            "Barber image upload failed."
+                        );
+                    }
+
+                    imageUrl = uploadResult.imageUrl;
+                }
+
                 const result = await apiFetch(
                     s
                         ? `/barbers/${encodeURIComponent(s._id || s.id)}`
@@ -418,13 +445,18 @@ async function staffForm(s) {
                             name: v.name,
                             role: v.role,
                             specialization: v.role,
-                            status: v.status
+                            status: v.status,
+                            imageUrl: imageUrl
                         })
                     }
                 );
 
-                if (!result || result.error || result.message === "Staff not found.") {
-                    alert(result?.message || result?.error || "Failed to save staff.");
+                if (!result || !result._id) {
+                    alert(
+                        result?.message ||
+                        result?.error ||
+                        "Failed to save staff."
+                    );
                     return false;
                 }
 
@@ -433,24 +465,12 @@ async function staffForm(s) {
 
             } catch (error) {
                 console.error("SAVE STAFF ERROR:", error);
-                alert("Save failed: " + error.message);
+                alert("Staff save failed: " + error.message);
                 return false;
             }
         },
         "accent-form-modal"
     );
-
-    // Show the currently saved service image when editing.
-    if (service?.imageUrl) {
-        const preview = serviceDialog.querySelector(
-            ".service-image-preview"
-        );
-
-        if (preview) {
-            preview.src = service.imageUrl;
-            preview.style.display = "block";
-        }
-    }
 }
 
 async function serviceForm(service) {
@@ -1786,15 +1806,34 @@ if (page === "staffs" && rows) {
     rows.innerHTML = data.staffs.map(s => {
         const status = s.status || "Available";
 
+        const barberImage = s.imageUrl
+            ? `<img
+                src="${esc(s.imageUrl)}"
+                alt="${esc(s.name)}"
+                class="staff-avatar"
+                loading="lazy"
+              >`
+            : `<div class="staff-avatar staff-avatar-placeholder">
+                <span>✂</span>
+              </div>`;
+
         return `
             <tr>
-                <td>${esc(s.name)}</td>
+                <td>
+                    <div class="staff-name-cell">
+                        ${barberImage}
+                        <span>${esc(s.name)}</span>
+                    </div>
+                </td>
+
                 <td>${esc(s.specialization || s.role || "Barber")}</td>
+
                 <td>
                     <span class="tag ${status.toLowerCase()}">
                         ${esc(status)}
                     </span>
                 </td>
+
                 <td>
                     ${btn("edit-staff", s.id || s._id, "Edit", "light")}
                     ${btn("remove-staff", s.id || s._id, "Remove", "light")}
@@ -1887,6 +1926,7 @@ function commit() { save(); render(); }
 
 /* ===== Button clicks ===== */
 function start() {
+    console.log("DEBUG: start() called");
 
 if (page === "appointments") {
 
@@ -2269,6 +2309,11 @@ function showAppointmentConfirmation(message) {
 
 /* ===== Login check (runs last) ===== */
 
+console.log("DEBUG: reached login condition");
+console.log("DEBUG: current page =", page);
+console.log("DEBUG: admin session =", sessionStorage.getItem("admin"));
+
+
 if (page === "login") {
     document.getElementById("login-form").onsubmit = async (e) => {
         e.preventDefault();
@@ -2311,8 +2356,7 @@ if (page === "login") {
 } else if (sessionStorage.getItem("admin") !== "yes") {
     window.location.href = "index.html";
 } else {
-    
-
+    console.log("DEBUG: admin initialization reached");
     start();
     if (page === "archives") {
     loadArchivedAppointments();

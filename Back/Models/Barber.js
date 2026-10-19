@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const barberSchema = new mongoose.Schema({
@@ -13,15 +12,18 @@ const barberSchema = new mongoose.Schema({
         trim: true
     },
     status: {
-    type: String,
-    enum: ["Available", "Unavailable", "On Leave", "Active"],
-    default: "Available"
-},
+        type: String,
+        enum: ["Available", "Unavailable", "On Leave", "Active"],
+        default: "Available"
+    },
+    imageUrl: {
+        type: String,
+        default: ""
+    },
     date: {
         type: String,
         default: ""
     },
-    
     time: {
         type: String,
         default: ""
@@ -34,7 +36,6 @@ const barberSchema = new mongoose.Schema({
         type: Date,
         default: null
     }
-
 });
 
 module.exports = mongoose.model("Barber", barberSchema);

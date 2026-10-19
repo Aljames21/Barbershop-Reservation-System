@@ -87,4 +87,55 @@ router.post(
     }
 );
 
+// ADMIN: Upload barber image to Cloudinary
+router.post(
+    "/barber-image",
+    verifyAdmin,
+    (req, res, next) => {
+        upload.single("image")(req, res, error => {
+            if (error) {
+                return res.status(400).json({
+                    message: error.message
+                });
+            }
+            next();
+        });
+    },
+    async (req, res) => {
+        try {
+            if (!req.file) {
+                return res.status(400).json({
+                    message: "Please select a barber image."
+                });
+            }
+
+            const result = await new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    {
+                        folder: "barbershop/barbers",
+                        resource_type: "image"
+                    },
+                    (error, result) => {
+                        if (error) return reject(error);
+                        resolve(result);
+                    }
+                );
+
+                stream.end(req.file.buffer);
+            });
+
+            res.json({
+                imageUrl: result.secure_url
+            });
+
+        } catch (error) {
+            console.error("Barber image upload error:", error);
+
+            res.status(500).json({
+                message: "Unable to upload barber image."
+            });
+        }
+    }
+);
+
 module.exports = router;
