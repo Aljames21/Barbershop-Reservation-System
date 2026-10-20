@@ -115,8 +115,24 @@
   <strong id="total-services">0</strong>
 </div>
 
+<div class="card stat">
+  <p>Average Rating</p>
+  <strong id="dashboard-average-rating">—</strong>
+</div>
+
+<div class="card stat">
+  <p>Total Reviews</p>
+  <strong id="dashboard-review-count">0</strong>
+</div>
+
+<div class="card stat">
+  <p>5-Star Reviews</p>
+  <strong id="dashboard-five-star-count">0</strong>
+</div>
+
       </div>
 
+      <p id="dashboard-feedback-error" class="error" role="status" aria-live="polite" hidden></p>
 
       <!-- Monthly Booking Trends -->
     <div class="card booking-chart-card">
@@ -130,6 +146,7 @@
         </main>
       </div>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script src="feedback-rating-utils.js"></script>
   <script src="script.js"></script>
   <script src="auth.js"></script>
   <script src="logout.js"></script>

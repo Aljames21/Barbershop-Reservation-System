@@ -26,6 +26,20 @@
         <h1>Customer Feedback</h1>
       </div>
       <p id="feedback-status" class="error" role="status" aria-live="polite"></p>
+      <section class="card feedback-rating-summary" aria-labelledby="feedback-rating-heading">
+        <h2 id="feedback-rating-heading">Rating overview</h2>
+        <div class="feedback-rating-metrics">
+          <div class="feedback-rating-metric">
+            <span>Average rating</span>
+            <strong id="feedback-average-rating">—</strong>
+          </div>
+          <div class="feedback-rating-metric">
+            <span>Approved reviews</span>
+            <strong id="feedback-approved-count">0</strong>
+          </div>
+        </div>
+        <div id="feedback-rating-distribution" class="feedback-rating-distribution" aria-label="Approved review ratings by star count"></div>
+      </section>
       <div class="card table-wrap feedback-table-wrap">
         <table>
           <thead>
@@ -51,6 +65,7 @@
   </div>
 
   <script src="auth.js"></script>
+  <script src="feedback-rating-utils.js"></script>
   <script src="feedback.js"></script>
 </body>
 </html>
