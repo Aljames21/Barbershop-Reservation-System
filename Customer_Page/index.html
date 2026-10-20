@@ -10,6 +10,32 @@
     <link rel="stylesheet" href="home.css">
 </head>
 <body>
+
+
+
+<!-- SAÑADO'S GOLD LOADING PAGE -->
+<div id="page-loader" role="status" aria-live="polite">
+    <div class="loader-content">
+
+        <div class="gold-loader-brand">
+            <span class="gold-loader-scissors" aria-hidden="true">✂</span>
+            <h1>SAÑADO'S</h1>
+            <p class="gold-loader-subtitle">BARBERSHOP</p>
+        </div>
+
+        <div class="loader-progress">
+            <span id="loader-progress-fill"></span>
+        </div>
+
+        <p class="loader-percentage" id="loader-percentage">0%</p>
+
+        <p class="loader-message">PREPARING YOUR EXPERIENCE</p>
+        <p class="gold-loader-footer">PREMIUM GROOMING EXPERIENCE</p>
+
+    </div>
+</div>
+
+
     
     <div class="services" id="home">
     
@@ -445,6 +471,182 @@
 <script src="https://cdn.jsdelivr.net/npm/animejs@4.2.2/dist/bundles/anime.umd.min.js"></script>
 <script src="home.js"></script>
 <script src="customer-faq-chatbot.js"></script>
+
+
+
+<script>
+(function () {
+    const loader = document.getElementById("page-loader");
+    const percentage = document.getElementById("loader-percentage");
+    const progressFill = document.getElementById("loader-progress-fill");
+
+    if (!loader || !percentage || !progressFill) return;
+
+    const MINIMUM_LOADING_TIME = 1900;
+    const startTime = Date.now();
+
+    let pageLoaded = document.readyState === "complete";
+    let progress = 0;
+    let loaderFinished = false;
+    let progressTimer = null;
+    let finishTimer = null;
+
+    function updateProgress(value) {
+        progress = Math.min(100, Math.max(progress, value));
+
+        percentage.textContent = Math.floor(progress) + "%";
+        progressFill.style.width = progress + "%";
+    }
+
+    function finishLoader() {
+        if (loaderFinished || !pageLoaded) return;
+
+        const elapsed = Date.now() - startTime;
+        const remainingTime = Math.max(
+            0,
+            MINIMUM_LOADING_TIME - elapsed
+        );
+
+        window.clearInterval(progressTimer);
+        window.clearTimeout(finishTimer);
+
+        // Reach 100% only after the minimum duration.
+        finishTimer = window.setTimeout(function () {
+            if (loaderFinished) return;
+
+            loaderFinished = true;
+            updateProgress(100);
+
+            // Let the user see 100% before fading out.
+            window.setTimeout(function () {
+                loader.classList.add("loader-hidden");
+
+                window.setTimeout(function () {
+                    loader.remove();
+                }, 950);
+            }, 450);
+
+        }, remainingTime);
+    }
+
+    // Smoothly increase progress without reaching 100% too early.
+    progressTimer = window.setInterval(function () {
+        if (loaderFinished || pageLoaded) {
+            window.clearInterval(progressTimer);
+            return;
+        }
+
+        if (progress < 90) {
+            updateProgress(
+                Math.min(90, progress + Math.max(0.4, (90 - progress) * 0.035))
+            );
+        }
+    }, 100);
+
+    window.addEventListener("load", function () {
+        pageLoaded = true;
+        window.clearInterval(progressTimer);
+        finishLoader();
+    }, { once: true });
+
+    // Handle cases where the page has already loaded.
+    if (pageLoaded) {
+        finishLoader();
+    }
+})();
+</script>
+
+
+
+
+
+
+<!-- SAÑADO'S GOLD PORTAL TRANSITION -->
+<div id="booking-transition" aria-hidden="true">
+
+    <div class="portal-background-glow"></div>
+    <div class="portal-stars" aria-hidden="true">
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+    </div>
+
+    <div class="portal-stage">
+        <div class="portal-ring portal-ring-outer"></div>
+        <div class="portal-ring portal-ring-middle"></div>
+        <div class="portal-ring portal-ring-inner"></div>
+        <div class="portal-core-glow"></div>
+
+        <div class="portal-brand">
+            <p class="portal-eyebrow">THE GROOMING EXPERIENCE</p>
+            <h2>SAÑADO'S</h2>
+            <div class="portal-divider"></div>
+            <p class="portal-subtitle">BARBERSHOP</p>
+        </div>
+    </div>
+
+    <div class="portal-loading">
+        <span class="portal-loading-dot"></span>
+        PREPARING YOUR BOOKING
+        <span class="portal-loading-dot"></span>
+    </div>
+
+</div>
+
+
+
+<script>
+(function () {
+    let isTransitioning = false;
+
+    document.addEventListener("click", function (event) {
+        const button = event.target.closest(
+            'a[href*="booking.html"]'
+        );
+
+        if (!button) return;
+
+        if (
+            event.ctrlKey ||
+            event.metaKey ||
+            event.shiftKey ||
+            event.altKey ||
+            event.button !== 0 ||
+            button.target === "_blank"
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (isTransitioning) return;
+        isTransitioning = true;
+
+        const destination = button.href;
+        const transition = document.getElementById(
+            "booking-transition"
+        );
+
+        if (!transition) {
+            window.location.href = destination;
+            return;
+        }
+
+        transition.classList.remove("active");
+        void transition.offsetWidth;
+
+        transition.setAttribute("aria-hidden", "false");
+        transition.classList.add("active");
+
+        // Slower Gold Portal transition
+        window.setTimeout(function () {
+            window.location.href = destination;
+        }, 2500);
+    });
+})();
+</script>
+
 
 </body>
 </html>
