@@ -1891,7 +1891,7 @@ if (page === "services" && rows) {
                 <td>${esc(s.status || "Active")}</td>
                 <td>
                     ${btn("edit-service", s._id, "Edit", "light")}
-                    ${btn("delete-service", s._id, "Delete", "light")}
+                    ${btn("delete-service", s._id, "Archive", "light")}
                 </td>
             </tr>
         `).join("") || emptyRow(6, "No services found. Click Add service.");
@@ -1907,7 +1907,7 @@ if (page === "services" && rows) {
                 <td>${esc(s.status || "Active")}</td>
                 <td>
                     ${btn("edit-service", s._id, "Edit", "light")}
-                    ${btn("delete-service", s._id, "Delete", "light")}
+                    ${btn("delete-service", s._id, "Archive", "light")}
                 </td>
             </tr>
         `).join("") || emptyRow(6, "No services found. Click Add service.");
