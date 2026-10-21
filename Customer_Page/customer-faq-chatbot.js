@@ -1,4 +1,4 @@
-const CHATBOT_API_BASE = "http://localhost:5000/api";
+const API_URL = "https://barbershop-reservation-system.onrender.com/api";
 
 // =====================================================
 // FAQ ANSWERS
