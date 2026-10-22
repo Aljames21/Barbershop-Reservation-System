@@ -5,19 +5,29 @@ const signinPanel = card.querySelector(".panel-signin");
 const signupPanel = card.querySelector(".panel-signup");
 const overlayLeft = card.querySelector(".overlay-left");
 const overlayRight = card.querySelector(".overlay-right");
-
+const forgotPanel = card.querySelector(".panel-forgot");
 
 function setMode(mode) {
   const signup = mode === "signup";
+  const forgot = mode === "forgot";
 
+  // Reset panel visibility before changing modes.
+  signinPanel.style.display = forgot ? "none" : "";
+  signupPanel.style.display = forgot ? "none" : "";
+  forgotPanel.style.display = forgot ? "flex" : "none";
+
+  // Keep the existing sliding animation for Sign In / Sign Up.
   card.classList.toggle("is-signup", signup);
 
-  signinPanel.inert = signup;
-  signupPanel.inert = !signup;
+  // Disable panels that are not currently active.
+  signinPanel.inert = mode !== "signin";
+  signupPanel.inert = mode !== "signup";
+  forgotPanel.inert = !forgot;
+
+  // Overlay navigation.
   overlayRight.inert = signup;
   overlayLeft.inert = !signup;
 }
-
 
 document.querySelectorAll("[data-switch]").forEach((btn) => {
   btn.addEventListener("click", () => setMode(btn.dataset.switch));
@@ -146,42 +156,23 @@ if (signupForm) {
     });
 }
 
-
 const forgotLink = document.getElementById("forgot-password-link");
-const forgotPanel = document.querySelector(".panel-forgot");
 const backToLogin = document.getElementById("back-to-login");
 const forgotForm = document.getElementById("forgot-form");
 
-if (forgotLink && forgotPanel) {
-    forgotLink.addEventListener("click", (event) => {
-        event.preventDefault();
-
-        setMode("signin");
-
-        signinPanel.inert = true;
-        signupPanel.inert = true;
-        forgotPanel.inert = false;
-
-        signinPanel.style.display = "none";
-        signupPanel.style.display = "none";
-        forgotPanel.style.display = "flex";
-    });
+if (forgotLink) {
+  forgotLink.addEventListener("click", (event) => {
+    event.preventDefault();
+    setMode("forgot");
+  });
 }
 
-if (backToLogin && forgotPanel) {
-    backToLogin.addEventListener("click", () => {
-        forgotPanel.style.display = "none";
-        forgotPanel.inert = true;
-
-        signinPanel.style.display = "flex";
-        signinPanel.inert = false;
-
-        signupPanel.style.display = "flex";
-        signupPanel.inert = true;
-
-        setMode("signin");
-    });
+if (backToLogin) {
+  backToLogin.addEventListener("click", () => {
+    setMode("signin");
+  });
 }
+
 
 if (forgotForm) {
     forgotForm.addEventListener("submit", async (event) => {
@@ -306,4 +297,6 @@ message.textContent="Server error.";
 
 
 }
+
+setMode("signin");
 

@@ -2358,3 +2358,34 @@ body[data-page="archives"]
 .login-activity-unknown {
   color: #ef4444;
 }
+
+/* Show / Hide Password */
+
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 65px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #555;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px;
+}
+
+.password-toggle:hover {
+  color: #a77d3c;
+}
