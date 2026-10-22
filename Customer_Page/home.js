@@ -1,5 +1,57 @@
 
 // ===== SMOOTH SCROLL FOR NAVIGATION =====
+const primaryNav = document.querySelector(".navlink");
+const navMenuToggle = document.querySelector(".nav-menu-toggle");
+
+function setNavigationOpen(isOpen) {
+    if (!primaryNav || !navMenuToggle) return;
+
+    primaryNav.classList.toggle("menu-open", isOpen);
+    navMenuToggle.setAttribute("aria-expanded", String(isOpen));
+    navMenuToggle.setAttribute(
+        "aria-label",
+        isOpen ? "Close navigation menu" : "Open navigation menu"
+    );
+}
+
+if (primaryNav && navMenuToggle) {
+    navMenuToggle.addEventListener("click", () => {
+        const isOpen = navMenuToggle.getAttribute("aria-expanded") === "true";
+        setNavigationOpen(!isOpen);
+    });
+
+    primaryNav.querySelectorAll(".links a").forEach((link) => {
+        link.addEventListener("click", () => setNavigationOpen(false));
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!primaryNav.contains(event.target)) {
+            setNavigationOpen(false);
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (
+            event.key === "Escape" &&
+            navMenuToggle.getAttribute("aria-expanded") === "true"
+        ) {
+            setNavigationOpen(false);
+            navMenuToggle.focus();
+        }
+    });
+
+    const desktopViewport = window.matchMedia("(min-width: 901px)");
+    const closeNavigationOnDesktop = () => {
+        setNavigationOpen(false);
+    };
+
+    if (desktopViewport.addEventListener) {
+        desktopViewport.addEventListener("change", closeNavigationOnDesktop);
+    } else {
+        desktopViewport.addListener(closeNavigationOnDesktop);
+    }
+}
+
 document.querySelectorAll('a[href^="#"]').forEach((link) => {
     link.addEventListener("click", (event) => {
         const target = document.querySelector(link.getAttribute("href"));
@@ -466,5 +518,3 @@ async function loadServiceGallery() {
 
 
 document.addEventListener("DOMContentLoaded", loadServiceGallery);
-
-
