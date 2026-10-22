@@ -5,32 +5,76 @@ const signinPanel = card.querySelector(".panel-signin");
 const signupPanel = card.querySelector(".panel-signup");
 const overlayLeft = card.querySelector(".overlay-left");
 const overlayRight = card.querySelector(".overlay-right");
-
+const forgotPanel = card.querySelector(".panel-forgot");
 
 function setMode(mode) {
   const signup = mode === "signup";
+  const forgot = mode === "forgot";
 
+  // Reset panel visibility before changing modes.
+  signinPanel.style.display = forgot ? "none" : "";
+  signupPanel.style.display = forgot ? "none" : "";
+  forgotPanel.style.display = forgot ? "flex" : "none";
+
+  // Keep the existing sliding animation for Sign In / Sign Up.
   card.classList.toggle("is-signup", signup);
 
-  signinPanel.inert = signup;
-  signupPanel.inert = !signup;
+  // Disable panels that are not currently active.
+  signinPanel.inert = mode !== "signin";
+  signupPanel.inert = mode !== "signup";
+  forgotPanel.inert = !forgot;
+
+  // Overlay navigation.
   overlayRight.inert = signup;
   overlayLeft.inert = !signup;
 }
-
 
 document.querySelectorAll("[data-switch]").forEach((btn) => {
   btn.addEventListener("click", () => setMode(btn.dataset.switch));
 });
 
 
-document.querySelectorAll('.pw-check input[type="checkbox"]').forEach((box) => {
-  box.addEventListener("change", () => {
-    const input = document.getElementById(box.dataset.target);
-    if (input) {
-      input.type = box.checked ? "text" : "password";
+// SHOW PASSWORD CHECKBOXES
+
+const passwordFields = [
+    "password",
+    "signup-password",
+    "new-password",
+    "confirm-password"
+];
+
+passwordFields.forEach((id) => {
+    const input = document.getElementById(id);
+
+    if (!input) return;
+
+    // Prevent duplicate checkboxes.
+    if (document.getElementById(`${id}-show`)) return;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "pw-check";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = `${id}-show`;
+
+    const label = document.createElement("label");
+    label.htmlFor = checkbox.id;
+    label.textContent = "Show password";
+
+    checkbox.addEventListener("change", () => {
+        input.type = checkbox.checked ? "text" : "password";
+    });
+
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(label);
+
+    // Place checkbox immediately after password input.
+    const parent = input.closest("label");
+
+    if (parent) {
+        parent.insertAdjacentElement("afterend", wrapper);
     }
-  });
 });
 
 
@@ -146,42 +190,41 @@ if (signupForm) {
     });
 }
 
-
 const forgotLink = document.getElementById("forgot-password-link");
-const forgotPanel = document.querySelector(".panel-forgot");
 const backToLogin = document.getElementById("back-to-login");
 const forgotForm = document.getElementById("forgot-form");
 
-if (forgotLink && forgotPanel) {
-    forgotLink.addEventListener("click", (event) => {
-        event.preventDefault();
+if (forgotLink) {
+  forgotLink.addEventListener("click", (event) => {
+    event.preventDefault();
 
-        setMode("signin");
+    // Reset the Forgot Password form every time it opens.
+    document.getElementById("forgot-form").reset();
 
-        signinPanel.inert = true;
-        signupPanel.inert = true;
-        forgotPanel.inert = false;
+    const verifyForm = document.getElementById("verify-form");
 
-        signinPanel.style.display = "none";
-        signupPanel.style.display = "none";
-        forgotPanel.style.display = "flex";
-    });
+    if (verifyForm) {
+      verifyForm.reset();
+      verifyForm.style.display = "none";
+    }
+
+    document.getElementById("forgot-message").textContent = "";
+    document.getElementById("reset-message").textContent = "";
+
+    // Return scroll position to the top.
+    forgotPanel.scrollTop = 0;
+    forgotPanel.classList.remove("show-verification");
+    // Show only Email and Send Code.
+    setMode("forgot");
+  });
 }
 
-if (backToLogin && forgotPanel) {
-    backToLogin.addEventListener("click", () => {
-        forgotPanel.style.display = "none";
-        forgotPanel.inert = true;
-
-        signinPanel.style.display = "flex";
-        signinPanel.inert = false;
-
-        signupPanel.style.display = "flex";
-        signupPanel.inert = true;
-
-        setMode("signin");
-    });
+if (backToLogin) {
+  backToLogin.addEventListener("click", () => {
+    setMode("signin");
+  });
 }
+
 
 if (forgotForm) {
     forgotForm.addEventListener("submit", async (event) => {
@@ -215,7 +258,11 @@ if (forgotForm) {
             message.textContent =
             data.message + " Check your inbox and spam folder.";
 
+             forgotPanel.classList.add("show-verification");
+
              document.getElementById("verify-form").style.display = "block";
+
+             forgotPanel.scrollTop = 0;
 
         } catch (error) {
             console.error("Forgot password error:", error);
@@ -306,4 +353,6 @@ message.textContent="Server error.";
 
 
 }
+
+setMode("signin");
 

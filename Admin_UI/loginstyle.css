@@ -325,8 +325,151 @@ input {
   margin-top: 10px;
 }
 
+/* FORGOT PASSWORD PANEL */
+
 .panel-forgot {
-  display: none;
-  z-index: 6;
-  background-color: #101010;
+    display: none;
+    z-index: 6;
+    background-color: #101010;
+
+    flex-direction: column;
+    justify-content: center;
+
+    padding: 28px 48px;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    scrollbar-width: thin;
+    scrollbar-color: #a67c3b #101010;
+}
+
+/* Center the initial email form vertically */
+.panel-forgot:not(.show-verification) {
+    justify-content: center;
+}
+
+/* When verification fields appear, start from the top */
+.panel-forgot.show-verification {
+    justify-content: flex-start;
+}
+
+/* Keep form elements properly sized */
+.panel-forgot #forgot-form,
+.panel-forgot #verify-form {
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.panel-forgot h1 {
+    font-size: 28px;
+    margin-bottom: 16px;
+}
+
+.panel-forgot label {
+    margin-bottom: 10px;
+}
+
+.panel-forgot .btn {
+    flex-shrink: 0;
+}
+.panel-forgot h1 {
+    font-size: 28px;
+    margin-bottom: 16px;
+}
+
+.panel-forgot label {
+    margin-bottom: 10px;
+}
+
+.panel-forgot .btn {
+    flex-shrink: 0;
+}
+
+.panel-forgot #forgot-message,
+.panel-forgot #reset-message {
+    font-size: 13px;
+    line-height: 1.4;
+    margin: 12px 0;
+}
+
+/* SHOW PASSWORD CHECKBOX — FIXED */
+
+/* SHOW PASSWORD CHECKBOX */
+
+.panel .pw-check {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+
+    gap: 8px;
+    width: 100%;
+    margin: 8px 0 14px;
+    padding: 0;
+}
+
+.panel .pw-check > input[type="checkbox"] {
+    all: revert;
+
+    appearance: auto;
+    -webkit-appearance: checkbox;
+
+    display: inline-block !important;
+    position: static !important;
+
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
+
+    flex: 0 0 16px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    accent-color: #a67c3b;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.panel .pw-check > label {
+    display: inline !important;
+    position: static !important;
+
+    width: auto !important;
+    height: auto !important;
+
+    flex: 0 1 auto;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    color: #ddd;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 18px;
+
+    cursor: pointer;
+}
+
+/* RESET PASSWORD FORM SPACING */
+
+.panel-forgot #forgot-form,
+.panel-forgot #verify-form {
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.panel-forgot .pw-check {
+    margin-top: 6px;
+    margin-bottom: 12px;
+}
+
+.panel-forgot .switch {
+    margin-top: 12px;
+}
+
+@media (max-width: 760px) {
+    .panel-forgot {
+        padding: 28px 24px;
+        max-height: 80vh;
+    }
 }

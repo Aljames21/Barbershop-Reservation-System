@@ -55,6 +55,40 @@
       <button id="add-btn">Add service</button>
     </div>
 
+    <!-- SERVICES SEARCH AND FILTERS -->
+<div class="services-filter-toolbar">
+
+  <div class="services-search">
+    <input
+      type="search"
+      id="services-search"
+      placeholder="Search service name or description..."
+      aria-label="Search services"
+    >
+  </div>
+
+      <div class="services-filter-group">
+
+        <select id="services-status-filter" aria-label="Filter by status">
+          <option value="all">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+
+        <select id="services-price-sort" aria-label="Sort services by price">
+          <option value="default">Default Order</option>
+          <option value="low-high">Price: Low to High</option>
+          <option value="high-low">Price: High to Low</option>
+        </select>
+
+        <button type="button" id="services-clear-filters">
+          Clear Filters
+        </button>
+
+      </div>
+
+    </div>
+
     <div class="archive-bulk-toolbar">
       <label class="archive-select-all-label">
         <input type="checkbox" id="select-all-active-services">
