@@ -177,25 +177,23 @@
     }).join("") ||
       '<tr><td colspan="7" class="empty">There is no archived feedback.</td></tr>';
 
-    if (totalPages <= 1) {
-      pagination.replaceChildren();
-    } else {
-      pagination.innerHTML = `
-        <button type="button"
-                data-feedback-page="${currentPage - 1}"
-                ${currentPage === 1 ? "disabled" : ""}>
-          Previous
-        </button>
+    pagination.innerHTML = `
+      <button type="button"
+              class="pagination-nav"
+              data-feedback-page="${currentPage - 1}"
+              ${currentPage <= 1 || totalPages === 0 ? "disabled" : ""}>
+        Previous
+      </button>
 
-        <span>Page ${currentPage} of ${totalPages}</span>
+      <span>Page ${totalPages === 0 ? 0 : currentPage} of ${totalPages}</span>
 
-        <button type="button"
-                data-feedback-page="${currentPage + 1}"
-                ${currentPage === totalPages ? "disabled" : ""}>
-          Next
-        </button>
-      `;
-    }
+      <button type="button"
+              class="pagination-nav"
+              data-feedback-page="${currentPage + 1}"
+              ${currentPage >= totalPages || totalPages === 0 ? "disabled" : ""}>
+        Next
+      </button>
+    `;
 
     updateSelection();
   }

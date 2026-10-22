@@ -1458,40 +1458,25 @@ const pagination = document.getElementById(
 );
 
 if (pagination) {
-    if (totalPages <= 1) {
-        pagination.innerHTML = "";
-    } else {
-        let buttons = `
-            <button
-                type="button"
-                data-archive-page="${archiveCurrentPage - 1}"
-                ${archiveCurrentPage === 1 ? "disabled" : ""}>
-                Previous
-            </button>
-        `;
+    pagination.innerHTML = `
+        <button
+            class="pagination-nav"
+            type="button"
+            data-archive-page="${archiveCurrentPage - 1}"
+            ${archiveCurrentPage <= 1 ? "disabled" : ""}>
+            Previous
+        </button>
 
-        for (let i = 1; i <= totalPages; i++) {
-            buttons += `
-                <button
-                    type="button"
-                    data-archive-page="${i}"
-                    class="${i === archiveCurrentPage ? "active" : ""}">
-                    ${i}
-                </button>
-            `;
-        }
+        <span>Page ${archiveCurrentPage} of ${totalPages}</span>
 
-        buttons += `
-            <button
-                type="button"
-                data-archive-page="${archiveCurrentPage + 1}"
-                ${archiveCurrentPage === totalPages ? "disabled" : ""}>
-                Next
-            </button>
-        `;
-
-        pagination.innerHTML = buttons;
-    }
+        <button
+            class="pagination-nav"
+            type="button"
+            data-archive-page="${archiveCurrentPage + 1}"
+            ${archiveCurrentPage >= totalPages ? "disabled" : ""}>
+            Next
+        </button>
+    `;
 }
 
 }
@@ -1863,7 +1848,7 @@ if (page === "staffs" && rows) {
 
                 <td>
                     ${btn("edit-staff", s.id || s._id, "Edit", "light")}
-                    ${btn("remove-staff", s.id || s._id, "Remove", "light")}
+                    ${btn("archive-staff", s.id || s._id, "Archive", "archive-record-btn")}
                 </td>
             </tr>
         `;
@@ -1891,7 +1876,7 @@ if (page === "services" && rows) {
                 <td>${esc(s.status || "Active")}</td>
                 <td>
                     ${btn("edit-service", s._id, "Edit", "light")}
-                    ${btn("delete-service", s._id, "Archive", "light")}
+                    ${btn("archive-service", s._id, "Archive", "archive-record-btn")}
                 </td>
             </tr>
         `).join("") || emptyRow(6, "No services found. Click Add service.");
@@ -1907,7 +1892,7 @@ if (page === "services" && rows) {
                 <td>${esc(s.status || "Active")}</td>
                 <td>
                     ${btn("edit-service", s._id, "Edit", "light")}
-                    ${btn("delete-service", s._id, "Archive", "light")}
+                    ${btn("archive-service", s._id, "Archive", "archive-record-btn")}
                 </td>
             </tr>
         `).join("") || emptyRow(6, "No services found. Click Add service.");
@@ -2074,18 +2059,63 @@ if (page === "appointments") {
             updateAppointmentSelection();
         });
     }
-}
+
+    const archiveSelectedButton = document.getElementById(
+        "archive-selected-appointments"
+    );
+
+    if (archiveSelectedButton) {
+        archiveSelectedButton.addEventListener("click", async () => {
+            const appointmentIds = [...selectedAppointmentIds];
+
+            if (appointmentIds.length === 0) {
+                return;
+            }
+
+            const confirmed = await showAppointmentConfirmation(
+                `Archive ${appointmentIds.length} selected appointment${appointmentIds.length === 1 ? "" : "s"}?`
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            archiveSelectedButton.disabled = true;
+
+            try {
+                const result = await apiFetch("/appointments/archive/bulk", {
+                    method: "PATCH",
+                    body: JSON.stringify({ appointmentIds })
+                });
+
+                if (
+                    !result ||
+                    result.archivedCount !== appointmentIds.length
+                ) {
+                    throw new Error(
+                        result?.message ||
+                        "Unable to archive the selected appointments."
+                    );
+                }
+
+                await loadAppointments();
+                alert(
+                    `${result.archivedCount} appointment${result.archivedCount === 1 ? "" : "s"} moved to Archives.`
+                );
+            } catch (error) {
+                console.error("Bulk appointment archive error:", error);
+                alert(
+                    error.message ||
+                    "Unable to archive the selected appointments."
+                );
+                updateAppointmentSelection();
+            }
+        });
+    }
 
 }
-  document.querySelector(".logout").onclick = () => {
 
-    sessionStorage.removeItem("admin");
-    sessionStorage.removeItem("adminToken");
-
-    window.location.href = "index.html";
-
-};
-
+}
   const add = document.getElementById("add-btn");
   
     if (add) {
@@ -2212,8 +2242,8 @@ else if (act === "edit-service") {
     serviceForm(service);
 }
 
-else if (act === "delete-service") {
-    if (!confirm("Delete this service?")) return;
+else if (act === "archive-service") {
+    if (!confirm("Move this service to the Services archive?")) return;
 
     try {
         const result = await apiFetch(
@@ -2221,15 +2251,15 @@ else if (act === "delete-service") {
             { method: "DELETE" }
         );
 
-        if (!result || result.message === "Service not found.") {
-            alert(result?.message || "Failed to delete service.");
-            return;
+        if (!result?.service) {
+            throw new Error(result?.message || "Failed to archive service.");
         }
 
         await loadServices();
-        alert("Service deleted successfully!");
+        alert("Service moved to the Services archive.");
     } catch (error) {
-        alert("Delete failed: " + error.message);
+        console.error("Archive service error:", error);
+        alert("Archive failed: " + error.message);
     }
 
     return;
@@ -2253,8 +2283,8 @@ else if (act === "edit-staff") {
     else if (act === "edit-client") return clientForm(data.clients.find(c => c.id === id));
     
 
-else if (act === "remove-staff") {
-    if (!confirm("Remove this staff member?")) return;
+else if (act === "archive-staff") {
+    if (!confirm("Move this barber to the Barbers archive?")) return;
 
     try {
         const result = await apiFetch(
@@ -2262,16 +2292,15 @@ else if (act === "remove-staff") {
             { method: "DELETE" }
         );
 
-        if (!result || result.message === "Staff not found.") {
-            alert(result?.message || "Failed to remove staff.");
-            return;
+        if (!result?.barber) {
+            throw new Error(result?.message || "Failed to archive barber.");
         }
 
         await loadStaffs();
-        alert("Staff removed successfully!");
+        alert("Barber moved to the Barbers archive.");
     } catch (error) {
-        console.error("Remove staff error:", error);
-        alert("Remove failed: " + error.message);
+        console.error("Archive barber error:", error);
+        alert("Archive failed: " + error.message);
     }
 
     return;

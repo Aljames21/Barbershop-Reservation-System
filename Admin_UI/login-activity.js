@@ -5,10 +5,14 @@ const pageLabel = document.getElementById("page-label");
 const previousButton = document.getElementById("previous-page");
 const nextButton = document.getElementById("next-page");
 const resultFilter = document.getElementById("activity-result-filter");
+const searchInput = document.getElementById("activity-search");
+const dateFilter = document.getElementById("activity-date-filter");
+const resetFiltersButton = document.getElementById("reset-activity-filters");
 
 const limit = 25;
 let currentPage = 1;
 let totalPages = 1;
+let searchTimer;
 
 function addCell(row, value) {
     const cell = document.createElement("td");
@@ -34,6 +38,14 @@ async function loadActivity() {
 
     if (resultFilter.value) {
         query.set("result", resultFilter.value);
+    }
+
+    if (searchInput.value.trim()) {
+        query.set("search", searchInput.value.trim());
+    }
+
+    if (dateFilter.value) {
+        query.set("date", dateFilter.value);
     }
 
     try {
@@ -103,6 +115,27 @@ nextButton.addEventListener("click", () => {
 });
 
 resultFilter.addEventListener("change", () => {
+    currentPage = 1;
+    loadActivity();
+});
+
+searchInput.addEventListener("input", () => {
+    window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(() => {
+        currentPage = 1;
+        loadActivity();
+    }, 250);
+});
+
+dateFilter.addEventListener("change", () => {
+    currentPage = 1;
+    loadActivity();
+});
+
+resetFiltersButton.addEventListener("click", () => {
+    searchInput.value = "";
+    dateFilter.value = "";
+    resultFilter.value = "";
     currentPage = 1;
     loadActivity();
 });

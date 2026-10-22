@@ -112,6 +112,10 @@ router.get("/login-activity", verifyAdmin, async (req, res) => {
         const page = Number(req.query.page || 1);
         const limit = Number(req.query.limit || 25);
         const result = req.query.result;
+        const search = typeof req.query.search === "string"
+            ? req.query.search.trim()
+            : "";
+        const date = req.query.date;
 
         if (
             !Number.isInteger(page) ||
@@ -125,6 +129,15 @@ router.get("/login-activity", verifyAdmin, async (req, res) => {
             });
         }
 
+        if (
+            req.query.search !== undefined &&
+            (typeof req.query.search !== "string" || search.length > 100)
+        ) {
+            return res.status(400).json({
+                message: "Search must be 100 characters or fewer."
+            });
+        }
+
         const filter = {};
 
         if (result !== undefined) {
@@ -135,6 +148,48 @@ router.get("/login-activity", verifyAdmin, async (req, res) => {
             }
 
             filter.result = result;
+        }
+
+        if (search) {
+            const escapedSearch = search.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+            );
+            const matchingText = new RegExp(escapedSearch, "i");
+
+            filter.$or = [
+                { accountName: matchingText },
+                { role: matchingText },
+                { result: matchingText }
+            ];
+        }
+
+        if (date !== undefined) {
+            if (
+                typeof date !== "string" ||
+                !/^\d{4}-\d{2}-\d{2}$/.test(date)
+            ) {
+                return res.status(400).json({
+                    message: "Date must use the YYYY-MM-DD format."
+                });
+            }
+
+            const [year, month, day] = date.split("-").map(Number);
+            const calendarDate = new Date(Date.UTC(year, month - 1, day));
+
+            if (
+                calendarDate.getUTCFullYear() !== year ||
+                calendarDate.getUTCMonth() !== month - 1 ||
+                calendarDate.getUTCDate() !== day
+            ) {
+                return res.status(400).json({
+                    message: "Please provide a valid date."
+                });
+            }
+
+            const start = new Date(`${date}T00:00:00+08:00`);
+            const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+            filter.createdAt = { $gte: start, $lt: end };
         }
 
         const [items, total] = await Promise.all([

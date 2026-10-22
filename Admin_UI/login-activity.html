@@ -19,6 +19,7 @@
       <a href="feedback.html"><img src="icons/customerwhite.png" alt="Feedback"> Feedback</a>
       <a href="archives.html"><img src="icons/appointmentwhite.png" alt="Archives"> Archives</a>
       <a href="login-activity.html" class="active" aria-current="page">Login Activity</a>
+
       <button id="logout-btn" class="logout" type="button">
         <img src="icons/logout (2).png" alt="Log out"> Log out
       </button>
@@ -27,12 +28,27 @@
     <main class="main">
       <div class="toolbar">
         <h1>Login Activity</h1>
-        <label for="activity-result-filter">Result</label>
+      </div>
+
+      <div class="activity-filters">
+        <label class="visually-hidden" for="activity-search">Search login activity</label>
+        <input
+          type="search"
+          id="activity-search"
+          placeholder="Search account, role, or result..."
+        >
+
+        <label for="activity-date-filter"></label>
+        <input type="date" id="activity-date-filter">
         <select id="activity-result-filter">
           <option value="">All attempts</option>
           <option value="Success">Successful</option>
           <option value="Failed">Failed</option>
         </select>
+
+        <button type="button" id="reset-activity-filters">
+          Reset filters
+        </button>
       </div>
 
       <p id="activity-message" role="status" aria-live="polite"></p>
@@ -54,9 +70,12 @@
       </div>
 
       <div class="toolbar" aria-label="Login activity pagination">
-        <button id="previous-page" type="button">Previous</button>
+
+        <button id="previous-page" class="pagination-nav" type="button">Previous</button>
+
         <span id="page-label" aria-live="polite"></span>
-        <button id="next-page" type="button">Next</button>
+        <button id="next-page" class="pagination-nav" type="button">Next</button>
+
       </div>
     </main>
   </div>

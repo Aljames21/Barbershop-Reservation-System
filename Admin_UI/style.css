@@ -162,7 +162,12 @@ td {
   border-bottom: 1px solid var(--border);
 }
 th {
-  color: var(--muted);
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  line-height: 1.5 !important;
+  padding: 16px 14px !important;
+
+  color: #f0d4a3;
   font-size: 13px;
   font-weight: normal;
 }
@@ -278,6 +283,12 @@ body[data-page="services"] .table-wrap td:last-child button {
 .feedback-table-wrap {
   max-height: none;
   overflow: visible;
+}
+
+body[data-page="feedback-archive"] .feedback-table-wrap {
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .feedback-table-wrap table {
@@ -542,10 +553,115 @@ button.light {
   color: var(--text);
 }
 
+button.archive-record-btn {
+  background: #c0392b;
+  color: #fff;
+}
+
+button.archive-record-btn:hover:not(:disabled) {
+  background: #a93226;
+}
+
 .toolbar {
   display: flex;
   justify-content: space-between;
   margin-bottom: 16px;
+
+  margin-top: 20px;
+}
+
+.toolbar label {
+  font-size: 20px;
+  font-weight: 700;
+
+  color: #a67c3b;
+}
+
+#activity-result-filter {
+  background-color: black;
+  color: white;
+  padding: 10px;
+  border: 1px solid #a67c3b;
+}
+
+body[data-page="login-activity"] .activity-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 16px;
+  background: #211d19;
+  border: 1px solid #453b30;
+  border-radius: 10px;
+}
+
+body[data-page="login-activity"] .activity-filters input,
+body[data-page="login-activity"] .activity-filters select {
+  min-height: 42px;
+  padding: 10px 13px;
+  border: 1px solid #50473c;
+  border-radius: 7px;
+  background: #141414;
+  color: #f0e8dd;
+  font-size: 14px;
+}
+
+body[data-page="login-activity"] #activity-search {
+  flex: 1 1 260px;
+  min-width: 190px;
+}
+
+body[data-page="login-activity"] #activity-date-filter {
+  flex: 0 1 170px;
+}
+
+body[data-page="login-activity"] .activity-filters label {
+  color: #e5c38d;
+  font-size: 14px;
+}
+
+body[data-page="login-activity"] .activity-filters input:focus,
+body[data-page="login-activity"] .activity-filters select:focus {
+  outline: none;
+  border-color: #bd9250;
+  box-shadow: 0 0 0 2px rgba(189, 146, 80, 0.16);
+}
+
+body[data-page="login-activity"] #reset-activity-filters {
+  min-height: 42px;
+  padding: 10px 17px;
+  border: 1px solid #a9803d;
+  border-radius: 7px;
+  background: transparent;
+  color: #e5c38d;
+  font-weight: 600;
+}
+
+body[data-page="login-activity"] #reset-activity-filters:hover {
+  background: rgba(169, 128, 61, 0.15);
+}
+
+body[data-page="login-activity"] .table-wrap table {
+  table-layout: fixed;
+}
+
+body[data-page="login-activity"] .table-wrap th,
+body[data-page="login-activity"] .table-wrap td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ===== Login page ===== */
@@ -1835,28 +1951,6 @@ body[data-page="archives"] #archives-pagination {
   margin-top: 18px;
 }
 
-body[data-page="archives"] #archives-pagination button {
-  min-width: 38px;
-  min-height: 36px;
-  padding: 8px 12px;
-  border: 1px solid #514638;
-  border-radius: 7px;
-  background: #241f19;
-  color: #e7dac6;
-  cursor: pointer;
-}
-
-body[data-page="archives"] #archives-pagination button.active {
-  background: #a9803d;
-  border-color: #a9803d;
-  color: white;
-}
-
-body[data-page="archives"] #archives-pagination button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 /* ===== RESPONSIVE ===== */
 
 @media (max-width: 768px) {
@@ -1921,7 +2015,11 @@ body[data-page="archives"] .table-wrap tbody tr {
 
 /* Soft hover */
 body[data-page="appointments"] .table-wrap tbody tr:hover,
-body[data-page="archives"] .table-wrap tbody tr:hover {
+body[data-page="archives"] .table-wrap tbody tr:hover,
+body[data-page="staffs"] .table-wrap tbody tr:hover,
+body[data-page="services"] .table-wrap tbody tr:hover,
+body[data-page="feedback"] .table-wrap tbody tr:hover,
+body[data-page="login-activity"] .table-wrap tbody tr:hover {
   background: rgba(169, 128, 61, 0.1);
 }
 
@@ -1984,6 +2082,12 @@ body[data-page="archives"] .archive-delete-btn:disabled {
 .archive-bulk-toolbar button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+body[data-page="archives"] .table-wrap {
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 /* ===== ARCHIVES TABLE STYLE ===== */
@@ -2090,29 +2194,6 @@ body[data-page="appointments"] table button {
   font-weight: 600 !important;
 }
 
-/* ===== PAGINATION READABILITY ===== */
-
-body[data-page="appointments"] .pagination-container button,
-body[data-page="archives"] .pagination-container button {
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  padding: 10px 16px !important;
-  border: 1px solid #c79b53 !important;
-  border-radius: 6px !important;
-  background-color: #a9803e !important;
-  color: #ffffff !important;
-}
-
-/* Disabled Previous and Next */
-body[data-page="appointments"] .pagination-container button:disabled,
-body[data-page="archives"] .pagination-container button:disabled {
-  background-color: #40372c !important;
-  color: #e0d4c1 !important;
-  border-color: #8a7351 !important;
-  opacity: 1 !important;
-  cursor: not-allowed !important;
-}
-
 /* Page number */
 body[data-page="appointments"] .pagination-container span,
 body[data-page="archives"] .pagination-container span {
@@ -2166,30 +2247,69 @@ body[data-page="staffs"] .table-wrap {
 /* STAFF PICTURES */
 
 .staff-name-cell {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .staff-avatar {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    border-radius: 50%;
-    object-fit: cover;
-    display: block;
-    background: #f1f1f1;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: #f1f1f1;
 }
 
 .staff-avatar-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #777;
-    font-size: 20px;
-    border: 1px solid #e5e5e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777;
+  font-size: 20px;
+  border: 1px solid #e5e5e5;
 }
 
 .staff-name-cell span {
-    font-weight: 500;
+  font-weight: 500;
+}
+
+/* Keep table headers aligned with the data cells on each admin page. */
+body[data-page] .table-wrap thead th {
+  text-align: center;
+}
+
+body[data-page="archives"] #archived-appointments-section table th {
+  text-align: center;
+}
+
+body[data-page="feedback"] .feedback-table-wrap thead th,
+body[data-page="archives"]
+  #archived-feedback-section
+  .feedback-table-wrap
+  thead
+  th {
+  text-align: left;
+}
+
+body[data-page="feedback"] .feedback-table-wrap thead th:nth-child(2),
+body[data-page="feedback"] .feedback-table-wrap thead th:nth-child(6),
+body[data-page="feedback"] .feedback-table-wrap thead th:nth-child(7),
+body[data-page="archives"]
+  #archived-feedback-section
+  .feedback-table-wrap
+  thead
+  th:nth-child(2),
+body[data-page="archives"]
+  #archived-feedback-section
+  .feedback-table-wrap
+  thead
+  th:nth-child(6),
+body[data-page="archives"]
+  #archived-feedback-section
+  .feedback-table-wrap
+  thead
+  th:nth-child(7) {
+  text-align: center;
 }

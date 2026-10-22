@@ -194,25 +194,23 @@
                 </tr>
             `;
 
-            if (totalPages <= 1) {
-                pagination.replaceChildren();
-            } else {
-                pagination.innerHTML = `
-                    <button type="button"
-                            data-page="${page - 1}"
-                            ${page === 1 ? "disabled" : ""}>
-                        Previous
-                    </button>
+            pagination.innerHTML = `
+                <button type="button"
+                        class="pagination-nav"
+                        data-page="${page - 1}"
+                        ${page <= 1 || totalPages === 0 ? "disabled" : ""}>
+                    Previous
+                </button>
 
-                    <span>Page ${page} of ${totalPages}</span>
+                <span>Page ${totalPages === 0 ? 0 : page} of ${totalPages}</span>
 
-                    <button type="button"
-                            data-page="${page + 1}"
-                            ${page === totalPages ? "disabled" : ""}>
-                        Next
-                    </button>
-                `;
-            }
+                <button type="button"
+                        class="pagination-nav"
+                        data-page="${page + 1}"
+                        ${page >= totalPages || totalPages === 0 ? "disabled" : ""}>
+                    Next
+                </button>
+            `;
 
             updateSelection();
         }
