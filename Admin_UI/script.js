@@ -1966,7 +1966,17 @@ if (page === "services" && rows) {
                 <td>${esc(s.description || "-")}</td>
                 <td>${money(s.price || 0)}</td>
                 <td>${Number(s.duration) || 0}</td>
-                <td>${esc(s.status || "Active")}</td>
+                
+                <td>
+                    <span class="service-status ${
+                        String(s.status || "Inactive").toLowerCase() === "active"
+                            ? "active"
+                            : "inactive"
+                    }">
+                        ${esc(s.status || "Inactive")}
+                    </span>
+                </td>
+
                 <td>
                     ${btn("edit-service", s._id, "Edit", "light")}
                     ${btn("archive-service", s._id, "Archive", "archive-record-btn")}
@@ -1996,7 +2006,17 @@ if (page === "services" && rows) {
                 <td>${esc(s.description || "-")}</td>
                 <td>${money(s.price || 0)}</td>
                 <td>${Number(s.duration) || 0}</td>
-                <td>${esc(s.status || "Active")}</td>
+               
+                <td>
+                    <span class="service-status ${
+                        String(s.status || "Inactive").toLowerCase() === "active"
+                            ? "active"
+                            : "inactive"
+                    }">
+                        ${esc(s.status || "Inactive")}
+                    </span>
+                </td>
+
                 <td>
                     ${btn("edit-service", s._id, "Edit", "light")}
                     ${btn("archive-service", s._id, "Archive", "archive-record-btn")}
