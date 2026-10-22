@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login Activity</title>
+  <link rel="icon" type="image/png" href="icons/favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="login-activity">
+  <div class="layout">
+    <nav class="sidebar">
+      <img class="logo" src="logo.jpg" alt="logo">
+      <br>
+      <a href="dashboard.html"><img src="icons/dashboardwhite.png" alt="Dashboard"> Dashboard</a>
+      <a href="staffs.html"><img src="icons/barberwhite.png" alt="Staffs"> Staffs</a>
+      <a href="services.html"><img src="icons/Scissors_Icon.png" alt="Services"> Services</a>
+      <a href="appointments.html"><img src="icons/appointmentwhite.png" alt="Appointments"> Appointments</a>
+      <a href="feedback.html"><img src="icons/customerwhite.png" alt="Feedback"> Feedback</a>
+      <a href="archives.html"><img src="icons/appointmentwhite.png" alt="Archives"> Archives</a>
+      <a href="login-activity.html" class="active" aria-current="page">Login Activity</a>
+      <button id="logout-btn" class="logout" type="button">
+        <img src="icons/logout (2).png" alt="Log out"> Log out
+      </button>
+    </nav>
+
+    <main class="main">
+      <div class="toolbar">
+        <h1>Login Activity</h1>
+        <label for="activity-result-filter">Result</label>
+        <select id="activity-result-filter">
+          <option value="">All attempts</option>
+          <option value="Success">Successful</option>
+          <option value="Failed">Failed</option>
+        </select>
+      </div>
+
+      <p id="activity-message" role="status" aria-live="polite"></p>
+
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Date and time</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody id="activity-rows">
+            <tr><td colspan="4">Loading login activity...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="toolbar" aria-label="Login activity pagination">
+        <button id="previous-page" type="button">Previous</button>
+        <span id="page-label" aria-live="polite"></span>
+        <button id="next-page" type="button">Next</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="logout.js"></script>
+  <script src="login-activity.js"></script>
+</body>
+</html>

@@ -5,8 +5,20 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const Admin = require("../Models/Admin");
+const LoginActivity = require("../Models/LoginActivity");
+const verifyAdmin = require("../Middleware/authMiddleware");
 
 const transporter = require("../email");
+
+async function recordLoginAttempt(result, admin = null) {
+    const authenticated = result === "Success" && admin;
+
+    await LoginActivity.create({
+        accountName: authenticated ? admin.username : "Unknown account",
+        role: authenticated ? "Admin" : "Unknown",
+        result
+    });
+}
 
 // 1. LOGIN: username OR email + password
 router.post("/login", async (req, res) => {
@@ -19,6 +31,8 @@ router.post("/login", async (req, res) => {
         const identifier = String(username || email || "").trim();
 
         if (!identifier || !password) {
+            await recordLoginAttempt("Failed");
+
             return res.status(400).json({
                 message: "Username/email and password are required."
             });
@@ -32,6 +46,8 @@ router.post("/login", async (req, res) => {
         });
 
         if (!admin) {
+            await recordLoginAttempt("Failed");
+
             return res.status(401).json({
                 message: "Invalid username/email or password."
             });
@@ -52,6 +68,8 @@ router.post("/login", async (req, res) => {
         }
 
         if (!validPassword) {
+            await recordLoginAttempt("Failed");
+
             return res.status(401).json({
                 message: "Invalid username/email or password."
             });
@@ -70,6 +88,8 @@ router.post("/login", async (req, res) => {
             { expiresIn: "1h" }
         );
 
+        await recordLoginAttempt("Success", admin);
+
         return res.json({
             message: "Login successful.",
             token,
@@ -83,6 +103,61 @@ router.post("/login", async (req, res) => {
         console.error("Admin login error:", error.message);
         return res.status(500).json({
             message: "Server error. Please try again."
+        });
+    }
+});
+
+router.get("/login-activity", verifyAdmin, async (req, res) => {
+    try {
+        const page = Number(req.query.page || 1);
+        const limit = Number(req.query.limit || 25);
+        const result = req.query.result;
+
+        if (
+            !Number.isInteger(page) ||
+            page < 1 ||
+            !Number.isInteger(limit) ||
+            limit < 1 ||
+            limit > 100
+        ) {
+            return res.status(400).json({
+                message: "Invalid page or limit."
+            });
+        }
+
+        const filter = {};
+
+        if (result !== undefined) {
+            if (!["Success", "Failed"].includes(result)) {
+                return res.status(400).json({
+                    message: "Invalid result filter."
+                });
+            }
+
+            filter.result = result;
+        }
+
+        const [items, total] = await Promise.all([
+            LoginActivity.find(filter)
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit)
+                .select("accountName role result createdAt")
+                .lean(),
+            LoginActivity.countDocuments(filter)
+        ]);
+
+        return res.json({
+            items,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
+    } catch (error) {
+        console.error("Login activity error:", error.message);
+        return res.status(500).json({
+            message: "Unable to load login activity."
         });
     }
 });
