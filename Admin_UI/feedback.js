@@ -1,6 +1,21 @@
 const API_URL = "https://barbershop-reservation-system.onrender.com/api";
 const feedbackRows = document.getElementById("feedback-rows");
 const feedbackStatus = document.getElementById("feedback-status");
+const selectedFeedbackIds = new Set();
+let activeFeedback = [];
+
+function updateFeedbackSelection() {
+  const checkboxes = [...feedbackRows.querySelectorAll(".active-feedback-checkbox")];
+  const selectedOnPage = checkboxes.filter((checkbox) => checkbox.checked).length;
+  const selectAll = document.getElementById("select-all-active-feedback");
+  const archiveButton = document.getElementById("archive-selected-feedback");
+
+  document.getElementById("active-feedback-selected-count").textContent =
+    `${selectedFeedbackIds.size} selected`;
+  archiveButton.disabled = selectedFeedbackIds.size === 0;
+  selectAll.checked = checkboxes.length > 0 && selectedOnPage === checkboxes.length;
+  selectAll.indeterminate = selectedOnPage > 0 && selectedOnPage < checkboxes.length;
+}
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => ({
@@ -231,6 +246,15 @@ function renderFeedback(feedback) {
     return `
       <tr>
         <td>
+          <input
+            type="checkbox"
+            class="active-feedback-checkbox"
+            data-id="${escapeHtml(item._id)}"
+            aria-label="Select feedback from ${escapeHtml(name)}"
+            ${selectedFeedbackIds.has(String(item._id)) ? "checked" : ""}
+          >
+        </td>
+        <td>
           <span class="feedback-initials">${escapeHtml(initialsFor(name))}</span>
           ${escapeHtml(name)}
         </td>
@@ -248,7 +272,8 @@ function renderFeedback(feedback) {
   });
 
   feedbackRows.innerHTML = rows.join("") ||
-    '<tr><td colspan="7" class="empty">No feedback has been submitted yet.</td></tr>';
+    '<tr><td colspan="8" class="empty">No feedback has been submitted yet.</td></tr>';
+  updateFeedbackSelection();
 }
 
 function renderFeedbackRatingSummary(feedback) {
@@ -287,14 +312,79 @@ async function loadFeedback() {
 
   try {
     const feedback = await adminFetch("/feedback/admin");
+    activeFeedback = feedback;
+    const activeIds = new Set(feedback.map((item) => String(item._id)));
+    selectedFeedbackIds.forEach((id) => {
+      if (!activeIds.has(id)) selectedFeedbackIds.delete(id);
+    });
     renderFeedback(feedback);
   } catch (error) {
     console.error("Admin feedback load error:", error);
     feedbackRows.innerHTML =
-      '<tr><td colspan="7" class="empty">Unable to load feedback.</td></tr>';
+      '<tr><td colspan="8" class="empty">Unable to load feedback.</td></tr>';
+    updateFeedbackSelection();
     feedbackStatus.textContent = error.message;
   }
 }
+
+document.getElementById("select-all-active-feedback").addEventListener("change", (event) => {
+  feedbackRows.querySelectorAll(".active-feedback-checkbox").forEach((checkbox) => {
+    checkbox.checked = event.target.checked;
+    if (checkbox.checked) {
+      selectedFeedbackIds.add(String(checkbox.dataset.id));
+    } else {
+      selectedFeedbackIds.delete(String(checkbox.dataset.id));
+    }
+  });
+  updateFeedbackSelection();
+});
+
+feedbackRows.addEventListener("change", (event) => {
+  const checkbox = event.target.closest(".active-feedback-checkbox");
+  if (!checkbox) return;
+
+  if (checkbox.checked) {
+    selectedFeedbackIds.add(String(checkbox.dataset.id));
+  } else {
+    selectedFeedbackIds.delete(String(checkbox.dataset.id));
+  }
+  updateFeedbackSelection();
+});
+
+document.getElementById("archive-selected-feedback").addEventListener("click", async (event) => {
+  const selected = activeFeedback.filter((item) =>
+    selectedFeedbackIds.has(String(item._id))
+  );
+  if (!selected.length) return;
+  if (!window.confirm(`Move ${selected.length} selected feedback item(s) to the archive?`)) return;
+
+  const button = event.currentTarget;
+  button.disabled = true;
+  feedbackStatus.textContent = "";
+  const failures = [];
+
+  for (const item of selected) {
+    try {
+      await adminFetch(`/feedback/${encodeURIComponent(item._id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "Archived" })
+      });
+      selectedFeedbackIds.delete(String(item._id));
+    } catch (error) {
+      failures.push(`${item._id}: ${error.message}`);
+    }
+  }
+
+  await loadFeedback();
+  if (failures.length) {
+    console.error("Some feedback items could not be archived:", failures);
+    feedbackStatus.textContent =
+      `${selected.length - failures.length} archived; ${failures.length} failed. ${failures.join(" ")}`;
+  } else {
+    feedbackStatus.textContent = `${selected.length} feedback item(s) moved to the archive.`;
+  }
+  updateFeedbackSelection();
+});
 
 feedbackRows.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-action]");

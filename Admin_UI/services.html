@@ -55,10 +55,22 @@
       <button id="add-btn">Add service</button>
     </div>
 
+    <div class="archive-bulk-toolbar">
+      <label class="archive-select-all-label">
+        <input type="checkbox" id="select-all-active-services">
+        Select All
+      </label>
+      <span id="active-services-selected-count">0 selected</span>
+      <button type="button" id="archive-selected-services" class="archive-record-btn" disabled>
+        Archive Selected
+      </button>
+    </div>
+
     <div class="card table-wrap">
       <table>
         <thead>
           <tr>
+            <th>Select</th>
             <th>Service</th>
             <th>Description</th>
             <th>Price</th>

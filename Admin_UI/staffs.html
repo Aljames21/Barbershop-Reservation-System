@@ -29,12 +29,24 @@
       <button id="add-btn">Add staff</button>
     </div>
 
+    <div class="archive-bulk-toolbar">
+      <label class="archive-select-all-label">
+        <input type="checkbox" id="select-all-active-staff">
+        Select All
+      </label>
+      <span id="active-staff-selected-count">0 selected</span>
+      <button type="button" id="archive-selected-staff" class="archive-record-btn" disabled>
+        Archive Selected
+      </button>
+    </div>
+
     <!-- Rows are filled in by script.js -->
     <div class="card table-wrap">
       <table>
 
     <thead>
         <tr>
+            <th>Select</th>
             <th>Name</th>
             <th>Specialization</th>
             <th>Status</th>

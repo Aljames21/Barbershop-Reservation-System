@@ -75,7 +75,19 @@ async function loadActivity() {
             const row = document.createElement("tr");
 
             addCell(row, item.accountName);
-            addCell(row, item.role);
+            const roleCell = document.createElement("td");
+            roleCell.textContent = item.role;
+
+        if (item.role === "Admin") {
+            roleCell.classList.add("login-activity-admin");
+}       else if 
+            (item.role === "Unknown")
+
+{
+    roleCell.classList.add("login-activity-unknown");
+}
+
+row.appendChild(roleCell);
             addCell(
                 row,
                 new Intl.DateTimeFormat("en-PH", {
@@ -84,7 +96,14 @@ async function loadActivity() {
                     timeZone: "Asia/Manila"
                 }).format(new Date(item.createdAt))
             );
-            addCell(row, item.result);
+            const resultCell = document.createElement("td");
+            resultCell.textContent = item.result;
+            resultCell.classList.add(
+            item.result === "Success"
+        ? "login-activity-success"
+        : "login-activity-failed"
+);
+row.appendChild(resultCell);
             rows.appendChild(row);
         }
 

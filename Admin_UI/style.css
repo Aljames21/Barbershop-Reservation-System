@@ -245,31 +245,36 @@ body[data-page="appointments"] .table-wrap td:nth-child(8) {
 
 body[data-page="services"] .table-wrap th:nth-child(1),
 body[data-page="services"] .table-wrap td:nth-child(1) {
-  width: 17%;
+  width: 7%;
 }
 
 body[data-page="services"] .table-wrap th:nth-child(2),
 body[data-page="services"] .table-wrap td:nth-child(2) {
-  width: 29%;
+  width: 16%;
 }
 
 body[data-page="services"] .table-wrap th:nth-child(3),
 body[data-page="services"] .table-wrap td:nth-child(3) {
-  width: 12%;
+  width: 27%;
 }
 
 body[data-page="services"] .table-wrap th:nth-child(4),
 body[data-page="services"] .table-wrap td:nth-child(4) {
-  width: 14%;
+  width: 11%;
 }
 
 body[data-page="services"] .table-wrap th:nth-child(5),
 body[data-page="services"] .table-wrap td:nth-child(5) {
-  width: 12%;
+  width: 13%;
 }
 
 body[data-page="services"] .table-wrap th:nth-child(6),
 body[data-page="services"] .table-wrap td:nth-child(6) {
+  width: 11%;
+}
+
+body[data-page="services"] .table-wrap th:nth-child(7),
+body[data-page="services"] .table-wrap td:nth-child(7) {
   width: 16%;
 }
 
@@ -2084,6 +2089,18 @@ body[data-page="archives"] .archive-delete-btn:disabled {
   cursor: not-allowed;
 }
 
+body[data-page="feedback"] .archive-bulk-toolbar input[type="checkbox"],
+body[data-page="staffs"] .archive-bulk-toolbar input[type="checkbox"],
+body[data-page="services"] .archive-bulk-toolbar input[type="checkbox"],
+body[data-page="feedback"] .table-wrap input[type="checkbox"],
+body[data-page="staffs"] .table-wrap input[type="checkbox"],
+body[data-page="services"] .table-wrap input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: #b58a43;
+  cursor: pointer;
+}
+
 body[data-page="archives"] .table-wrap {
   max-height: none;
   overflow-x: auto;
@@ -2205,7 +2222,10 @@ body[data-page="archives"] .pagination-container span {
 /* ===== TABLE CHECKBOXES ===== */
 
 body[data-page="appointments"] table input[type="checkbox"],
-body[data-page="archives"] table input[type="checkbox"] {
+body[data-page="archives"] table input[type="checkbox"],
+body[data-page="feedback"] table input[type="checkbox"],
+body[data-page="staffs"] table input[type="checkbox"],
+body[data-page="services"] table input[type="checkbox"] {
   width: 17px !important;
   height: 17px !important;
   accent-color: #b58a43;
@@ -2242,6 +2262,15 @@ body[data-page="services"] .table-wrap,
 body[data-page="staffs"] .table-wrap {
   border: 1px solid #a9803d;
   border-radius: 12px;
+}
+
+body[data-page="feedback"] .table-wrap th:first-child,
+body[data-page="feedback"] .table-wrap td:first-child,
+body[data-page="services"] .table-wrap th:first-child,
+body[data-page="services"] .table-wrap td:first-child,
+body[data-page="staffs"] .table-wrap th:first-child,
+body[data-page="staffs"] .table-wrap td:first-child {
+  text-align: center;
 }
 
 /* STAFF PICTURES */
@@ -2312,4 +2341,20 @@ body[data-page="archives"]
   thead
   th:nth-child(7) {
   text-align: center;
+}
+
+.login-activity-success {
+  color: #22c55e;
+}
+
+.login-activity-failed {
+  color: #ef4444;
+}
+
+.login-activity-admin {
+  color: #22c55e;
+}
+
+.login-activity-unknown {
+  color: #ef4444;
 }

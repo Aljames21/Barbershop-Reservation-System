@@ -83,6 +83,28 @@ let data = {
     appointments: [],
     services: []
 };
+const selectedStaffIds = new Set();
+const selectedServiceIds = new Set();
+
+function syncActiveArchiveSelection(type, selectedIds) {
+    const checkboxes = [...document.querySelectorAll(
+        `.admin-archive-checkbox[data-type="${type}"]`
+    )];
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectedIds.has(String(checkbox.dataset.id));
+    });
+    const selectedOnPage = checkboxes.filter(checkbox => checkbox.checked).length;
+    const selectAll = document.getElementById(`select-all-active-${type}`);
+    const count = document.getElementById(`active-${type}-selected-count`);
+    const archiveButton = document.getElementById(`archive-selected-${type}`);
+
+    if (!selectAll || !count || !archiveButton) return;
+
+    count.textContent = `${selectedIds.size} selected`;
+    archiveButton.disabled = selectedIds.size === 0;
+    selectAll.checked = checkboxes.length > 0 && selectedOnPage === checkboxes.length;
+    selectAll.indeterminate = selectedOnPage > 0 && selectedOnPage < checkboxes.length;
+}
 
 async function loadAppointments() {
     console.log("DEBUG: loadAppointments called");
@@ -156,6 +178,10 @@ async function loadStaffs() {
 
         if (Array.isArray(staffs)) {
             data.staffs = staffs;
+            const activeIds = new Set(staffs.map(s => String(s._id || s.id)));
+            selectedStaffIds.forEach(id => {
+                if (!activeIds.has(id)) selectedStaffIds.delete(id);
+            });
             render();
         }
     } catch (error) {
@@ -170,6 +196,10 @@ async function loadServices() {
 
         if (Array.isArray(services)) {
             data.services = services;
+            const activeIds = new Set(services.map(s => String(s._id)));
+            selectedServiceIds.forEach(id => {
+                if (!activeIds.has(id)) selectedServiceIds.delete(id);
+            });
             render();
         }
     } catch (error) {
@@ -1817,6 +1847,7 @@ list.sort((a, b) => {
 if (page === "staffs" && rows) {
     rows.innerHTML = data.staffs.map(s => {
         const status = s.status || "Available";
+        const id = String(s.id || s._id);
 
         const barberImage = s.imageUrl
             ? `<img
@@ -1831,6 +1862,16 @@ if (page === "staffs" && rows) {
 
         return `
             <tr>
+                <td>
+                    <input
+                        type="checkbox"
+                        class="admin-archive-checkbox"
+                        data-type="staff"
+                        data-id="${esc(id)}"
+                        aria-label="Select ${esc(s.name)}"
+                        ${selectedStaffIds.has(id) ? "checked" : ""}
+                    >
+                </td>
                 <td>
                     <div class="staff-name-cell">
                         ${barberImage}
@@ -1852,7 +1893,11 @@ if (page === "staffs" && rows) {
                 </td>
             </tr>
         `;
-    }).join("") || emptyRow(4, "No staff found. Click Add staff.");
+    }).join("") || emptyRow(5, "No staff found. Click Add staff.");
+    syncActiveArchiveSelection(
+        "staff",
+        selectedStaffIds
+    );
 }
 
 // ===== SERVICES PAGE =====
@@ -1869,6 +1914,16 @@ if (page === "services" && rows) {
 
         rows.innerHTML = visibleRecords.map(s => `
             <tr>
+                <td>
+                    <input
+                        type="checkbox"
+                        class="admin-archive-checkbox"
+                        data-type="services"
+                        data-id="${esc(s._id)}"
+                        aria-label="Select ${esc(s.name)}"
+                        ${selectedServiceIds.has(String(s._id)) ? "checked" : ""}
+                    >
+                </td>
                 <td>${esc(s.name)}</td>
                 <td>${esc(s.description || "-")}</td>
                 <td>${money(s.price || 0)}</td>
@@ -1879,12 +1934,26 @@ if (page === "services" && rows) {
                     ${btn("archive-service", s._id, "Archive", "archive-record-btn")}
                 </td>
             </tr>
-        `).join("") || emptyRow(6, "No services found. Click Add service.");
+        `).join("") || emptyRow(7, "No services found. Click Add service.");
+        syncActiveArchiveSelection(
+            "services",
+            selectedServiceIds
+        );
         return;
     }
 
     rows.innerHTML = data.services.map(s => `
             <tr>
+                <td>
+                    <input
+                        type="checkbox"
+                        class="admin-archive-checkbox"
+                        data-type="services"
+                        data-id="${esc(s._id)}"
+                        aria-label="Select ${esc(s.name)}"
+                        ${selectedServiceIds.has(String(s._id)) ? "checked" : ""}
+                    >
+                </td>
                 <td>${esc(s.name)}</td>
                 <td>${esc(s.description || "-")}</td>
                 <td>${money(s.price || 0)}</td>
@@ -1895,7 +1964,11 @@ if (page === "services" && rows) {
                     ${btn("archive-service", s._id, "Archive", "archive-record-btn")}
                 </td>
             </tr>
-        `).join("") || emptyRow(6, "No services found. Click Add service.");
+        `).join("") || emptyRow(7, "No services found. Click Add service.");
+    syncActiveArchiveSelection(
+        "services",
+        selectedServiceIds
+    );
     }
 
 
@@ -2255,6 +2328,7 @@ else if (act === "archive-service") {
             throw new Error(result?.message || "Failed to archive service.");
         }
 
+        selectedServiceIds.delete(String(id));
         await loadServices();
         alert("Service moved to the Services archive.");
     } catch (error) {
@@ -2296,6 +2370,7 @@ else if (act === "archive-staff") {
             throw new Error(result?.message || "Failed to archive barber.");
         }
 
+        selectedStaffIds.delete(String(id));
         await loadStaffs();
         alert("Barber moved to the Barbers archive.");
     } catch (error) {
@@ -2315,6 +2390,101 @@ else if (act === "archive-staff") {
 
   render();
 }
+
+function setupActiveArchiveSelection(type, selectedIds) {
+    const selectAll = document.getElementById(`select-all-active-${type}`);
+    const archiveButton = document.getElementById(`archive-selected-${type}`);
+    const rows = document.getElementById("rows");
+
+    if (!selectAll || !archiveButton || !rows) return;
+
+    selectAll.addEventListener("change", () => {
+        rows.querySelectorAll(`.admin-archive-checkbox[data-type="${type}"]`)
+            .forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+                if (checkbox.checked) {
+                    selectedIds.add(String(checkbox.dataset.id));
+                } else {
+                    selectedIds.delete(String(checkbox.dataset.id));
+                }
+            });
+        syncActiveArchiveSelection(type, selectedIds);
+    });
+
+    rows.addEventListener("change", event => {
+        const checkbox = event.target.closest(
+            `.admin-archive-checkbox[data-type="${type}"]`
+        );
+        if (!checkbox) return;
+
+        if (checkbox.checked) {
+            selectedIds.add(String(checkbox.dataset.id));
+        } else {
+            selectedIds.delete(String(checkbox.dataset.id));
+        }
+        syncActiveArchiveSelection(type, selectedIds);
+    });
+
+    archiveButton.addEventListener("click", async () => {
+        const records = type === "staff"
+            ? data.staffs.filter(record =>
+                selectedIds.has(String(record._id || record.id))
+            )
+            : data.services.filter(record =>
+                selectedIds.has(String(record._id))
+            );
+        if (!records.length) return;
+
+        const noun = type === "staff" ? "barber" : "service";
+        if (!confirm(`Move ${records.length} selected ${noun}(s) to the archive?`)) return;
+
+        archiveButton.disabled = true;
+        const failures = [];
+        let archivedCount = 0;
+
+        for (const record of records) {
+            const id = String(record._id || record.id);
+            try {
+                const result = await apiFetch(
+                    type === "staff"
+                        ? `/barbers/${encodeURIComponent(id)}`
+                        : `/services/${encodeURIComponent(id)}`,
+                    { method: "DELETE" }
+                );
+                const archivedRecord = type === "staff"
+                    ? result?.barber
+                    : result?.service;
+                if (!archivedRecord) {
+                    throw new Error(result?.message || `Failed to archive ${noun}.`);
+                }
+                selectedIds.delete(id);
+                archivedCount += 1;
+            } catch (error) {
+                failures.push(`${record.name || id}: ${error.message}`);
+            }
+        }
+
+        if (type === "staff") {
+            await loadStaffs();
+        } else {
+            await loadServices();
+        }
+        syncActiveArchiveSelection(type, selectedIds);
+
+        if (failures.length) {
+            console.error(`Some ${type} records could not be archived:`, failures);
+            alert(
+                `${archivedCount} archived; ${failures.length} failed.\n` +
+                failures.join("\n")
+            );
+        } else {
+            alert(`${archivedCount} ${noun}(s) moved to the archive.`);
+        }
+    });
+}
+
+setupActiveArchiveSelection("staff", selectedStaffIds);
+setupActiveArchiveSelection("services", selectedServiceIds);
 
 function showAppointmentConfirmation(message) {
     return new Promise((resolve) => {
