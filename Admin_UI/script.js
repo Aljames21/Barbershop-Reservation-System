@@ -1712,7 +1712,45 @@ document.addEventListener("click", async (event) => {
 });
 
 
+// ===== SERVICES SEARCH AND FILTERS =====
 
+function getFilteredServices() {
+    const search = (
+        document.getElementById("services-search")?.value || ""
+    ).trim().toLowerCase();
+
+    const status = (
+        document.getElementById("services-status-filter")?.value || "all"
+    ).toLowerCase();
+
+    const sort = document.getElementById("services-price-sort")?.value
+        || "default";
+
+    const list = data.services.filter(service => {
+        const searchableText = [
+            service.name || "",
+            service.description || ""
+        ].join(" ").toLowerCase();
+
+        const matchesSearch = searchableText.includes(search);
+
+        const matchesStatus =
+            status === "all" ||
+            String(service.status || "Active").toLowerCase() === status;
+
+        return matchesSearch && matchesStatus;
+    });
+
+    if (sort === "low-high") {
+        list.sort((a, b) => Number(a.price) - Number(b.price));
+    }
+
+    if (sort === "high-low") {
+        list.sort((a, b) => Number(b.price) - Number(a.price));
+    }
+
+    return list;
+}
 
 function render() {
     const rows = document.getElementById("rows");
@@ -1902,7 +1940,7 @@ if (page === "staffs" && rows) {
 
 // ===== SERVICES PAGE =====
 if (page === "services" && rows) {
-    const list = [...data.services];
+    const list = getFilteredServices();
     const controller = createPageController("services-pagination");
 
     if (controller) {
@@ -1942,7 +1980,7 @@ if (page === "services" && rows) {
         return;
     }
 
-    rows.innerHTML = data.services.map(s => `
+    rows.innerHTML = list.map(s => `
             <tr>
                 <td>
                     <input
@@ -2012,6 +2050,37 @@ function commit() { save(); render(); }
 /* ===== Button clicks ===== */
 function start() {
     console.log("DEBUG: start() called");
+
+    // ===== SERVICES FILTER EVENTS =====
+
+if (page === "services") {
+    const searchInput = document.getElementById("services-search");
+    const statusFilter = document.getElementById("services-status-filter");
+    const priceSort = document.getElementById("services-price-sort");
+    const clearButton = document.getElementById("services-clear-filters");
+
+    function applyServiceFilters() {
+        const controller = createPageController("services-pagination");
+
+        if (controller) {
+            controller.goTo(1);
+        }
+
+        render();
+    }
+
+    searchInput?.addEventListener("input", applyServiceFilters);
+    statusFilter?.addEventListener("change", applyServiceFilters);
+    priceSort?.addEventListener("change", applyServiceFilters);
+
+    clearButton?.addEventListener("click", () => {
+        if (searchInput) searchInput.value = "";
+        if (statusFilter) statusFilter.value = "all";
+        if (priceSort) priceSort.value = "default";
+
+        applyServiceFilters();
+    });
+}
 
 if (page === "appointments") {
 

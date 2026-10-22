@@ -179,49 +179,6 @@
   </div>
 
 </main>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const passwordIds = [
-    "password",
-    "signup-password",
-    "new-password",
-    "confirm-password"
-  ];
-
-  passwordIds.forEach((id) => {
-    const input = document.getElementById(id);
-
-    if (!input) return;
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "password-wrapper";
-
-    input.parentNode.insertBefore(wrapper, input);
-    wrapper.appendChild(input);
-
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.className = "password-toggle";
-    toggle.setAttribute("aria-label", "Show password");
-    toggle.setAttribute("aria-pressed", "false");
-    toggle.textContent = "Show";
-
-    toggle.addEventListener("click", () => {
-      const isHidden = input.type === "password";
-
-      input.type = isHidden ? "text" : "password";
-      toggle.textContent = isHidden ? "Hide" : "Show";
-      toggle.setAttribute(
-        "aria-label",
-        isHidden ? "Hide password" : "Show password"
-      );
-      toggle.setAttribute("aria-pressed", String(isHidden));
-    });
-
-    wrapper.appendChild(toggle);
-  });
-});
-</script>
 
 
 <script src="login.js"></script>

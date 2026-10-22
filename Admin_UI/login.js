@@ -34,13 +34,47 @@ document.querySelectorAll("[data-switch]").forEach((btn) => {
 });
 
 
-document.querySelectorAll('.pw-check input[type="checkbox"]').forEach((box) => {
-  box.addEventListener("change", () => {
-    const input = document.getElementById(box.dataset.target);
-    if (input) {
-      input.type = box.checked ? "text" : "password";
+// SHOW PASSWORD CHECKBOXES
+
+const passwordFields = [
+    "password",
+    "signup-password",
+    "new-password",
+    "confirm-password"
+];
+
+passwordFields.forEach((id) => {
+    const input = document.getElementById(id);
+
+    if (!input) return;
+
+    // Prevent duplicate checkboxes.
+    if (document.getElementById(`${id}-show`)) return;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "pw-check";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = `${id}-show`;
+
+    const label = document.createElement("label");
+    label.htmlFor = checkbox.id;
+    label.textContent = "Show password";
+
+    checkbox.addEventListener("change", () => {
+        input.type = checkbox.checked ? "text" : "password";
+    });
+
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(label);
+
+    // Place checkbox immediately after password input.
+    const parent = input.closest("label");
+
+    if (parent) {
+        parent.insertAdjacentElement("afterend", wrapper);
     }
-  });
 });
 
 
@@ -163,6 +197,24 @@ const forgotForm = document.getElementById("forgot-form");
 if (forgotLink) {
   forgotLink.addEventListener("click", (event) => {
     event.preventDefault();
+
+    // Reset the Forgot Password form every time it opens.
+    document.getElementById("forgot-form").reset();
+
+    const verifyForm = document.getElementById("verify-form");
+
+    if (verifyForm) {
+      verifyForm.reset();
+      verifyForm.style.display = "none";
+    }
+
+    document.getElementById("forgot-message").textContent = "";
+    document.getElementById("reset-message").textContent = "";
+
+    // Return scroll position to the top.
+    forgotPanel.scrollTop = 0;
+    forgotPanel.classList.remove("show-verification");
+    // Show only Email and Send Code.
     setMode("forgot");
   });
 }
@@ -206,7 +258,11 @@ if (forgotForm) {
             message.textContent =
             data.message + " Check your inbox and spam folder.";
 
+             forgotPanel.classList.add("show-verification");
+
              document.getElementById("verify-form").style.display = "block";
+
+             forgotPanel.scrollTop = 0;
 
         } catch (error) {
             console.error("Forgot password error:", error);
