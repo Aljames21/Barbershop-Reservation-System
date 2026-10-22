@@ -290,6 +290,59 @@ body[data-page="services"] .table-wrap td:last-child button {
   overflow: visible;
 }
 
+body[data-page="feedback"] .main {
+  min-width: 0;
+}
+
+body[data-page="feedback"] .feedback-table-wrap {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+body[data-page="feedback"] .feedback-table-wrap table {
+  min-width: 1000px;
+}
+
+body[data-page="feedback"] .feedback-table-wrap th:nth-child(1),
+body[data-page="feedback"] .feedback-table-wrap td:nth-child(1) {
+  width: 6%;
+}
+
+body[data-page="feedback"] .feedback-table-wrap th:nth-child(2),
+body[data-page="feedback"] .feedback-table-wrap td:nth-child(2) {
+  width: 16%;
+}
+
+body[data-page="feedback"] .feedback-table-wrap th:nth-child(3),
+body[data-page="feedback"] .feedback-table-wrap td:nth-child(3) {
+  width: 8%;
+}
+
+body[data-page="feedback"] .feedback-table-wrap th:nth-child(4),
+body[data-page="feedback"] .feedback-table-wrap td:nth-child(4) {
+  width: 21%;
+}
+
+body[data-page="feedback"] .feedback-table-wrap th:nth-child(5),
+body[data-page="feedback"] .feedback-table-wrap td:nth-child(5) {
+  width: 11%;
+}
+
+body[data-page="feedback"] .feedback-table-wrap th:nth-child(6),
+body[data-page="feedback"] .feedback-table-wrap td:nth-child(6) {
+  width: 11%;
+}
+
+body[data-page="feedback"] .feedback-table-wrap th:nth-child(7),
+body[data-page="feedback"] .feedback-table-wrap td:nth-child(7) {
+  width: 10%;
+}
+
+body[data-page="feedback"] .feedback-table-wrap th:nth-child(8),
+body[data-page="feedback"] .feedback-table-wrap td:nth-child(8) {
+  width: 17%;
+}
+
 body[data-page="feedback-archive"] .feedback-table-wrap {
   max-height: none;
   overflow-x: auto;
@@ -776,12 +829,29 @@ dialog select {
   width: 32px;
   height: 32px;
   margin-right: 8px;
+  flex: 0 0 32px;
   place-items: center;
   border-radius: 50%;
   background: #343943;
   color: #e7bd79;
   font-size: 12px;
   font-weight: bold;
+}
+
+body[data-page="feedback"] .feedback-customer-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+body[data-page="feedback"] .feedback-customer-cell .feedback-initials {
+  margin-right: 0;
+}
+
+body[data-page="feedback"] .feedback-customer-cell > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .feedback-admin-stars {

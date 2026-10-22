@@ -255,8 +255,10 @@ function renderFeedback(feedback) {
           >
         </td>
         <td>
-          <span class="feedback-initials">${escapeHtml(initialsFor(name))}</span>
-          ${escapeHtml(name)}
+          <div class="feedback-customer-cell">
+            <span class="feedback-initials">${escapeHtml(initialsFor(name))}</span>
+            <span>${escapeHtml(name)}</span>
+          </div>
         </td>
         <td><span class="feedback-admin-stars" aria-label="${escapeHtml(item.rating)} out of 5 stars">${"★".repeat(Math.max(0, Math.min(5, Number(item.rating) || 0)))}</span></td>
         <td class="feedback-comment-cell">${escapeHtml(item.comment)}</td>
