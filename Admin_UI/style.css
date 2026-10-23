@@ -2275,6 +2275,92 @@ body[data-page="archives"] #feedback-rows .feedback-comment-cell {
   line-height: 1.5 !important;
 }
 
+body[data-page="archives"] #archived-feedback-section table {
+  width: 100%;
+  min-width: 1000px;
+  table-layout: fixed;
+}
+
+body[data-page="archives"] #archived-feedback-section table th:nth-child(1),
+body[data-page="archives"] #archived-feedback-section table td:nth-child(1) {
+  width: 5%;
+  text-align: center;
+}
+
+body[data-page="archives"] #archived-feedback-section table th:nth-child(2),
+body[data-page="archives"] #archived-feedback-section table td:nth-child(2) {
+  width: 18%;
+}
+
+body[data-page="archives"] #archived-feedback-section table th:nth-child(3),
+body[data-page="archives"] #archived-feedback-section table td:nth-child(3) {
+  width: 10%;
+}
+
+body[data-page="archives"] #archived-feedback-section table th:nth-child(4),
+body[data-page="archives"] #archived-feedback-section table td:nth-child(4) {
+  width: 27%;
+}
+
+body[data-page="archives"] #archived-feedback-section table th:nth-child(5),
+body[data-page="archives"] #archived-feedback-section table td:nth-child(5) {
+  width: 12%;
+}
+
+body[data-page="archives"] #archived-feedback-section table th:nth-child(6),
+body[data-page="archives"] #archived-feedback-section table td:nth-child(6) {
+  width: 12%;
+}
+
+body[data-page="archives"] #archived-feedback-section table th:nth-child(7),
+body[data-page="archives"] #archived-feedback-section table td:nth-child(7) {
+  width: 16%;
+}
+
+body[data-page="archives"] #archived-feedback-section table th,
+body[data-page="archives"] #archived-feedback-section table td {
+  padding: 12px 10px;
+  text-align: left;
+}
+
+body[data-page="archives"] #archived-feedback-section table td:nth-child(3),
+body[data-page="archives"] #archived-feedback-section table td:nth-child(7) {
+  text-align: center;
+}
+
+body[data-page="archives"] #archived-feedback-section .feedback-customer-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+body[data-page="archives"]
+  #archived-feedback-section
+  .feedback-customer-cell
+  .feedback-initials {
+  margin-right: 0;
+}
+
+body[data-page="archives"]
+  #archived-feedback-section
+  .feedback-customer-cell
+  > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+body[data-page="archives"] #archived-feedback-section .feedback-comment-cell {
+  min-width: 220px;
+  max-width: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+body[data-page="archives"] #archived-feedback-section .feedback-admin-stars {
+  white-space: nowrap;
+}
+
 /* Status badges */
 body[data-page="appointments"] table .tag,
 body[data-page="archives"] table .tag {
@@ -2678,26 +2764,24 @@ body[data-page="feedback"] .table-wrap td:last-child {
   white-space: nowrap;
 }
 
-
 /* Services Management - Status Badges */
 
 body[data-page="services"] .service-status {
-    display: inline-block;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    text-align: center;
-    min-width: 75px;
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  min-width: 75px;
 }
 
 body[data-page="services"] .service-status.active {
-    background-color: #16803d;
-    color: #ffffff;
+  background-color: #16803d;
+  color: #ffffff;
 }
 
 body[data-page="services"] .service-status.inactive {
-    background-color: #b91c1c;
-    color: #ffffff;
+  background-color: #b91c1c;
+  color: #ffffff;
 }
-

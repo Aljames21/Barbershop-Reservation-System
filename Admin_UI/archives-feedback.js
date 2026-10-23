@@ -145,8 +145,10 @@
           </td>
 
           <td>
-            <span class="feedback-initials">${escapeHtml(initialsFor(name))}</span>
-            ${escapeHtml(name)}
+            <div class="feedback-customer-cell">
+              <span class="feedback-initials">${escapeHtml(initialsFor(name))}</span>
+              <span>${escapeHtml(name)}</span>
+            </div>
           </td>
 
           <td>
