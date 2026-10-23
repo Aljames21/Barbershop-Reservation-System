@@ -43,6 +43,13 @@ body {
   font-size: 20px;
   margin: 0 0 28px 8px;
 }
+
+.sidebar a img[src*="archive.png"] {
+  background-color: #fff;
+  border-radius: 4px;
+  padding: 2px;
+}
+
 .sidebar a img {
   width: 20px;
   height: 20px;
@@ -2463,210 +2470,210 @@ body[data-page="archives"]
 /* SHOW PASSWORD CHECKBOX */
 
 .pw-check {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    margin-top: 9px;
-    margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 9px;
+  margin-bottom: 16px;
 }
 
 .pw-check input[type="checkbox"] {
-    appearance: none;
-    -webkit-appearance: none;
+  appearance: none;
+  -webkit-appearance: none;
 
-    width: 17px;
-    height: 17px;
-    min-width: 17px;
+  width: 17px;
+  height: 17px;
+  min-width: 17px;
 
-    margin: 0;
-    padding: 0;
+  margin: 0;
+  padding: 0;
 
-    border: 1.5px solid #a77d3c;
-    border-radius: 4px;
-    background: #fff;
+  border: 1.5px solid #a77d3c;
+  border-radius: 4px;
+  background: #fff;
 
-    cursor: pointer;
-    position: relative;
+  cursor: pointer;
+  position: relative;
 }
 
 .pw-check input[type="checkbox"]:checked {
-    background: #a77d3c;
-    border-color: #a77d3c;
+  background: #a77d3c;
+  border-color: #a77d3c;
 }
 
 .pw-check input[type="checkbox"]:checked::after {
-    content: "✓";
-    position: absolute;
-    top: -3px;
-    left: 3px;
-    color: #111;
-    font-size: 15px;
-    font-weight: bold;
+  content: "✓";
+  position: absolute;
+  top: -3px;
+  left: 3px;
+  color: #111;
+  font-size: 15px;
+  font-weight: bold;
 }
 
 .pw-check input[type="checkbox"]:focus-visible {
-    outline: 2px solid #fff;
-    outline-offset: 3px;
+  outline: 2px solid #fff;
+  outline-offset: 3px;
 }
 
 .pw-check label {
-    display: inline;
-    width: auto;
-    margin: 0;
-    padding: 0;
+  display: inline;
+  width: auto;
+  margin: 0;
+  padding: 0;
 
-    color: #ddd;
-    font-size: 13px;
-    font-weight: 400;
+  color: #ddd;
+  font-size: 13px;
+  font-weight: 400;
 
-    cursor: pointer;
+  cursor: pointer;
 }
 
 /* SERVICES SEARCH AND FILTERS */
 
 .services-filter-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 16px 0;
 }
 
 .services-search {
-    flex: 1 1 280px;
+  flex: 1 1 280px;
 }
 
 .services-search input {
-    width: 100%;
-    height: 42px;
-    padding: 0 14px;
-    border: 1px solid #a67c3b;
-    border-radius: 8px;
-    background: #171717;
-    color: #fff;
-    font-size: 14px;
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid #a67c3b;
+  border-radius: 8px;
+  background: #171717;
+  color: #fff;
+  font-size: 14px;
 }
 
 .services-filter-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .services-filter-group select,
 #services-clear-filters {
-    height: 42px;
-    padding: 0 12px;
-    border: 1px solid #a67c3b;
-    border-radius: 8px;
-    background: #171717;
-    color: #fff;
-    font-size: 14px;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #a67c3b;
+  border-radius: 8px;
+  background: #171717;
+  color: #fff;
+  font-size: 14px;
 }
 
 #services-clear-filters {
-    cursor: pointer;
-    background: #a67c3b;
-    color: #111;
-    font-weight: 600;
+  cursor: pointer;
+  background: #a67c3b;
+  color: #111;
+  font-weight: 600;
 }
 
 #services-clear-filters:hover {
-    background: #c49a55;
+  background: #c49a55;
 }
 
 .services-search input:focus,
 .services-filter-group select:focus {
-    outline: 2px solid #c49a55;
-    outline-offset: 2px;
+  outline: 2px solid #c49a55;
+  outline-offset: 2px;
 }
 
 @media (max-width: 768px) {
-    .services-filter-toolbar,
-    .services-filter-group {
-        flex-direction: column;
-        align-items: stretch;
-    }
+  .services-filter-toolbar,
+  .services-filter-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-    .services-search {
-        flex: 1 1 auto;
-        width: 100%;
-    }
+  .services-search {
+    flex: 1 1 auto;
+    width: 100%;
+  }
 
-    .services-filter-group select,
-    #services-clear-filters {
-        width: 100%;
-    }
+  .services-filter-group select,
+  #services-clear-filters {
+    width: 100%;
+  }
 }
 
 /* SERVICES - SELECT ALL ALIGNMENT */
 
 body[data-page="services"] .archive-bulk-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
-    margin: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin: 16px 0;
 }
 
 body[data-page="services"] .archive-select-all-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    white-space: nowrap;
-    cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 body[data-page="services"] #select-all-active-services {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-    flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 body[data-page="services"] #active-services-selected-count {
-    display: inline-flex;
-    align-items: center;
-    white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 body[data-page="services"] #archive-selected-services {
-    margin: 0;
+  margin: 0;
 }
 /* FEEDBACK TABLE LAYOUT FIX */
 
 body[data-page="feedback"] .main {
-    min-width: 0;
-    overflow-x: hidden;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 body[data-page="feedback"] .table-wrap {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 body[data-page="feedback"] .table-wrap table {
-    width: 100%;
-    min-width: 1000px;
-    table-layout: auto;
+  width: 100%;
+  min-width: 1000px;
+  table-layout: auto;
 }
 
 body[data-page="feedback"] .table-wrap th,
 body[data-page="feedback"] .table-wrap td {
-    vertical-align: middle;
-    padding: 12px 14px;
+  vertical-align: middle;
+  padding: 12px 14px;
 }
 
 body[data-page="feedback"] .table-wrap td {
-    overflow-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 body[data-page="feedback"] .table-wrap th:last-child,
 body[data-page="feedback"] .table-wrap td:last-child {
-    min-width: 130px;
-    white-space: nowrap;
+  min-width: 130px;
+  white-space: nowrap;
 }
