@@ -39,11 +39,24 @@ phoneNumber: {
 
     message:String,
 
-    status:{
-        type:String,
-        default:"Pending"
+    status: {
+    type: String,
+    default: "Pending"
     },
-
+    
+// Tracks appointments affected by barber unavailability
+        availabilityIssue: {
+        type: Boolean,
+        default: false
+    },
+    availabilityIssueReason: {
+        type: String,
+        default: ""
+    },
+    availabilityIssueAt: {
+        type: Date,
+        default: null
+    },
 
     isArchived: {
         type: Boolean,
