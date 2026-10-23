@@ -23,6 +23,7 @@ const mongoose = require("mongoose");
 const { verifyOtpToken } = require("../Utils/otpToken");
 const UsedOtpToken = require("../Models/UsedOtpToken");
 const Service = require("../Models/Service");
+const BarberUnavailability = require("../Models/BarberUnavailability");
 
 
 function normalizeCustomerEmail(email) {
@@ -448,6 +449,7 @@ router.post("/:id/feedback", feedbackRateLimit, async (req, res) => {
 
 
 /* GET BOOKING AVAILABILITY FOR A DATE */
+
 router.get("/availability/:date", async (req, res) => {
     try {
         const { date } = req.params;
@@ -462,24 +464,47 @@ router.get("/availability/:date", async (req, res) => {
         // Get active barbers
         const barbers = await Barber.find({
             status: { $in: ["Active", "Available"] }
-        }).select("name status").sort({ name: 1 });
+        })
+            .select("name status")
+            .sort({ name: 1 });
 
         // Get appointments for the selected date
         const appointments = await Appointment.find({
             date,
-           status: { $nin: ["Cancelled", "Declined", "Completed"] }
+            status: {
+                $nin: ["Cancelled", "Declined", "Completed"]
+            }
         }).select("barber time status");
 
-        // Return each barber's booked times
-        const availability = barbers.map((barber) => ({
-            name: barber.name,
-            bookedTimes: appointments
-                .filter((appointment) =>
-                    appointment.barber?.trim().toLowerCase() ===
-                    barber.name.trim().toLowerCase()
-                )
-                .map((appointment) => appointment.time)
-        }));
+        // Get active barber unavailability records for this date
+        const unavailableSlots = await BarberUnavailability.find({
+            date,
+            isActive: true
+        }).select("barber time");
+
+        // Return booked and unavailable times for each barber
+        const availability = barbers.map((barber) => {
+            const normalizedBarberName =
+                barber.name.trim().toLowerCase();
+
+            return {
+                name: barber.name,
+
+                bookedTimes: appointments
+                    .filter((appointment) =>
+                        appointment.barber?.trim().toLowerCase() ===
+                        normalizedBarberName
+                    )
+                    .map((appointment) => appointment.time),
+
+                unavailableTimes: unavailableSlots
+                    .filter((slot) =>
+                        slot.barber?.trim().toLowerCase() ===
+                        normalizedBarberName
+                    )
+                    .map((slot) => slot.time)
+            };
+        });
 
         return res.json({
             date,
@@ -494,6 +519,202 @@ router.get("/availability/:date", async (req, res) => {
         });
     }
 });
+
+
+
+/* ===== RECORD BARBER UNAVAILABILITY ===== */
+
+router.post("/availability/unavailable", verifyAdmin, async (req, res) => {
+    try {
+        const { barber, date, time, reason } = req.body || {};
+
+        if (
+            typeof barber !== "string" ||
+            !barber.trim() ||
+            typeof reason !== "string" ||
+            !reason.trim() ||
+            typeof time !== "string" ||
+            !time.trim()
+        ) {
+            return res.status(400).json({
+                message: "Please provide the barber, time, and reason."
+            });
+        }
+
+        const dateTimeError = validateAppointmentDateTime(date, time);
+
+        if (dateTimeError) {
+            return res.status(400).json({
+                message: dateTimeError
+            });
+        }
+
+        const escapedName = barber.trim().replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+        );
+
+        const selectedBarber = await Barber.findOne({
+            name: {
+                $regex: `^${escapedName}$`,
+                $options: "i"
+            }
+        });
+
+        if (!selectedBarber) {
+            return res.status(404).json({
+                message: "Barber not found."
+            });
+        }
+
+        const normalizedBarber =
+            selectedBarber.name.trim().toLowerCase();
+
+        const normalizedTime = time.trim();
+
+        const existing = await BarberUnavailability.findOne({
+            barber: normalizedBarber,
+            date,
+            time: normalizedTime,
+            isActive: true
+        });
+
+        if (existing) {
+            return res.status(409).json({
+                message: "This barber is already marked unavailable for that slot."
+            });
+        }
+
+        await BarberUnavailability.create({
+            barber: normalizedBarber,
+            date,
+            time: normalizedTime,
+            reason: reason.trim()
+        });
+
+        const appointments = await Appointment.find({
+            date,
+            time: normalizedTime,
+            status: { $in: ["Pending", "Confirmed"] },
+            isArchived: { $ne: true }
+        }).select("_id barber");
+
+        const affectedIds = appointments
+            .filter(appointment =>
+                appointment.barber?.trim().toLowerCase() === normalizedBarber
+            )
+            .map(appointment => appointment._id);
+
+        if (affectedIds.length > 0) {
+            await Appointment.updateMany(
+                { _id: { $in: affectedIds } },
+                {
+                    $set: {
+                        availabilityIssue: true,
+                        availabilityIssueReason: reason.trim(),
+                        availabilityIssueAt: new Date()
+                    }
+                }
+            );
+        }
+
+        return res.status(201).json({
+            message: "Unavailability saved. Affected appointments were flagged for admin review.",
+            affectedCount: affectedIds.length
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "This barber is already marked unavailable for that slot."
+            });
+        }
+
+        console.error("Record barber unavailability error:", error);
+
+        return res.status(500).json({
+            message: "Unable to save barber unavailability."
+        });
+    }
+});
+
+
+/* ===== GET APPOINTMENTS NEEDING AVAILABILITY REVIEW ===== */
+
+router.get("/availability/issues", verifyAdmin, async (req, res) => {
+    try {
+        const appointments = await Appointment.find({
+            availabilityIssue: true,
+            status: { $in: ["Pending", "Confirmed"] },
+            isArchived: { $ne: true }
+        }).sort({ availabilityIssueAt: -1 });
+
+        return res.json({
+            count: appointments.length,
+            appointments
+        });
+    } catch (error) {
+        console.error("Fetch availability issues error:", error);
+
+        return res.status(500).json({
+            message: "Unable to load appointments needing review."
+        });
+    }
+});
+
+
+/* ===== RESOLVE AVAILABILITY ISSUE ===== */
+
+router.patch(
+    "/availability/issues/:id/resolve",
+    verifyAdmin,
+    async (req, res) => {
+        try {
+            const { id } = req.params;
+
+            if (!mongoose.isValidObjectId(id)) {
+                return res.status(400).json({
+                    message: "Invalid appointment ID."
+                });
+            }
+
+            const appointment = await Appointment.findOne({
+                _id: id,
+                availabilityIssue: true,
+                status: { $in: ["Pending", "Confirmed"] },
+                isArchived: { $ne: true }
+            });
+
+            if (!appointment) {
+                return res.status(404).json({
+                    message: "Appointment needing review was not found."
+                });
+            }
+
+            appointment.availabilityIssue = false;
+            appointment.availabilityIssueReason = "";
+            appointment.availabilityIssueAt = null;
+
+            await appointment.save();
+
+            return res.json({
+                message: "Availability issue marked as resolved.",
+                appointment
+            });
+        } catch (error) {
+            console.error("Resolve availability issue error:", error);
+
+            return res.status(500).json({
+                message: "Unable to resolve availability issue."
+            });
+        }
+    }
+);
+
+
+
+
+
+
 
 
 /* ===== BULK ARCHIVE APPOINTMENTS ===== */
@@ -844,7 +1065,7 @@ router.get("/:id", async (req, res) => {
 router.post("/", async (req, res) => {
     console.log("POST APPOINTMENT RECEIVED");
 
-    try {
+    try {   
 
 // Verify textbee phone OTP token
 const authHeader = req.get("Authorization") || "";
@@ -947,11 +1168,25 @@ try {
             }
         }).select("barber");
 
-        const occupiedNames = new Set(
-            occupiedAppointments.map(a =>
-                String(a.barber || "").trim().toLowerCase()
+        const unavailableSlots = await BarberUnavailability.find({
+            date,
+            time: time.trim(),
+            isActive: true
+        });
+
+
+        const unavailableNames = new Set(
+            unavailableSlots.map(slot =>
+                slot.barber.trim().toLowerCase()
             )
         );
+
+            const occupiedNames = new Set([
+        ...occupiedAppointments.map(appointment =>
+            String(appointment.barber || "").trim().toLowerCase()
+        ),
+        ...unavailableNames
+    ]);
 
         let assignedBarber;
 
@@ -1061,13 +1296,22 @@ await UsedOtpToken.create(
                     .select("barber")
                     .session(session);
 
-                const occupiedNames = new Set(
-                    occupiedAppointments.map((appointment) =>
-                        String(appointment.barber || "")
-                            .trim()
-                            .toLowerCase()
-                    )
+                const unavailableSlots = await BarberUnavailability.find({
+                    date,
+                    time: time.trim(),
+                    isActive: true
+                }).session(session);
+
+                const unavailableNames = unavailableSlots.map(slot =>
+                    slot.barber.trim().toLowerCase()
                 );
+
+                const occupiedNames = new Set([
+                    ...occupiedAppointments.map(appointment =>
+                        String(appointment.barber || "").trim().toLowerCase()
+                    ),
+                    ...unavailableNames
+                ]);
 
 
             const customerConflict = await findCustomerBookingConflict({
@@ -1455,6 +1699,22 @@ if (!service) {
 
             const normalizedBarber = barber.name.trim().toLowerCase();
 
+                        const unavailableSlot = await BarberUnavailability.findOne({
+                barber: normalizedBarber,
+                date: nextDate,
+                time: String(nextTime).trim(),
+                isActive: true
+            }).session(session);
+
+            if (unavailableSlot) {
+                const error = new Error(
+                    "This barber is unavailable for the selected date and time. Please choose another schedule."
+                );
+
+                error.statusCode = 409;
+                throw error;
+            }
+            
             // Reserve the new slot first. The unique index prevents
             // another appointment from taking the same barber/date/time.
             const sameSlot =
@@ -1700,6 +1960,23 @@ if (!["Pending", "Confirmed"].includes(existing.status)) {
             }
 
             const normalizedBarber = barber.name.trim().toLowerCase();
+
+                        
+            const unavailableSlot = await BarberUnavailability.findOne({
+                barber: normalizedBarber,
+                date: nextDate,
+                time: String(nextTime).trim(),
+                isActive: true
+            }).session(session);
+
+            if (unavailableSlot) {
+                const error = new Error(
+                    "This barber is unavailable for the selected date and time. Please choose another schedule."
+                );
+                error.statusCode = 409;
+                throw error;
+            }
+
 
             const sameSlot =
                 existing.date === nextDate &&
