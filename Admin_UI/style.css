@@ -708,13 +708,24 @@ body[data-page="login-activity"] #reset-activity-filters:hover {
 }
 
 body[data-page="login-activity"] .table-wrap table {
+  width: 100%;
+  min-width: 0;
   table-layout: fixed;
+}
+
+body[data-page="login-activity"] .main {
+  min-width: 0;
+}
+
+body[data-page="login-activity"] .table-wrap {
+  overflow-x: hidden;
 }
 
 body[data-page="login-activity"] .table-wrap th,
 body[data-page="login-activity"] .table-wrap td {
   text-align: center;
   vertical-align: middle;
+  overflow-wrap: anywhere;
 }
 
 .visually-hidden {

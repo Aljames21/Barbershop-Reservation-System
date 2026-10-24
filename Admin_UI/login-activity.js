@@ -9,7 +9,7 @@ const searchInput = document.getElementById("activity-search");
 const dateFilter = document.getElementById("activity-date-filter");
 const resetFiltersButton = document.getElementById("reset-activity-filters");
 
-const limit = 25;
+const limit = 10;
 let currentPage = 1;
 let totalPages = 1;
 let searchTimer;
